@@ -140,6 +140,41 @@ export type Database = {
           },
         ]
       }
+      cylinder_head_components: {
+        Row: {
+          component_type: string
+          created_at: string
+          cylinder_head_id: string
+          horimeter_at_replacement: number
+          id: string
+          replacement_date: string
+        }
+        Insert: {
+          component_type: string
+          created_at?: string
+          cylinder_head_id: string
+          horimeter_at_replacement?: number
+          id?: string
+          replacement_date?: string
+        }
+        Update: {
+          component_type?: string
+          created_at?: string
+          cylinder_head_id?: string
+          horimeter_at_replacement?: number
+          id?: string
+          replacement_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cylinder_head_components_cylinder_head_id_fkey"
+            columns: ["cylinder_head_id"]
+            isOneToOne: false
+            referencedRelation: "cylinder_heads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cylinder_head_installations: {
         Row: {
           created_at: string

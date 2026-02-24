@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
-import { useCylinderHeadStore, cylinderHeadStatusLabels } from '@/hooks/useCylinderHeadStore';
+import { useCylinderHeadStore, cylinderHeadStatusLabels, cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
-import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
+import type { CylinderHeadMetrics, CylinderHeadComponent } from '@/hooks/useCylinderHeadStore';
 
 function fmtNum(n: number): string {
   return n.toLocaleString('pt-BR');
@@ -39,6 +39,7 @@ export default function CylinderHeadsPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   const [maintOpen, setMaintOpen] = useState(false);
   const [batchMaintOpen, setBatchMaintOpen] = useState(false);
+  const [compOpen, setCompOpen] = useState(false);
 
   // Form states
   const [serialNumber, setSerialNumber] = useState('');
@@ -56,13 +57,20 @@ export default function CylinderHeadsPage() {
   const [batchHorimeter, setBatchHorimeter] = useState('');
   const [batchDate, setBatchDate] = useState('');
 
+  // Component replacement states
+  const [compTypes, setCompTypes] = useState<string[]>([]);
+  const [compDate, setCompDate] = useState('');
+  const [compHorimeter, setCompHorimeter] = useState('');
+
   const heads = store.cylinderHeads.data || [];
   const allInstallations = store.installations.data || [];
   const allMaintenances = store.maintenances.data || [];
+  const allComponents = store.headComponents.data || [];
 
   const selectedHead = heads.find(h => h.id === detailId);
   const headInstallations = allInstallations.filter(i => i.cylinder_head_id === detailId);
   const headMaintenances = allMaintenances.filter(m => m.cylinder_head_id === detailId);
+  const headComps = allComponents.filter(c => c.cylinder_head_id === detailId);
 
   const metrics = useQuery({
     queryKey: ['cylinder_head_metrics', detailId],
@@ -175,6 +183,39 @@ export default function CylinderHeadsPage() {
   };
 
   const metricsData = metrics.data as CylinderHeadMetrics | undefined;
+
+  const handleAddComponents = async () => {
+    if (!detailId || compTypes.length === 0) return;
+    const dateVal = compDate || new Date().toISOString().split('T')[0];
+    const horimeterVal = Number(compHorimeter) || 0;
+    try {
+      const rows = compTypes.map(ct => ({
+        cylinder_head_id: detailId,
+        component_type: ct,
+        replacement_date: dateVal,
+        horimeter_at_replacement: horimeterVal,
+      }));
+      await store.addHeadComponentsBatch.mutateAsync(rows);
+      toast.success(`Troca registrada para ${compTypes.length} item(ns)!`);
+      setCompTypes([]);
+      setCompDate('');
+      setCompHorimeter('');
+      setCompOpen(false);
+    } catch {
+      toast.error('Erro ao registrar troca de componente.');
+    }
+  };
+
+  // Get latest replacement per component type for a given head
+  const getLatestReplacements = () => {
+    const latest: Record<string, CylinderHeadComponent> = {};
+    headComps.forEach(c => {
+      if (!latest[c.component_type] || new Date(c.replacement_date) > new Date(latest[c.component_type].replacement_date)) {
+        latest[c.component_type] = c;
+      }
+    });
+    return latest;
+  };
 
   return (
     <AppLayout>
@@ -370,11 +411,69 @@ export default function CylinderHeadsPage() {
                 </div>
               )}
 
-              <Tabs defaultValue="history" className="space-y-4">
+              <Tabs defaultValue="components" className="space-y-4">
                 <TabsList>
+                  <TabsTrigger value="components">Componentes</TabsTrigger>
                   <TabsTrigger value="history">Histórico de Instalações</TabsTrigger>
                   <TabsTrigger value="maintenances">Manutenções</TabsTrigger>
                 </TabsList>
+
+                <TabsContent value="components">
+                  <div className="flex justify-end mb-3">
+                    <Button size="sm" onClick={() => { setCompTypes([]); setCompDate(''); setCompHorimeter(''); setCompOpen(true); }}>
+                      <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Registrar Troca
+                    </Button>
+                  </div>
+                  {(() => {
+                    const latest = getLatestReplacements();
+                    return (
+                      <div className="space-y-2">
+                        {Object.entries(cylinderHeadComponentTypes).map(([key, label]) => {
+                          const comp = latest[key];
+                          return (
+                            <div key={key} className="flex items-center justify-between py-2.5 px-3 rounded-md bg-secondary/50">
+                              <span className="text-sm font-medium">{label}</span>
+                              {comp ? (
+                                <div className="text-right">
+                                  <span className="text-sm font-mono">{format(new Date(comp.replacement_date), 'dd/MM/yyyy')}</span>
+                                  <span className="text-xs text-muted-foreground ml-2">({fmtNum(comp.horimeter_at_replacement)}h)</span>
+                                </div>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Sem registro</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Full history */}
+                  {headComps.length > 0 && (
+                    <div className="mt-4">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Histórico completo de trocas</p>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Componente</TableHead>
+                            <TableHead>Data</TableHead>
+                            <TableHead>Horímetro</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {headComps.map(c => (
+                            <TableRow key={c.id}>
+                              <TableCell className="text-sm">{cylinderHeadComponentTypes[c.component_type] || c.component_type}</TableCell>
+                              <TableCell className="font-mono text-sm">{format(new Date(c.replacement_date), 'dd/MM/yyyy')}</TableCell>
+                              <TableCell className="font-mono text-sm">{fmtNum(c.horimeter_at_replacement)}h</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  )}
+                </TabsContent>
 
                 <TabsContent value="history">
                   <Table>
@@ -535,6 +634,49 @@ export default function CylinderHeadsPage() {
             <Button variant="outline" onClick={() => setBatchMaintOpen(false)}>Cancelar</Button>
             <Button onClick={handleBatchMaintenance} disabled={store.addMaintenance.isPending || batchSelected.length === 0}>
               Registrar em {batchSelected.length} Cabeçote(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Component Replacement Dialog */}
+      <Dialog open={compOpen} onOpenChange={setCompOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Troca de Componentes</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Componentes trocados</label>
+              <div className="border rounded-md divide-y">
+                {Object.entries(cylinderHeadComponentTypes).map(([key, label]) => (
+                  <label key={key} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
+                    <Checkbox
+                      checked={compTypes.includes(key)}
+                      onCheckedChange={() => setCompTypes(prev => prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key])}
+                    />
+                    <span className="text-sm">{label}</span>
+                  </label>
+                ))}
+              </div>
+              {compTypes.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">{compTypes.length} selecionado(s)</p>
+              )}
+            </div>
+            <div>
+              <label className="text-sm font-medium">Data da Troca</label>
+              <Input type="date" value={compDate} onChange={e => setCompDate(e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar a data de hoje.</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Horímetro no momento</label>
+              <Input type="number" value={compHorimeter} onChange={e => setCompHorimeter(e.target.value)} placeholder="0" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAddComponents} disabled={store.addHeadComponentsBatch.isPending || compTypes.length === 0}>
+              Registrar {compTypes.length} Troca(s)
             </Button>
           </DialogFooter>
         </DialogContent>
