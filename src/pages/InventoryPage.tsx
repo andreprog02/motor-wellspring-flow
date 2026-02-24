@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
-import { useInventoryStore } from '@/hooks/useInventoryStore';
+import { useInventoryStore, InventoryItemDisplay } from '@/hooks/useInventoryStore';
 import { InventoryFormDialog } from '@/components/inventory/InventoryFormDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Package, Plus, Pencil, Trash2 } from 'lucide-react';
-import { InventoryItem } from '@/types/models';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -16,16 +15,16 @@ import {
 export default function InventoryPage() {
   const store = useInventoryStore();
   const [formOpen, setFormOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [editingItem, setEditingItem] = useState<InventoryItemDisplay | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const handleNew = () => { setEditingItem(null); setFormOpen(true); };
-  const handleEdit = (item: InventoryItem) => { setEditingItem(item); setFormOpen(true); };
-  const handleSave = (data: Omit<InventoryItem, 'id'>) => {
-    if (editingItem) store.updateItem(editingItem.id, data);
-    else store.addItem(data);
+  const handleEdit = (item: InventoryItemDisplay) => { setEditingItem(item); setFormOpen(true); };
+  const handleSave = (data: any) => {
+    if (editingItem) store.updateItem.mutate({ id: editingItem.id, ...data });
+    else store.addItem.mutate(data);
   };
-  const confirmDelete = () => { if (deleteId) { store.deleteItem(deleteId); setDeleteId(null); } };
+  const confirmDelete = () => { if (deleteId) { store.deleteItem.mutate(deleteId); setDeleteId(null); } };
 
   return (
     <AppLayout>
@@ -48,8 +47,8 @@ export default function InventoryPage() {
                 <TableRow>
                   <TableHead>Peça</TableHead>
                   <TableHead>Fabricante</TableHead>
+                  <TableHead>Modelo</TableHead>
                   <TableHead>Part Number</TableHead>
-                  <TableHead>Vida Útil</TableHead>
                   <TableHead>Quantidade</TableHead>
                   <TableHead>Local</TableHead>
                   <TableHead className="w-[100px]">Ações</TableHead>
@@ -57,7 +56,7 @@ export default function InventoryPage() {
               </TableHeader>
               <TableBody>
                 {store.items.map(item => {
-                  const isLow = item.quantity <= item.minStock;
+                  const isLow = item.quantity <= item.min_stock;
                   return (
                     <TableRow key={item.id}>
                       <TableCell>
@@ -66,15 +65,15 @@ export default function InventoryPage() {
                           <span className="font-medium text-sm">{item.name}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">{item.manufacturer}</TableCell>
-                      <TableCell className="font-mono text-sm">{item.partNumber}</TableCell>
-                      <TableCell className="font-mono text-sm">{item.estimatedLife.toLocaleString()}h</TableCell>
+                      <TableCell className="text-sm">{item.manufacturer_name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{item.model_name || '—'}</TableCell>
+                      <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
                       <TableCell>
                         <Badge variant={isLow ? 'destructive' : 'secondary'} className="font-mono">
-                          {item.quantity} {isLow && `(mín: ${item.minStock})`}
+                          {item.quantity} {isLow && `(mín: ${item.min_stock})`}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{item.location}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{item.location_name}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button size="icon" variant="ghost" onClick={() => handleEdit(item)}><Pencil className="h-4 w-4" /></Button>
@@ -107,6 +106,7 @@ export default function InventoryPage() {
         onSave={handleSave}
         onAddManufacturer={store.addManufacturer}
         onAddLocation={store.addLocation}
+        onAddModel={store.addModel}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>

@@ -97,12 +97,12 @@ export const maintenanceLogs: MaintenanceLog[] = [
 ];
 
 export const inventoryItems: InventoryItem[] = [
-  { id: 'inv1', name: 'Filtro de Óleo CAT 1R-0751', manufacturer: 'Caterpillar', partNumber: '1R-0751', estimatedLife: 500, quantity: 12, location: 'Almoxarifado Central', minStock: 5 },
-  { id: 'inv2', name: 'Filtro de Óleo CAT 1R-0749', manufacturer: 'Caterpillar', partNumber: '1R-0749', estimatedLife: 500, quantity: 8, location: 'Almoxarifado Central', minStock: 3 },
-  { id: 'inv3', name: 'Filtro Combustível CAT 1R-0753', manufacturer: 'Caterpillar', partNumber: '1R-0753', estimatedLife: 1000, quantity: 6, location: 'Almoxarifado Central', minStock: 3 },
-  { id: 'inv4', name: 'Filtro Cummins LF9009', manufacturer: 'Cummins', partNumber: 'LF9009', estimatedLife: 500, quantity: 2, location: 'Almoxarifado Sul', minStock: 4 },
-  { id: 'inv5', name: 'Turbo BorgWarner S400', manufacturer: 'BorgWarner', partNumber: 'S400SX-71', estimatedLife: 15000, quantity: 1, location: 'Almoxarifado Central', minStock: 1 },
-  { id: 'inv6', name: 'Cabeçote OEM C32', manufacturer: 'Caterpillar', partNumber: 'C32-HEAD-01', estimatedLife: 20000, quantity: 2, location: 'Almoxarifado Central', minStock: 1 },
+  { id: 'inv1', name: 'Filtro de Óleo CAT 1R-0751', manufacturer: 'Caterpillar', partNumber: '1R-0751', quantity: 12, location: 'Almoxarifado Central', minStock: 5 },
+  { id: 'inv2', name: 'Filtro de Óleo CAT 1R-0749', manufacturer: 'Caterpillar', partNumber: '1R-0749', quantity: 8, location: 'Almoxarifado Central', minStock: 3 },
+  { id: 'inv3', name: 'Filtro Combustível CAT 1R-0753', manufacturer: 'Caterpillar', partNumber: '1R-0753', quantity: 6, location: 'Almoxarifado Central', minStock: 3 },
+  { id: 'inv4', name: 'Filtro Cummins LF9009', manufacturer: 'Cummins', partNumber: 'LF9009', quantity: 2, location: 'Almoxarifado Sul', minStock: 4 },
+  { id: 'inv5', name: 'Turbo BorgWarner S400', manufacturer: 'BorgWarner', partNumber: 'S400SX-71', quantity: 1, location: 'Almoxarifado Central', minStock: 1 },
+  { id: 'inv6', name: 'Cabeçote OEM C32', manufacturer: 'Caterpillar', partNumber: 'C32-HEAD-01', quantity: 2, location: 'Almoxarifado Central', minStock: 1 },
 ];
 
 export function getMotorHealthScore(motorId: string): number {

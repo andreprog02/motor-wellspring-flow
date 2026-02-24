@@ -14,7 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      inventory_items: {
+        Row: {
+          created_at: string
+          id: string
+          location_id: string
+          manufacturer_id: string
+          min_stock: number
+          model_id: string | null
+          name: string
+          part_number: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location_id: string
+          manufacturer_id: string
+          min_stock?: number
+          model_id?: string | null
+          name: string
+          part_number?: string
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location_id?: string
+          manufacturer_id?: string
+          min_stock?: number
+          model_id?: string | null
+          name?: string
+          part_number?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_items_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_manufacturer_id_fkey"
+            columns: ["manufacturer_id"]
+            isOneToOne: false
+            referencedRelation: "manufacturers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_items_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "manufacturer_models"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      locations: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      manufacturer_models: {
+        Row: {
+          created_at: string
+          id: string
+          manufacturer_id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manufacturer_id: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manufacturer_id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manufacturer_models_manufacturer_id_fkey"
+            columns: ["manufacturer_id"]
+            isOneToOne: false
+            referencedRelation: "manufacturers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manufacturers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

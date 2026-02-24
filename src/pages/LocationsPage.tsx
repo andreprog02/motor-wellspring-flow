@@ -25,11 +25,11 @@ export default function LocationsPage() {
   const openEdit = (l: Location) => { setEditing(l); setName(l.name); setDialogOpen(true); };
   const save = () => {
     if (!name.trim()) return;
-    if (editing) store.updateLocation(editing.id, name.trim());
-    else store.addLocation(name.trim());
+    if (editing) store.updateLocation.mutate({ id: editing.id, name: name.trim() });
+    else store.addLocation.mutate(name.trim());
     setDialogOpen(false);
   };
-  const confirmDelete = () => { if (deleteId) { store.deleteLocation(deleteId); setDeleteId(null); } };
+  const confirmDelete = () => { if (deleteId) { store.deleteLocation.mutate(deleteId); setDeleteId(null); } };
 
   return (
     <AppLayout>

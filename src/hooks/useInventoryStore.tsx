@@ -1,6 +1,5 @@
-import { useState, useCallback, createContext, useContext, ReactNode } from 'react';
-import { InventoryItem } from '@/types/models';
-import { inventoryItems as initialItems } from '@/data/mockData';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface Manufacturer {
   id: string;
@@ -9,7 +8,7 @@ export interface Manufacturer {
 
 export interface ManufacturerModel {
   id: string;
-  manufacturerId: string;
+  manufacturer_id: string;
   name: string;
 }
 
@@ -18,116 +17,192 @@ export interface Location {
   name: string;
 }
 
-function extractManufacturers(items: InventoryItem[]): Manufacturer[] {
-  const unique = [...new Set(items.map(i => i.manufacturer))];
-  return unique.map((name, idx) => ({ id: `mfr-${idx + 1}`, name }));
+export interface InventoryItemRow {
+  id: string;
+  name: string;
+  manufacturer_id: string;
+  model_id: string | null;
+  part_number: string;
+  quantity: number;
+  min_stock: number;
+  location_id: string;
 }
 
-function extractLocations(items: InventoryItem[]): Location[] {
-  const unique = [...new Set(items.map(i => i.location))];
-  return unique.map((name, idx) => ({ id: `loc-${idx + 1}`, name }));
-}
-
-const defaultModels: ManufacturerModel[] = [
-  { id: 'mod-1', manufacturerId: 'mfr-1', name: 'C32 ACERT' },
-  { id: 'mod-2', manufacturerId: 'mfr-1', name: 'C18' },
-  { id: 'mod-3', manufacturerId: 'mfr-2', name: 'QSK60' },
-  { id: 'mod-4', manufacturerId: 'mfr-3', name: 'S400SX-71' },
-];
-
-interface InventoryStore {
-  items: InventoryItem[];
-  manufacturers: Manufacturer[];
-  models: ManufacturerModel[];
-  locations: Location[];
-  addItem: (item: Omit<InventoryItem, 'id'>) => void;
-  updateItem: (id: string, data: Partial<InventoryItem>) => void;
-  deleteItem: (id: string) => void;
-  addManufacturer: (name: string) => Manufacturer;
-  updateManufacturer: (id: string, name: string) => void;
-  deleteManufacturer: (id: string) => void;
-  addModel: (manufacturerId: string, name: string) => ManufacturerModel;
-  updateModel: (id: string, name: string) => void;
-  deleteModel: (id: string) => void;
-  addLocation: (name: string) => Location;
-  updateLocation: (id: string, name: string) => void;
-  deleteLocation: (id: string) => void;
-}
-
-const InventoryContext = createContext<InventoryStore | null>(null);
-
-export function InventoryProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<InventoryItem[]>(initialItems);
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>(extractManufacturers(initialItems));
-  const [models, setModels] = useState<ManufacturerModel[]>(defaultModels);
-  const [locations, setLocations] = useState<Location[]>(extractLocations(initialItems));
-
-  // Items
-  const addItem = useCallback((item: Omit<InventoryItem, 'id'>) => {
-    setItems(prev => [...prev, { ...item, id: `inv-${Date.now()}` }]);
-  }, []);
-  const updateItem = useCallback((id: string, data: Partial<InventoryItem>) => {
-    setItems(prev => prev.map(i => (i.id === id ? { ...i, ...data } : i)));
-  }, []);
-  const deleteItem = useCallback((id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id));
-  }, []);
-
-  // Manufacturers
-  const addManufacturer = useCallback((name: string) => {
-    const m: Manufacturer = { id: `mfr-${Date.now()}`, name };
-    setManufacturers(prev => [...prev, m]);
-    return m;
-  }, []);
-  const updateManufacturer = useCallback((id: string, name: string) => {
-    setManufacturers(prev => prev.map(m => (m.id === id ? { ...m, name } : m)));
-  }, []);
-  const deleteManufacturer = useCallback((id: string) => {
-    setManufacturers(prev => prev.filter(m => m.id !== id));
-    setModels(prev => prev.filter(m => m.manufacturerId !== id));
-  }, []);
-
-  // Models
-  const addModel = useCallback((manufacturerId: string, name: string) => {
-    const m: ManufacturerModel = { id: `mod-${Date.now()}`, manufacturerId, name };
-    setModels(prev => [...prev, m]);
-    return m;
-  }, []);
-  const updateModel = useCallback((id: string, name: string) => {
-    setModels(prev => prev.map(m => (m.id === id ? { ...m, name } : m)));
-  }, []);
-  const deleteModel = useCallback((id: string) => {
-    setModels(prev => prev.filter(m => m.id !== id));
-  }, []);
-
-  // Locations
-  const addLocation = useCallback((name: string) => {
-    const l: Location = { id: `loc-${Date.now()}`, name };
-    setLocations(prev => [...prev, l]);
-    return l;
-  }, []);
-  const updateLocation = useCallback((id: string, name: string) => {
-    setLocations(prev => prev.map(l => (l.id === id ? { ...l, name } : l)));
-  }, []);
-  const deleteLocation = useCallback((id: string) => {
-    setLocations(prev => prev.filter(l => l.id !== id));
-  }, []);
-
-  return (
-    <InventoryContext.Provider value={{
-      items, manufacturers, models, locations,
-      addItem, updateItem, deleteItem,
-      addManufacturer, updateManufacturer, deleteManufacturer,
-      addModel, updateModel, deleteModel,
-      addLocation, updateLocation, deleteLocation,
-    }}>
-      {children}
-    </InventoryContext.Provider>
-  );
+export interface InventoryItemDisplay extends InventoryItemRow {
+  manufacturer_name: string;
+  model_name: string | null;
+  location_name: string;
 }
 
 export function useInventoryStore() {
-  const ctx = useContext(InventoryContext);
-  if (!ctx) throw new Error('useInventoryStore must be used within InventoryProvider');
-  return ctx;
+  const qc = useQueryClient();
+
+  const { data: manufacturers = [] } = useQuery({
+    queryKey: ['manufacturers'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('manufacturers').select('*').order('name');
+      if (error) throw error;
+      return data as Manufacturer[];
+    },
+  });
+
+  const { data: models = [] } = useQuery({
+    queryKey: ['manufacturer_models'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('manufacturer_models').select('*').order('name');
+      if (error) throw error;
+      return data as ManufacturerModel[];
+    },
+  });
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ['locations'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from('locations').select('*').order('name');
+      if (error) throw error;
+      return data as Location[];
+    },
+  });
+
+  const { data: items = [] } = useQuery({
+    queryKey: ['inventory_items'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('inventory_items')
+        .select('*, manufacturers(name), manufacturer_models(name), locations(name)')
+        .order('name');
+      if (error) throw error;
+      return (data as any[]).map((row: any) => ({
+        id: row.id,
+        name: row.name,
+        manufacturer_id: row.manufacturer_id,
+        model_id: row.model_id,
+        part_number: row.part_number,
+        quantity: row.quantity,
+        min_stock: row.min_stock,
+        location_id: row.location_id,
+        manufacturer_name: row.manufacturers?.name ?? '',
+        model_name: row.manufacturer_models?.name ?? null,
+        location_name: row.locations?.name ?? '',
+      })) as InventoryItemDisplay[];
+    },
+  });
+
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ['manufacturers'] });
+    qc.invalidateQueries({ queryKey: ['manufacturer_models'] });
+    qc.invalidateQueries({ queryKey: ['locations'] });
+    qc.invalidateQueries({ queryKey: ['inventory_items'] });
+  };
+
+  // Manufacturers
+  const addManufacturer = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await (supabase as any).from('manufacturers').insert({ name }).select().single();
+      if (error) throw error;
+      return data as Manufacturer;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['manufacturers'] }),
+  });
+
+  const updateManufacturer = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await (supabase as any).from('manufacturers').update({ name }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
+  const deleteManufacturer = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('manufacturers').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
+  // Models
+  const addModel = useMutation({
+    mutationFn: async ({ manufacturer_id, name }: { manufacturer_id: string; name: string }) => {
+      const { data, error } = await (supabase as any).from('manufacturer_models').insert({ manufacturer_id, name }).select().single();
+      if (error) throw error;
+      return data as ManufacturerModel;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['manufacturer_models'] }),
+  });
+
+  const updateModel = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await (supabase as any).from('manufacturer_models').update({ name }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['manufacturer_models'] }),
+  });
+
+  const deleteModel = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('manufacturer_models').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['manufacturer_models'] }),
+  });
+
+  // Locations
+  const addLocation = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await (supabase as any).from('locations').insert({ name }).select().single();
+      if (error) throw error;
+      return data as Location;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['locations'] }),
+  });
+
+  const updateLocation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await (supabase as any).from('locations').update({ name }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
+  const deleteLocation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('locations').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
+  // Inventory items
+  const addItem = useMutation({
+    mutationFn: async (item: Omit<InventoryItemRow, 'id'>) => {
+      const { error } = await (supabase as any).from('inventory_items').insert(item);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory_items'] }),
+  });
+
+  const updateItem = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<InventoryItemRow> & { id: string }) => {
+      const { error } = await (supabase as any).from('inventory_items').update(data).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory_items'] }),
+  });
+
+  const deleteItem = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('inventory_items').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory_items'] }),
+  });
+
+  return {
+    items, manufacturers, models, locations,
+    addItem, updateItem, deleteItem,
+    addManufacturer, updateManufacturer, deleteManufacturer,
+    addModel, updateModel, deleteModel,
+    addLocation, updateLocation, deleteLocation,
+  };
 }
