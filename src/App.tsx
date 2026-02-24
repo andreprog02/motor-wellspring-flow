@@ -10,6 +10,7 @@ import ManufacturersPage from "./pages/ManufacturersPage";
 import LocationsPage from "./pages/LocationsPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import OilMaintenancePage from "./pages/OilMaintenancePage";
+import PistonMaintenancePage from "./pages/PistonMaintenancePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/locations" element={<LocationsPage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/maintenance/oil" element={<OilMaintenancePage />} />
+          <Route path="/maintenance/pistons" element={<PistonMaintenancePage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
