@@ -54,6 +54,7 @@ export default function InventoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Peça</TableHead>
+                  <TableHead>Categoria</TableHead>
                   <TableHead>Fabricante</TableHead>
                   <TableHead>Modelo</TableHead>
                   <TableHead>Part Number</TableHead>
@@ -73,6 +74,7 @@ export default function InventoryPage() {
                           <span className="font-medium text-sm">{item.name}</span>
                         </div>
                       </TableCell>
+                      <TableCell className="text-sm">{item.category}</TableCell>
                       <TableCell className="text-sm">{item.manufacturer_name}</TableCell>
                       <TableCell className="text-sm text-muted-foreground">{item.model_name || '—'}</TableCell>
                       <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
@@ -93,7 +95,7 @@ export default function InventoryPage() {
                 })}
                 {store.items.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       Nenhum item cadastrado. Clique em "Novo Item" para começar.
                     </TableCell>
                   </TableRow>

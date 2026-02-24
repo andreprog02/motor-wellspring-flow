@@ -17,6 +17,11 @@ export interface Location {
   name: string;
 }
 
+export const INVENTORY_CATEGORIES = [
+  'Compensadores', 'Equipamento', 'Filtros', 'Insumos', 'Junta', 'Mangueira', 'O-ring', 'Peça',
+] as const;
+export type InventoryCategory = typeof INVENTORY_CATEGORIES[number];
+
 export interface InventoryItemRow {
   id: string;
   name: string;
@@ -26,6 +31,7 @@ export interface InventoryItemRow {
   quantity: number;
   min_stock: number;
   location_id: string;
+  category: InventoryCategory;
 }
 
 export interface InventoryItemDisplay extends InventoryItemRow {
@@ -81,6 +87,7 @@ export function useInventoryStore() {
         quantity: row.quantity,
         min_stock: row.min_stock,
         location_id: row.location_id,
+        category: row.category ?? 'Peça',
         manufacturer_name: row.manufacturers?.name ?? '',
         model_name: row.manufacturer_models?.name ?? null,
         location_name: row.locations?.name ?? '',
