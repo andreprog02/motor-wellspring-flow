@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder } from 'lucide-react';
+import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -10,6 +10,8 @@ const navItems = [
   { to: '/maintenance', label: 'Manutenção', icon: Wrench },
   { to: '/maintenance/oil', label: 'Óleo', icon: Droplets },
   { to: '/maintenance/pistons', label: 'Pistões', icon: Cylinder },
+  { to: '/maintenance/liners', label: 'Camisas', icon: CircleDot },
+  { to: '/maintenance/spark-plugs', label: 'Velas', icon: Zap },
 ];
 
 export function AppSidebar() {
