@@ -19,30 +19,13 @@ export default function InventoryPage() {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const handleNew = () => {
-    setEditingItem(null);
-    setFormOpen(true);
-  };
-
-  const handleEdit = (item: InventoryItem) => {
-    setEditingItem(item);
-    setFormOpen(true);
-  };
-
+  const handleNew = () => { setEditingItem(null); setFormOpen(true); };
+  const handleEdit = (item: InventoryItem) => { setEditingItem(item); setFormOpen(true); };
   const handleSave = (data: Omit<InventoryItem, 'id'>) => {
-    if (editingItem) {
-      store.updateItem(editingItem.id, data);
-    } else {
-      store.addItem(data);
-    }
+    if (editingItem) store.updateItem(editingItem.id, data);
+    else store.addItem(data);
   };
-
-  const confirmDelete = () => {
-    if (deleteId) {
-      store.deleteItem(deleteId);
-      setDeleteId(null);
-    }
-  };
+  const confirmDelete = () => { if (deleteId) { store.deleteItem(deleteId); setDeleteId(null); } };
 
   return (
     <AppLayout>
@@ -94,12 +77,8 @@ export default function InventoryPage() {
                       <TableCell className="text-sm text-muted-foreground">{item.location}</TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => handleEdit(item)} title="Editar">
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button size="icon" variant="ghost" onClick={() => setDeleteId(item.id)} title="Excluir">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => handleEdit(item)}><Pencil className="h-4 w-4" /></Button>
+                          <Button size="icon" variant="ghost" onClick={() => setDeleteId(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -123,6 +102,7 @@ export default function InventoryPage() {
         onOpenChange={setFormOpen}
         item={editingItem}
         manufacturers={store.manufacturers}
+        models={store.models}
         locations={store.locations}
         onSave={handleSave}
         onAddManufacturer={store.addManufacturer}
@@ -133,9 +113,7 @@ export default function InventoryPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir este item do estoque? Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Tem certeza que deseja excluir este item do estoque?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

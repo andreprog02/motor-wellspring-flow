@@ -1,10 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Package, Settings, Wrench } from 'lucide-react';
+import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/inventory', label: 'Estoque', icon: Package },
+  { to: '/manufacturers', label: 'Fabricantes', icon: Factory },
+  { to: '/locations', label: 'Locais', icon: MapPin },
   { to: '/maintenance', label: 'Manutenção', icon: Wrench },
 ];
 
