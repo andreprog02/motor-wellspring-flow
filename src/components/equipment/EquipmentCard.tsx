@@ -8,7 +8,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Equipment, OilType, useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets } from 'lucide-react';
+import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 
 interface Props {
@@ -19,6 +20,7 @@ interface Props {
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
 export function EquipmentCard({ equipment, oilTypes }: Props) {
+  const navigate = useNavigate();
   const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery } = useEquipmentStore();
   const allOilTypes = oilTypesQuery.data || oilTypes;
   const [editOpen, setEditOpen] = useState(false);
@@ -62,7 +64,7 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
 
   return (
     <>
-      <Card className="group hover:shadow-md transition-shadow">
+      <Card className="group hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/equipment/${equipment.id}`)}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div>
@@ -70,12 +72,13 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
               <p className="text-xs text-muted-foreground">{equipment.serial_number || 'Sem S/N'}</p>
             </div>
             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditOpen(true)}>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}>
                 <Pencil className="h-3.5 w-3.5" />
               </Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteOpen(true)}>
+              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}>
                 <Trash2 className="h-3.5 w-3.5" />
               </Button>
+              <ChevronRight className="h-4 w-4 text-muted-foreground self-center ml-1" />
             </div>
           </div>
 
