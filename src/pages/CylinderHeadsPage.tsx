@@ -42,6 +42,7 @@ export default function CylinderHeadsPage() {
   const [compOpen, setCompOpen] = useState(false);
   const [histInstOpen, setHistInstOpen] = useState(false);
   const [batchHistOpen, setBatchHistOpen] = useState(false);
+  const [editInstOpen, setEditInstOpen] = useState(false);
 
   // Form states
   const [serialNumber, setSerialNumber] = useState('');
@@ -78,6 +79,12 @@ export default function CylinderHeadsPage() {
   const [batchHistInstallHor, setBatchHistInstallHor] = useState('');
   const [batchHistRemoveDate, setBatchHistRemoveDate] = useState('');
   const [batchHistRemoveHor, setBatchHistRemoveHor] = useState('');
+
+  // Edit installation states
+  const [editInstId, setEditInstId] = useState('');
+  const [editInstEquipId, setEditInstEquipId] = useState('');
+  const [editInstInstallHor, setEditInstInstallHor] = useState('');
+  const [editInstRemoveHor, setEditInstRemoveHor] = useState('');
 
   const heads = store.cylinderHeads.data || [];
   const allInstallations = store.installations.data || [];
@@ -293,6 +300,30 @@ export default function CylinderHeadsPage() {
       }
     });
     return latest;
+  };
+
+  const openEditInstallation = (inst: typeof headInstallations[0]) => {
+    setEditInstId(inst.id);
+    setEditInstEquipId(inst.equipment_id);
+    setEditInstInstallHor(String(inst.install_equipment_horimeter));
+    setEditInstRemoveHor(inst.remove_equipment_horimeter != null ? String(inst.remove_equipment_horimeter) : '');
+    setEditInstOpen(true);
+  };
+
+  const handleEditInstallation = async () => {
+    if (!editInstId || !editInstEquipId) return;
+    try {
+      await store.updateInstallation.mutateAsync({
+        id: editInstId,
+        equipment_id: editInstEquipId,
+        install_equipment_horimeter: Number(editInstInstallHor) || 0,
+        remove_equipment_horimeter: editInstRemoveHor ? Number(editInstRemoveHor) : null,
+      });
+      toast.success('Instalação atualizada!');
+      setEditInstOpen(false);
+    } catch {
+      toast.error('Erro ao atualizar instalação.');
+    }
   };
 
   return (
@@ -571,11 +602,12 @@ export default function CylinderHeadsPage() {
                         <TableHead>Instalação</TableHead>
                         <TableHead>Remoção</TableHead>
                         <TableHead>Horas (Delta)</TableHead>
+                        <TableHead className="w-10"></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {headInstallations.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">Nenhuma instalação.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">Nenhuma instalação.</TableCell></TableRow>
                       ) : headInstallations.map(inst => {
                         const eqName = equipments.data?.find(e => e.id === inst.equipment_id)?.name || '—';
                         const delta = inst.remove_equipment_horimeter != null
@@ -598,6 +630,11 @@ export default function CylinderHeadsPage() {
                             </TableCell>
                             <TableCell className="font-mono text-sm">
                               {delta != null ? `${fmtNum(delta)}h` : '—'}
+                            </TableCell>
+                            <TableCell>
+                              <Button size="icon" variant="ghost" onClick={() => openEditInstallation(inst)} title="Editar">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         );
@@ -637,6 +674,46 @@ export default function CylinderHeadsPage() {
               </Tabs>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Installation Dialog */}
+      <Dialog open={editInstOpen} onOpenChange={setEditInstOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Instalação</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Equipamento</label>
+              <Select value={editInstEquipId} onValueChange={setEditInstEquipId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o motor" /></SelectTrigger>
+                <SelectContent>
+                  {(equipments.data || []).map(eq => (
+                    <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Horímetro de Instalação</label>
+              <Input type="number" value={editInstInstallHor} onChange={e => setEditInstInstallHor(e.target.value)} placeholder="0" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Horímetro de Remoção</label>
+              <Input type="number" value={editInstRemoveHor} onChange={e => setEditInstRemoveHor(e.target.value)} placeholder="Vazio = ainda ativo" />
+            </div>
+            {editInstInstallHor && editInstRemoveHor && Number(editInstRemoveHor) > Number(editInstInstallHor) && (
+              <div className="bg-secondary/50 rounded-md p-3 text-sm">
+                <span className="text-muted-foreground">Delta de horas: </span>
+                <span className="font-mono font-semibold">{fmtNum(Number(editInstRemoveHor) - Number(editInstInstallHor))}h</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditInstOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEditInstallation} disabled={store.updateInstallation.isPending}>Salvar</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
