@@ -1,12 +1,16 @@
+import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { MotorCard } from '@/components/MotorCard';
 import { HealthScore } from '@/components/HealthScore';
 import { StatusBadge } from '@/components/StatusIndicators';
 import { motors, maintenancePlans, getMotorHealthScore, inventoryItems } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Gauge, AlertTriangle, Package, Wrench } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Gauge, AlertTriangle, Package, Wrench, PlusCircle } from 'lucide-react';
+import { EquipmentWizard } from '@/components/equipment/EquipmentWizard';
 
 const Dashboard = () => {
+  const [wizardOpen, setWizardOpen] = useState(false);
   const fleetScore = Math.round(motors.reduce((acc, m) => acc + getMotorHealthScore(m.id), 0) / motors.length);
   const criticalCount = motors.filter(m => m.status === 'critical').length;
   const warningCount = motors.filter(m => m.status === 'warning').length;
@@ -102,7 +106,13 @@ const Dashboard = () => {
 
         {/* Motor Grid */}
         <div>
-          <h2 className="text-lg font-semibold mb-3">Motores da Frota</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Motores da Frota</h2>
+            <Button onClick={() => setWizardOpen(true)}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Cadastrar Equipamento
+            </Button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {motors.map(motor => (
               <MotorCard key={motor.id} motor={motor} />
@@ -110,6 +120,8 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      <EquipmentWizard open={wizardOpen} onOpenChange={setWizardOpen} />
     </AppLayout>
   );
 };
