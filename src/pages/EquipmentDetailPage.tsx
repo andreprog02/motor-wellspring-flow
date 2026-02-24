@@ -294,112 +294,90 @@ export default function EquipmentDetailPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="components">
-          <TabsList>
-            <TabsTrigger value="components">Componentes por Cilindro</TabsTrigger>
+        <Tabs defaultValue={cylByType.length > 0 ? cylByType[0].type : 'plans'}>
+          <TabsList className="flex-wrap h-auto gap-1">
+            {cylByType.map(group => (
+              <TabsTrigger key={group.type} value={group.type}>{group.label}s</TabsTrigger>
+            ))}
             <TabsTrigger value="plans">Planos Gerais</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
           </TabsList>
 
-          {/* Cylinder Components Tab */}
-          <TabsContent value="components" className="mt-4">
-            {cylByType.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  Nenhum componente de cilindro cadastrado.
-                </CardContent>
-              </Card>
-            ) : (
-              <Accordion type="multiple" defaultValue={cylByType.map(g => g.type)} className="space-y-3">
-                {cylByType.map(group => {
-                  const plan = group.plan;
-                  return (
-                    <AccordionItem key={group.type} value={group.type} className="border rounded-lg bg-card">
-                      <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          <Wrench className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-semibold">{group.label}</span>
-                          <Badge variant="outline" className="ml-2 text-xs">
-                            {group.components.length} cilindros
-                          </Badge>
-                          {plan && (
-                            <span className="text-xs text-muted-foreground ml-2">
-                              Intervalo: {fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}
-                            </span>
-                          )}
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="px-4 pb-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                          {group.components.map(comp => {
-                            const usage = equipment.total_horimeter - comp.horimeter_at_install;
-                            const interval = plan?.interval_value || 0;
-                            const status = interval > 0 ? getStatus(equipment.total_horimeter, comp.horimeter_at_install, interval) : 'ok';
-                            const percent = interval > 0 ? getPercent(equipment.total_horimeter, comp.horimeter_at_install, interval) : 0;
+          {/* One tab per cylinder component type */}
+          {cylByType.map(group => {
+            const plan = group.plan;
+            return (
+              <TabsContent key={group.type} value={group.type} className="mt-4">
+                {plan && (
+                  <div className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
+                    <Wrench className="h-3.5 w-3.5" />
+                    Intervalo: <span className="font-mono font-medium">{fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}</span>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {group.components.map(comp => {
+                    const usage = equipment.total_horimeter - comp.horimeter_at_install;
+                    const interval = plan?.interval_value || 0;
+                    const status = interval > 0 ? getStatus(equipment.total_horimeter, comp.horimeter_at_install, interval) : 'ok';
+                    const percent = interval > 0 ? getPercent(equipment.total_horimeter, comp.horimeter_at_install, interval) : 0;
 
-                            return (
-                              <Card
-                                key={comp.id}
-                                className={
-                                  status === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
-                                  status === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
-                                }
-                              >
-                                <CardContent className="p-3">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="font-semibold text-sm">{group.label} {comp.cylinder_number}</span>
-                                    <div className="flex items-center gap-2">
-                                      <Badge
-                                        variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
-                                        className={
-                                          status === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
-                                          status === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
-                                        }
-                                      >
-                                        {status === 'ok' ? 'Em dia' : status === 'warning' ? 'Atenção' : 'Vencida'}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                  <div className="text-xs text-muted-foreground space-y-1 mb-2">
-                                    <div className="flex justify-between">
-                                      <span>Instalado em:</span>
-                                      <span className="font-mono">{fmtNum(comp.horimeter_at_install)}h</span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                      <span>Uso:</span>
-                                      <span className="font-mono">{fmtNum(usage)}h</span>
-                                    </div>
-                                    {interval > 0 && (
-                                      <div className="flex justify-between">
-                                        <span>Próximo em:</span>
-                                        <span className="font-mono">{fmtNum(Math.max(0, interval - usage))}h</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  {interval > 0 && (
-                                    <Progress value={percent} className="h-1.5 mb-2" />
-                                  )}
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="w-full text-xs"
-                                    onClick={() => openMaintDialog(comp)}
-                                  >
-                                    <PlusCircle className="h-3 w-3 mr-1" />
-                                    Registrar Manutenção
-                                  </Button>
-                                </CardContent>
-                              </Card>
-                            );
-                          })}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  );
-                })}
-              </Accordion>
-            )}
-          </TabsContent>
+                    return (
+                      <Card
+                        key={comp.id}
+                        className={
+                          status === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+                          status === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+                        }
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold text-sm">{group.label} {comp.cylinder_number}</span>
+                            <Badge
+                              variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
+                              className={
+                                status === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
+                                status === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
+                              }
+                            >
+                              {status === 'ok' ? 'Em dia' : status === 'warning' ? 'Atenção' : 'Vencida'}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground space-y-1 mb-2">
+                            <div className="flex justify-between">
+                              <span>Instalado em:</span>
+                              <span className="font-mono">{fmtNum(comp.horimeter_at_install)}h</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Uso:</span>
+                              <span className="font-mono">{fmtNum(usage)}h</span>
+                            </div>
+                            {interval > 0 && (
+                              <div className="flex justify-between">
+                                <span>Próximo em:</span>
+                                <span className="font-mono">{fmtNum(Math.max(0, interval - usage))}h</span>
+                              </div>
+                            )}
+                          </div>
+                          {interval > 0 && (
+                            <Progress value={percent} className="h-1.5 mb-2" />
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-xs"
+                            onClick={() => openMaintDialog(comp)}
+                          >
+                            <PlusCircle className="h-3 w-3 mr-1" />
+                            Registrar Manutenção
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+            );
+          })}
 
           {/* General Plans Tab */}
           <TabsContent value="plans" className="mt-4">
