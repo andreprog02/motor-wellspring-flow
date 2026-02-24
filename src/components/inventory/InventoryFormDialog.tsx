@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Manufacturer, ManufacturerModel, Location, InventoryItemRow, InventoryItemDisplay } from '@/hooks/useInventoryStore';
+import { Manufacturer, ManufacturerModel, Location, InventoryItemRow, InventoryItemDisplay, INVENTORY_CATEGORIES, InventoryCategory } from '@/hooks/useInventoryStore';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -33,6 +33,7 @@ interface FormState {
   quantity: number;
   location_id: string;
   min_stock: number;
+  category: InventoryCategory;
 }
 
 const emptyForm: FormState = {
@@ -43,6 +44,7 @@ const emptyForm: FormState = {
   quantity: 0,
   location_id: '',
   min_stock: 1,
+  category: 'Peça',
 };
 
 export function InventoryFormDialog({
@@ -66,6 +68,7 @@ export function InventoryFormDialog({
         quantity: item.quantity,
         location_id: item.location_id,
         min_stock: item.min_stock,
+        category: item.category || 'Peça',
       });
     } else {
       setForm(emptyForm);
@@ -87,6 +90,7 @@ export function InventoryFormDialog({
       quantity: form.quantity,
       location_id: form.location_id,
       min_stock: form.min_stock,
+      category: form.category,
     });
     onOpenChange(false);
   };
@@ -131,6 +135,18 @@ export function InventoryFormDialog({
           <div className="grid gap-1.5">
             <Label>Nome da Peça</Label>
             <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Filtro de Óleo CAT" />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>Categoria</Label>
+            <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v as InventoryCategory }))}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {INVENTORY_CATEGORIES.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="grid gap-1.5">

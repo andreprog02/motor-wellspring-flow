@@ -250,6 +250,7 @@ export type Database = {
       }
       inventory_items: {
         Row: {
+          category: string
           created_at: string
           id: string
           location_id: string
@@ -261,6 +262,7 @@ export type Database = {
           quantity: number
         }
         Insert: {
+          category?: string
           created_at?: string
           id?: string
           location_id: string
@@ -272,6 +274,7 @@ export type Database = {
           quantity?: number
         }
         Update: {
+          category?: string
           created_at?: string
           id?: string
           location_id?: string
