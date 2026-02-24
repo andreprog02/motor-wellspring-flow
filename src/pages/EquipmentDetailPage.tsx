@@ -94,11 +94,9 @@ export default function EquipmentDetailPage() {
 
   const [maintDialog, setMaintDialog] = useState<{
     open: boolean;
-    cylinderNumber: number;
     componentType: string;
-    cylinderComponentId: string;
-    installHorimeter: number;
-  }>({ open: false, cylinderNumber: 0, componentType: '', cylinderComponentId: '', installHorimeter: 0 });
+    preSelectedCylinders: number[];
+  }>({ open: false, componentType: '', preSelectedCylinders: [] });
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -171,13 +169,11 @@ export default function EquipmentDetailPage() {
     plan: getPlanForType(type),
   })).filter(g => g.components.length > 0);
 
-  const openMaintDialog = (comp: CylComp) => {
+  const openMaintDialog = (componentType: string, preSelectedCylinders?: number[]) => {
     setMaintDialog({
       open: true,
-      cylinderNumber: comp.cylinder_number,
-      componentType: comp.component_type,
-      cylinderComponentId: comp.id,
-      installHorimeter: comp.horimeter_at_install,
+      componentType,
+      preSelectedCylinders: preSelectedCylinders || [],
     });
   };
 
@@ -309,12 +305,18 @@ export default function EquipmentDetailPage() {
             const plan = group.plan;
             return (
               <TabsContent key={group.type} value={group.type} className="mt-4">
-                {plan && (
-                  <div className="text-xs text-muted-foreground mb-3 flex items-center gap-2">
-                    <Wrench className="h-3.5 w-3.5" />
-                    Intervalo: <span className="font-mono font-medium">{fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}</span>
-                  </div>
-                )}
+                <div className="flex items-center justify-between mb-3">
+                  {plan ? (
+                    <div className="text-xs text-muted-foreground flex items-center gap-2">
+                      <Wrench className="h-3.5 w-3.5" />
+                      Intervalo: <span className="font-mono font-medium">{fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}</span>
+                    </div>
+                  ) : <div />}
+                  <Button size="sm" onClick={() => openMaintDialog(group.type)}>
+                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Registrar Manutenção
+                  </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
                     const usage = equipment.total_horimeter - comp.horimeter_at_install;
@@ -367,7 +369,7 @@ export default function EquipmentDetailPage() {
                               size="sm"
                               variant="outline"
                               className="flex-1 text-xs"
-                              onClick={() => openMaintDialog(comp)}
+                              onClick={() => openMaintDialog(comp.component_type, [comp.cylinder_number])}
                             >
                               <PlusCircle className="h-3 w-3 mr-1" />
                               Registrar
@@ -521,10 +523,9 @@ export default function EquipmentDetailPage() {
           onOpenChange={(open) => setMaintDialog(prev => ({ ...prev, open }))}
           equipmentId={id!}
           equipmentHorimeter={equipment.total_horimeter}
-          cylinderNumber={maintDialog.cylinderNumber}
           componentType={maintDialog.componentType}
-          cylinderComponentId={maintDialog.cylinderComponentId}
-          currentInstallHorimeter={maintDialog.installHorimeter}
+          allComponents={allCylComps.filter(c => c.component_type === maintDialog.componentType)}
+          preSelectedCylinders={maintDialog.preSelectedCylinders}
         />
       )}
     </AppLayout>
