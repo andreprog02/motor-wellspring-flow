@@ -17,6 +17,7 @@ import MaintenancePlansPage from "./pages/MaintenancePlansPage";
 import EquipmentDetailPage from "./pages/EquipmentDetailPage";
 import CylinderHeadsPage from "./pages/CylinderHeadsPage";
 import TurbosPage from "./pages/TurbosPage";
+import BearingMaintenancePage from "./pages/BearingMaintenancePage";
 import ReportsPage from "./pages/ReportsPage";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/maintenance/pistons" element={<PistonMaintenancePage />} />
           <Route path="/maintenance/liners" element={<LinerMaintenancePage />} />
           <Route path="/maintenance/spark-plugs" element={<SparkPlugMaintenancePage />} />
+          <Route path="/maintenance/bearings" element={<BearingMaintenancePage />} />
           <Route path="/maintenance/plans" element={<MaintenancePlansPage />} />
           <Route path="/equipment/:id" element={<EquipmentDetailPage />} />
           <Route path="/cylinder-heads" element={<CylinderHeadsPage />} />
