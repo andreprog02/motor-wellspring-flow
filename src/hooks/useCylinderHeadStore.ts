@@ -243,6 +243,26 @@ export function useCylinderHeadStore() {
     onSuccess: () => invalidateAll(),
   });
 
+  const addHistoricalInstallation = useMutation({
+    mutationFn: async (data: {
+      cylinder_head_id: string;
+      equipment_id: string;
+      install_date: string;
+      install_equipment_horimeter: number;
+      remove_date: string;
+      remove_equipment_horimeter: number;
+    }) => {
+      const { data: inst, error } = await (supabase as any)
+        .from('cylinder_head_installations')
+        .insert(data)
+        .select()
+        .single();
+      if (error) throw error;
+      return inst as CylinderHeadInstallation;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
   return {
     cylinderHeads,
     installations,
@@ -257,5 +277,6 @@ export function useCylinderHeadStore() {
     deleteCylinderHead,
     addHeadComponent,
     addHeadComponentsBatch,
+    addHistoricalInstallation,
   };
 }
