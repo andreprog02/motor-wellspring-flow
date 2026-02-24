@@ -19,6 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge } from 'lucide-react';
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
+import { OilTab } from '@/components/equipment/OilTab';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
 
@@ -355,6 +356,10 @@ export default function EquipmentDetailPage() {
             {cylByType.map(group => (
               <TabsTrigger key={group.type} value={group.type}>{group.label}s</TabsTrigger>
             ))}
+            <TabsTrigger value="oil">
+              <Droplets className="h-3.5 w-3.5 mr-1" />
+              Óleo
+            </TabsTrigger>
             <TabsTrigger value="cylinder_heads">
               <Cog className="h-3.5 w-3.5 mr-1" />
               Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
@@ -514,6 +519,15 @@ export default function EquipmentDetailPage() {
               </TabsContent>
             );
           })}
+
+          {/* Oil Tab */}
+          <TabsContent value="oil" className="mt-4">
+            <OilTab
+              equipmentId={id!}
+              equipmentHorimeter={equipment.total_horimeter}
+              oilName={oilName}
+            />
+          </TabsContent>
 
           {/* Cylinder Heads Tab */}
           <TabsContent value="cylinder_heads" className="mt-4">

@@ -614,6 +614,47 @@ export type Database = {
         }
         Relationships: []
       }
+      oil_analyses: {
+        Row: {
+          analysis_date: string
+          attachment_url: string | null
+          created_at: string
+          equipment_id: string
+          horimeter_at_analysis: number
+          id: string
+          notes: string | null
+          result: string
+        }
+        Insert: {
+          analysis_date?: string
+          attachment_url?: string | null
+          created_at?: string
+          equipment_id: string
+          horimeter_at_analysis?: number
+          id?: string
+          notes?: string | null
+          result?: string
+        }
+        Update: {
+          analysis_date?: string
+          attachment_url?: string | null
+          created_at?: string
+          equipment_id?: string
+          horimeter_at_analysis?: number
+          id?: string
+          notes?: string | null
+          result?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oil_analyses_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oil_types: {
         Row: {
           created_at: string
