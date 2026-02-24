@@ -11,8 +11,9 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 
@@ -361,15 +362,54 @@ export default function EquipmentDetailPage() {
                           {interval > 0 && (
                             <Progress value={percent} className="h-1.5 mb-2" />
                           )}
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full text-xs"
-                            onClick={() => openMaintDialog(comp)}
-                          >
-                            <PlusCircle className="h-3 w-3 mr-1" />
-                            Registrar Manutenção
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="flex-1 text-xs"
+                              onClick={() => openMaintDialog(comp)}
+                            >
+                              <PlusCircle className="h-3 w-3 mr-1" />
+                              Registrar
+                            </Button>
+                          </div>
+
+                          {/* History section */}
+                          {(() => {
+                            const compLogs = equipmentLogs.filter((log: any) =>
+                              log.maintenance_type === comp.component_type &&
+                              log.notes && log.notes.includes(`Cil. ${comp.cylinder_number}`)
+                            );
+                            if (compLogs.length === 0) return null;
+                            return (
+                              <Collapsible>
+                                <CollapsibleTrigger asChild>
+                                  <Button variant="ghost" size="sm" className="w-full text-xs mt-2 text-muted-foreground">
+                                    <History className="h-3 w-3 mr-1" />
+                                    Histórico ({compLogs.length})
+                                    <ChevronDown className="h-3 w-3 ml-auto" />
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <Separator className="my-2" />
+                                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                                    {compLogs.map((log: any) => (
+                                      <div key={log.id} className="text-xs flex items-start gap-2 py-1">
+                                        <span className="font-mono text-muted-foreground whitespace-nowrap">
+                                          {format(new Date(log.service_date), 'dd/MM/yy')}
+                                        </span>
+                                        <span className="font-mono whitespace-nowrap">{fmtNum(log.horimeter_at_service)}h</span>
+                                        <span className="text-muted-foreground truncate flex-1">
+                                          {log.notes?.includes('Substituição') ? '🔄 Substituição' : '🔍 Inspeção'}
+                                          {log.notes?.split(' - ').slice(2).join(' - ') ? ` — ${log.notes.split(' - ').slice(2).join(' - ')}` : ''}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            );
+                          })()}
                         </CardContent>
                       </Card>
                     );
