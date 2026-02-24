@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { InventoryItem } from '@/types/models';
-import { Manufacturer, Location } from '@/hooks/useInventoryStore';
+import { Manufacturer, ManufacturerModel, Location } from '@/hooks/useInventoryStore';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -12,20 +12,26 @@ import {
 } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 
+interface InventoryFormData extends Omit<InventoryItem, 'id'> {
+  model?: string;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  item?: InventoryItem | null;
+  item?: (InventoryItem & { model?: string }) | null;
   manufacturers: Manufacturer[];
+  models: ManufacturerModel[];
   locations: Location[];
-  onSave: (data: Omit<InventoryItem, 'id'>) => void;
+  onSave: (data: InventoryFormData) => void;
   onAddManufacturer: (name: string) => Manufacturer;
   onAddLocation: (name: string) => Location;
 }
 
-const emptyForm = {
+const emptyForm: InventoryFormData = {
   name: '',
   manufacturer: '',
+  model: '',
   partNumber: '',
   estimatedLife: 500,
   quantity: 0,
@@ -34,9 +40,9 @@ const emptyForm = {
 };
 
 export function InventoryFormDialog({
-  open, onOpenChange, item, manufacturers, locations, onSave, onAddManufacturer, onAddLocation,
+  open, onOpenChange, item, manufacturers, models, locations, onSave, onAddManufacturer, onAddLocation,
 }: Props) {
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<InventoryFormData>(emptyForm);
   const [newMfr, setNewMfr] = useState('');
   const [showNewMfr, setShowNewMfr] = useState(false);
   const [newLoc, setNewLoc] = useState('');
@@ -47,6 +53,7 @@ export function InventoryFormDialog({
       setForm({
         name: item.name,
         manufacturer: item.manufacturer,
+        model: item.model || '',
         partNumber: item.partNumber,
         estimatedLife: item.estimatedLife,
         quantity: item.quantity,
@@ -60,6 +67,10 @@ export function InventoryFormDialog({
     setShowNewLoc(false);
   }, [item, open]);
 
+  // Get selected manufacturer id to filter models
+  const selectedMfr = manufacturers.find(m => m.name === form.manufacturer);
+  const filteredModels = selectedMfr ? models.filter(m => m.manufacturerId === selectedMfr.id) : [];
+
   const handleSave = () => {
     if (!form.name || !form.manufacturer || !form.location) return;
     onSave(form);
@@ -69,7 +80,7 @@ export function InventoryFormDialog({
   const handleAddMfr = () => {
     if (!newMfr.trim()) return;
     const m = onAddManufacturer(newMfr.trim());
-    setForm(f => ({ ...f, manufacturer: m.name }));
+    setForm(f => ({ ...f, manufacturer: m.name, model: '' }));
     setNewMfr('');
     setShowNewMfr(false);
   };
@@ -116,7 +127,7 @@ export function InventoryFormDialog({
               </div>
             ) : (
               <div className="flex gap-2">
-                <Select value={form.manufacturer} onValueChange={v => setForm(f => ({ ...f, manufacturer: v }))}>
+                <Select value={form.manufacturer} onValueChange={v => setForm(f => ({ ...f, manufacturer: v, model: '' }))}>
                   <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
                     {manufacturers.map(m => (
@@ -130,6 +141,26 @@ export function InventoryFormDialog({
               </div>
             )}
           </div>
+
+          {/* Model (filtered by manufacturer) */}
+          {form.manufacturer && (
+            <div className="grid gap-1.5">
+              <Label>Modelo</Label>
+              <Select value={form.model || ''} onValueChange={v => setForm(f => ({ ...f, model: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione o modelo (opcional)" /></SelectTrigger>
+                <SelectContent>
+                  {filteredModels.length === 0 ? (
+                    <SelectItem value="_none" disabled>Nenhum modelo cadastrado</SelectItem>
+                  ) : (
+                    filteredModels.map(m => (
+                      <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>
+                    ))
+                  )}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">Gerencie modelos na página de Fabricantes</p>
+            </div>
+          )}
 
           {/* Location */}
           <div className="grid gap-1.5">

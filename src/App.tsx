@@ -6,8 +6,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import MotorDetail from "./pages/MotorDetail";
 import InventoryPage from "./pages/InventoryPage";
+import ManufacturersPage from "./pages/ManufacturersPage";
+import LocationsPage from "./pages/LocationsPage";
 import MaintenancePage from "./pages/MaintenancePage";
 import NotFound from "./pages/NotFound";
+import { InventoryProvider } from "./hooks/useInventoryStore";
 
 const queryClient = new QueryClient();
 
@@ -16,15 +19,19 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/motor/:id" element={<MotorDetail />} />
-          <Route path="/inventory" element={<InventoryPage />} />
-          <Route path="/maintenance" element={<MaintenancePage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <InventoryProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/motor/:id" element={<MotorDetail />} />
+            <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/manufacturers" element={<ManufacturersPage />} />
+            <Route path="/locations" element={<LocationsPage />} />
+            <Route path="/maintenance" element={<MaintenancePage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </InventoryProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
