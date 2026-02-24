@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useCylinderHeadStore, cylinderHeadStatusLabels, cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
+import { useInventoryStore } from '@/hooks/useInventoryStore';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,10 +15,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar } from 'lucide-react';
+import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics, CylinderHeadComponent } from '@/hooks/useCylinderHeadStore';
+
+interface CompInventoryItem {
+  compType: string;
+  inventoryItemId: string;
+  inventoryItemName: string;
+  quantity: number;
+  available: number;
+}
 
 function fmtNum(n: number): string {
   return n.toLocaleString('pt-BR');
@@ -31,6 +41,7 @@ const statusColors: Record<string, string> = {
 export default function CylinderHeadsPage() {
   const store = useCylinderHeadStore();
   const { equipments } = useEquipmentStore();
+  const inventoryStore = useInventoryStore();
 
   // Dialog states
   const [addOpen, setAddOpen] = useState(false);
@@ -64,6 +75,8 @@ export default function CylinderHeadsPage() {
   const [compTypes, setCompTypes] = useState<string[]>([]);
   const [compDate, setCompDate] = useState('');
   const [compHorimeter, setCompHorimeter] = useState('');
+  const [compInventoryItems, setCompInventoryItems] = useState<CompInventoryItem[]>([]);
+  const [compAddingItemType, setCompAddingItemType] = useState<string | null>(null);
 
   // Historical installation states
   const [histEquipId, setHistEquipId] = useState('');
@@ -220,14 +233,58 @@ export default function CylinderHeadsPage() {
         horimeter_at_replacement: horimeterVal,
       }));
       await store.addHeadComponentsBatch.mutateAsync(rows);
+
+      // Deduct inventory items
+      for (const ci of compInventoryItems) {
+        if (ci.quantity > 0) {
+          const item = inventoryStore.items.find(i => i.id === ci.inventoryItemId);
+          if (item) {
+            await inventoryStore.updateItem.mutateAsync({
+              id: ci.inventoryItemId,
+              quantity: Math.max(0, item.quantity - ci.quantity),
+            });
+          }
+        }
+      }
+
       toast.success(`Troca registrada para ${compTypes.length} item(ns)!`);
       setCompTypes([]);
       setCompDate('');
       setCompHorimeter('');
+      setCompInventoryItems([]);
+      setCompAddingItemType(null);
       setCompOpen(false);
     } catch {
       toast.error('Erro ao registrar troca de componente.');
     }
+  };
+
+  const handleAddCompInventoryItem = (compType: string, itemId: string) => {
+    const item = inventoryStore.items.find(i => i.id === itemId);
+    if (!item) return;
+    // Check if already added for this comp type
+    const exists = compInventoryItems.find(ci => ci.compType === compType && ci.inventoryItemId === itemId);
+    if (exists) return;
+    setCompInventoryItems(prev => [...prev, {
+      compType,
+      inventoryItemId: itemId,
+      inventoryItemName: `${item.name} (${item.part_number})`,
+      quantity: 1,
+      available: item.quantity,
+    }]);
+    setCompAddingItemType(null);
+  };
+
+  const handleRemoveCompInventoryItem = (compType: string, itemId: string) => {
+    setCompInventoryItems(prev => prev.filter(ci => !(ci.compType === compType && ci.inventoryItemId === itemId)));
+  };
+
+  const handleCompInventoryQtyChange = (compType: string, itemId: string, qty: number) => {
+    setCompInventoryItems(prev => prev.map(ci =>
+      ci.compType === compType && ci.inventoryItemId === itemId
+        ? { ...ci, quantity: Math.max(1, Math.min(qty, ci.available)) }
+        : ci
+    ));
   };
 
   const handleAddHistoricalInstallation = async () => {
@@ -533,7 +590,7 @@ export default function CylinderHeadsPage() {
 
                 <TabsContent value="components">
                   <div className="flex justify-end mb-3">
-                    <Button size="sm" onClick={() => { setCompTypes([]); setCompDate(''); setCompHorimeter(''); setCompOpen(true); }}>
+                    <Button size="sm" onClick={() => { setCompTypes([]); setCompDate(''); setCompHorimeter(''); setCompInventoryItems([]); setCompAddingItemType(null); setCompOpen(true); }}>
                       <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
                       Registrar Troca
                     </Button>
@@ -806,7 +863,7 @@ export default function CylinderHeadsPage() {
 
       {/* Component Replacement Dialog */}
       <Dialog open={compOpen} onOpenChange={setCompOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Registrar Troca de Componentes</DialogTitle>
           </DialogHeader>
@@ -815,13 +872,61 @@ export default function CylinderHeadsPage() {
               <label className="text-sm font-medium mb-2 block">Componentes trocados</label>
               <div className="border rounded-md divide-y">
                 {Object.entries(cylinderHeadComponentTypes).map(([key, label]) => (
-                  <label key={key} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
-                    <Checkbox
-                      checked={compTypes.includes(key)}
-                      onCheckedChange={() => setCompTypes(prev => prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key])}
-                    />
-                    <span className="text-sm">{label}</span>
-                  </label>
+                  <div key={key}>
+                    <label className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
+                      <Checkbox
+                        checked={compTypes.includes(key)}
+                        onCheckedChange={() => {
+                          setCompTypes(prev => prev.includes(key) ? prev.filter(x => x !== key) : [...prev, key]);
+                          if (compTypes.includes(key)) {
+                            setCompInventoryItems(prev => prev.filter(ci => ci.compType !== key));
+                          }
+                        }}
+                      />
+                      <span className="text-sm flex-1">{label}</span>
+                    </label>
+                    {compTypes.includes(key) && (
+                      <div className="px-3 pb-2 pl-9 space-y-1.5">
+                        {compInventoryItems.filter(ci => ci.compType === key).map(ci => (
+                          <div key={ci.inventoryItemId} className="flex items-center gap-2 bg-secondary/50 rounded px-2 py-1.5">
+                            <Package className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                            <span className="text-xs flex-1 truncate">{ci.inventoryItemName}</span>
+                            <Input
+                              type="number"
+                              className="w-16 h-7 text-xs"
+                              value={ci.quantity}
+                              min={1}
+                              max={ci.available}
+                              onChange={e => handleCompInventoryQtyChange(key, ci.inventoryItemId, Number(e.target.value))}
+                            />
+                            <span className="text-xs text-muted-foreground">/ {ci.available}</span>
+                            <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleRemoveCompInventoryItem(key, ci.inventoryItemId)}>
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </div>
+                        ))}
+                        {compAddingItemType === key ? (
+                          <Select onValueChange={(val) => handleAddCompInventoryItem(key, val)}>
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Selecione a peça do estoque" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {inventoryStore.items.filter(i => i.quantity > 0).map(item => (
+                                <SelectItem key={item.id} value={item.id}>
+                                  {item.name} — {item.part_number} (Estoque: {item.quantity})
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompAddingItemType(key)}>
+                            <PlusCircle className="h-3 w-3 mr-1" />
+                            Vincular peça do estoque
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
               {compTypes.length > 0 && (
