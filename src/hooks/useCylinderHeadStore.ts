@@ -36,6 +36,24 @@ export interface CylinderHeadMetrics {
   last_maintenance_date: string | null;
 }
 
+export interface CylinderHeadComponent {
+  id: string;
+  cylinder_head_id: string;
+  component_type: string;
+  replacement_date: string;
+  horimeter_at_replacement: number;
+  created_at: string;
+}
+
+export const cylinderHeadComponentTypes: Record<string, string> = {
+  intake_valve: 'Válvula de Admissão',
+  exhaust_valve: 'Válvula de Escape',
+  intake_seat: 'Sede de Admissão',
+  exhaust_seat: 'Sede de Escape',
+  intake_oring: 'O-Ring Admissão',
+  exhaust_oring: 'O-Ring Escape',
+};
+
 const statusLabels: Record<string, string> = {
   in_stock: 'Estoque',
   active: 'No Motor',
@@ -83,10 +101,23 @@ export function useCylinderHeadStore() {
     },
   });
 
+  const headComponents = useQuery({
+    queryKey: ['cylinder_head_components'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('cylinder_head_components')
+        .select('*')
+        .order('replacement_date', { ascending: false });
+      if (error) throw error;
+      return data as CylinderHeadComponent[];
+    },
+  });
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['cylinder_heads'] });
     queryClient.invalidateQueries({ queryKey: ['cylinder_head_installations'] });
     queryClient.invalidateQueries({ queryKey: ['cylinder_head_maintenances'] });
+    queryClient.invalidateQueries({ queryKey: ['cylinder_head_components'] });
   };
 
   const addCylinderHead = useMutation({
@@ -189,10 +220,34 @@ export function useCylinderHeadStore() {
     onSuccess: () => invalidateAll(),
   });
 
+  const addHeadComponent = useMutation({
+    mutationFn: async (data: { cylinder_head_id: string; component_type: string; replacement_date: string; horimeter_at_replacement: number }) => {
+      const { data: comp, error } = await (supabase as any)
+        .from('cylinder_head_components')
+        .insert(data)
+        .select()
+        .single();
+      if (error) throw error;
+      return comp as CylinderHeadComponent;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
+  const addHeadComponentsBatch = useMutation({
+    mutationFn: async (rows: Array<{ cylinder_head_id: string; component_type: string; replacement_date: string; horimeter_at_replacement: number }>) => {
+      const { error } = await (supabase as any)
+        .from('cylinder_head_components')
+        .insert(rows);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
   return {
     cylinderHeads,
     installations,
     maintenances,
+    headComponents,
     addCylinderHead,
     updateCylinderHead,
     installCylinderHead,
@@ -200,5 +255,7 @@ export function useCylinderHeadStore() {
     addMaintenance,
     getMetrics,
     deleteCylinderHead,
+    addHeadComponent,
+    addHeadComponentsBatch,
   };
 }
