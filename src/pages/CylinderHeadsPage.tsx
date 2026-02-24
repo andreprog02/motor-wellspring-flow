@@ -288,15 +288,15 @@ export default function CylinderHeadsPage() {
   };
 
   const handleAddHistoricalInstallation = async () => {
-    if (!detailId || !histEquipId || !histInstallDate || !histRemoveDate) return;
+    if (!detailId || !histEquipId || !histInstallDate) return;
     try {
       await store.addHistoricalInstallation.mutateAsync({
         cylinder_head_id: detailId,
         equipment_id: histEquipId,
         install_date: histInstallDate,
         install_equipment_horimeter: Number(histInstallHor) || 0,
-        remove_date: histRemoveDate,
-        remove_equipment_horimeter: Number(histRemoveHor) || 0,
+        remove_date: histRemoveDate || null,
+        remove_equipment_horimeter: histRemoveHor ? Number(histRemoveHor) : null,
       });
       toast.success('Instalação histórica registrada!');
       setHistEquipId('');
@@ -324,7 +324,7 @@ export default function CylinderHeadsPage() {
   };
 
   const handleBatchHistoricalInstallation = async () => {
-    if (batchHistSelected.length === 0 || !batchHistEquipId || !batchHistInstallDate || !batchHistRemoveDate) return;
+    if (batchHistSelected.length === 0 || !batchHistEquipId || !batchHistInstallDate) return;
     try {
       for (const chId of batchHistSelected) {
         await store.addHistoricalInstallation.mutateAsync({
@@ -332,8 +332,8 @@ export default function CylinderHeadsPage() {
           equipment_id: batchHistEquipId,
           install_date: batchHistInstallDate,
           install_equipment_horimeter: Number(batchHistInstallHor) || 0,
-          remove_date: batchHistRemoveDate,
-          remove_equipment_horimeter: Number(batchHistRemoveHor) || 0,
+          remove_date: batchHistRemoveDate || null,
+          remove_equipment_horimeter: batchHistRemoveHor ? Number(batchHistRemoveHor) : null,
         });
       }
       toast.success(`Instalação registrada em ${batchHistSelected.length} cabeçote(s)!`);
@@ -1001,7 +1001,7 @@ export default function CylinderHeadsPage() {
             <Button variant="outline" onClick={() => setHistInstOpen(false)}>Cancelar</Button>
             <Button
               onClick={handleAddHistoricalInstallation}
-              disabled={store.addHistoricalInstallation.isPending || !histEquipId || !histInstallDate || !histRemoveDate}
+              disabled={store.addHistoricalInstallation.isPending || !histEquipId || !histInstallDate}
             >
               Registrar
             </Button>
@@ -1087,7 +1087,7 @@ export default function CylinderHeadsPage() {
             <Button variant="outline" onClick={() => setBatchHistOpen(false)}>Cancelar</Button>
             <Button
               onClick={handleBatchHistoricalInstallation}
-              disabled={store.addHistoricalInstallation.isPending || batchHistSelected.length === 0 || !batchHistEquipId || !batchHistInstallDate || !batchHistRemoveDate}
+              disabled={store.addHistoricalInstallation.isPending || batchHistSelected.length === 0 || !batchHistEquipId || !batchHistInstallDate}
             >
               Registrar em {batchHistSelected.length} Cabeçote(s)
             </Button>

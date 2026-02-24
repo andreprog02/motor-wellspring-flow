@@ -183,8 +183,10 @@ export function useTurboStore() {
   });
 
   const addHistoricalInstallation = useMutation({
-    mutationFn: async (data: { turbo_id: string; equipment_id: string; install_date: string; install_equipment_horimeter: number; remove_date: string; remove_equipment_horimeter: number }) => {
-      const { data: inst, error } = await (supabase as any).from('turbo_installations').insert(data).select().single();
+    mutationFn: async (data: { turbo_id: string; equipment_id: string; install_date: string; install_equipment_horimeter: number; remove_date?: string | null; remove_equipment_horimeter?: number | null }) => {
+      const insertData: Record<string, any> = { turbo_id: data.turbo_id, equipment_id: data.equipment_id, install_date: data.install_date, install_equipment_horimeter: data.install_equipment_horimeter };
+      if (data.remove_date) { insertData.remove_date = data.remove_date; insertData.remove_equipment_horimeter = data.remove_equipment_horimeter ?? 0; }
+      const { data: inst, error } = await (supabase as any).from('turbo_installations').insert(insertData).select().single();
       if (error) throw error;
       return inst as TurboInstallation;
     },
