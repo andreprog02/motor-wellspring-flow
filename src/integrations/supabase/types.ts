@@ -206,6 +206,7 @@ export type Database = {
           fuel_type: string
           id: string
           name: string
+          oil_type_id: string | null
           serial_number: string
           total_horimeter: number
           total_starts: number
@@ -217,6 +218,7 @@ export type Database = {
           fuel_type?: string
           id?: string
           name: string
+          oil_type_id?: string | null
           serial_number?: string
           total_horimeter?: number
           total_starts?: number
@@ -228,11 +230,20 @@ export type Database = {
           fuel_type?: string
           id?: string
           name?: string
+          oil_type_id?: string | null
           serial_number?: string
           total_horimeter?: number
           total_starts?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "equipments_oil_type_id_fkey"
+            columns: ["oil_type_id"]
+            isOneToOne: false
+            referencedRelation: "oil_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       inventory_items: {
         Row: {
@@ -340,6 +351,24 @@ export type Database = {
         ]
       }
       manufacturers: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      oil_types: {
         Row: {
           created_at: string
           id: string

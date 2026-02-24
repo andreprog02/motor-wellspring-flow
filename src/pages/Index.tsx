@@ -6,19 +6,25 @@ import { StatusBadge } from '@/components/StatusIndicators';
 import { motors, maintenancePlans, getMotorHealthScore, inventoryItems } from '@/data/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gauge, AlertTriangle, Package, Wrench, PlusCircle } from 'lucide-react';
+import { Gauge, AlertTriangle, Package, Wrench, PlusCircle, Loader2 } from 'lucide-react';
 import { EquipmentWizard } from '@/components/equipment/EquipmentWizard';
+import { EquipmentCard } from '@/components/equipment/EquipmentCard';
+import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 
 const Dashboard = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
+  const { equipments, oilTypes } = useEquipmentStore();
+
   const fleetScore = Math.round(motors.reduce((acc, m) => acc + getMotorHealthScore(m.id), 0) / motors.length);
   const criticalCount = motors.filter(m => m.status === 'critical').length;
-  const warningCount = motors.filter(m => m.status === 'warning').length;
   const overduePlans = maintenancePlans.filter(p => {
     const usage = p.currentValue - p.lastExecutionValue;
     return usage >= p.interval;
   });
   const lowStockItems = inventoryItems.filter(i => i.quantity <= i.minStock);
+
+  const registeredEquipments = equipments.data || [];
+  const oils = oilTypes.data || [];
 
   return (
     <AppLayout>
@@ -104,15 +110,38 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Motor Grid */}
+        {/* Registered Equipments */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">Motores da Frota</h2>
+            <h2 className="text-lg font-semibold">Equipamentos Cadastrados</h2>
             <Button onClick={() => setWizardOpen(true)}>
               <PlusCircle className="h-4 w-4 mr-2" />
               Cadastrar Equipamento
             </Button>
           </div>
+          {equipments.isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : registeredEquipments.length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                <p>Nenhum equipamento cadastrado ainda.</p>
+                <p className="text-xs mt-1">Clique em "Cadastrar Equipamento" para começar.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {registeredEquipments.map(eq => (
+                <EquipmentCard key={eq.id} equipment={eq} oilTypes={oils} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Motor Grid (mock data) */}
+        <div>
+          <h2 className="text-lg font-semibold mb-3">Motores da Frota (Demo)</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {motors.map(motor => (
               <MotorCard key={motor.id} motor={motor} />
