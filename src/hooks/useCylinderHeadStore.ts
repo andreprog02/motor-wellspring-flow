@@ -170,6 +170,17 @@ export function useCylinderHeadStore() {
     return data as CylinderHeadMetrics;
   };
 
+  const updateCylinderHead = useMutation({
+    mutationFn: async (data: { id: string; serial_number: string; status: string }) => {
+      const { error } = await (supabase as any)
+        .from('cylinder_heads')
+        .update({ serial_number: data.serial_number, status: data.status })
+        .eq('id', data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
   const deleteCylinderHead = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await (supabase as any).from('cylinder_heads').delete().eq('id', id);
@@ -183,6 +194,7 @@ export function useCylinderHeadStore() {
     installations,
     maintenances,
     addCylinderHead,
+    updateCylinderHead,
     installCylinderHead,
     removeCylinderHead,
     addMaintenance,

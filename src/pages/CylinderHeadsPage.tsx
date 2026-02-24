@@ -3,8 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useCylinderHeadStore, cylinderHeadStatusLabels } from '@/hooks/useCylinderHeadStore';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -13,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
-import { PlusCircle, Clock, Wrench, History, Gauge, ArrowRightLeft } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
@@ -32,12 +31,30 @@ const statusColors: Record<string, string> = {
 export default function CylinderHeadsPage() {
   const store = useCylinderHeadStore();
   const { equipments } = useEquipmentStore();
+
+  // Dialog states
   const [addOpen, setAddOpen] = useState(false);
-  const [serialNumber, setSerialNumber] = useState('');
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [maintOpen, setMaintOpen] = useState(false);
+  const [batchMaintOpen, setBatchMaintOpen] = useState(false);
+
+  // Form states
+  const [serialNumber, setSerialNumber] = useState('');
+  const [editSerial, setEditSerial] = useState('');
+  const [editStatus, setEditStatus] = useState('in_stock');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
   const [maintDesc, setMaintDesc] = useState('');
   const [maintHorimeter, setMaintHorimeter] = useState('');
+  const [maintDate, setMaintDate] = useState('');
+
+  // Batch maintenance states
+  const [batchSelected, setBatchSelected] = useState<string[]>([]);
+  const [batchDesc, setBatchDesc] = useState('');
+  const [batchHorimeter, setBatchHorimeter] = useState('');
+  const [batchDate, setBatchDate] = useState('');
 
   const heads = store.cylinderHeads.data || [];
   const allInstallations = store.installations.data || [];
@@ -47,12 +64,13 @@ export default function CylinderHeadsPage() {
   const headInstallations = allInstallations.filter(i => i.cylinder_head_id === detailId);
   const headMaintenances = allMaintenances.filter(m => m.cylinder_head_id === detailId);
 
-  // Fetch metrics for detail view
   const metrics = useQuery({
     queryKey: ['cylinder_head_metrics', detailId],
     queryFn: () => store.getMetrics(detailId!),
     enabled: !!detailId,
   });
+
+  // --- Handlers ---
 
   const handleAdd = async () => {
     if (!serialNumber.trim()) return;
@@ -66,6 +84,43 @@ export default function CylinderHeadsPage() {
     }
   };
 
+  const openEdit = (head: typeof heads[0], e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditId(head.id);
+    setEditSerial(head.serial_number);
+    setEditStatus(head.status);
+    setEditOpen(true);
+  };
+
+  const handleEdit = async () => {
+    if (!editId || !editSerial.trim()) return;
+    try {
+      await store.updateCylinderHead.mutateAsync({ id: editId, serial_number: editSerial.trim(), status: editStatus });
+      toast.success('Cabeçote atualizado!');
+      setEditOpen(false);
+    } catch {
+      toast.error('Erro ao atualizar cabeçote.');
+    }
+  };
+
+  const openDelete = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setDeleteId(id);
+    setDeleteOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await store.deleteCylinderHead.mutateAsync(deleteId);
+      toast.success('Cabeçote excluído!');
+      setDeleteOpen(false);
+      if (detailId === deleteId) setDetailId(null);
+    } catch {
+      toast.error('Erro ao excluir. Verifique se não há instalações vinculadas.');
+    }
+  };
+
   const handleAddMaintenance = async () => {
     if (!detailId || !maintDesc.trim()) return;
     try {
@@ -73,13 +128,49 @@ export default function CylinderHeadsPage() {
         cylinder_head_id: detailId,
         description: maintDesc.trim(),
         horimeter_at_maintenance: Number(maintHorimeter) || 0,
+        maintenance_date: maintDate || undefined,
       });
       toast.success('Manutenção registrada!');
       setMaintDesc('');
       setMaintHorimeter('');
+      setMaintDate('');
       setMaintOpen(false);
     } catch {
       toast.error('Erro ao registrar manutenção.');
+    }
+  };
+
+  const toggleBatchSelect = (id: string) => {
+    setBatchSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleAllBatch = () => {
+    if (batchSelected.length === heads.length) {
+      setBatchSelected([]);
+    } else {
+      setBatchSelected(heads.map(h => h.id));
+    }
+  };
+
+  const handleBatchMaintenance = async () => {
+    if (batchSelected.length === 0 || !batchDesc.trim()) return;
+    try {
+      for (const id of batchSelected) {
+        await store.addMaintenance.mutateAsync({
+          cylinder_head_id: id,
+          description: batchDesc.trim(),
+          horimeter_at_maintenance: Number(batchHorimeter) || 0,
+          maintenance_date: batchDate || undefined,
+        });
+      }
+      toast.success(`Manutenção registrada em ${batchSelected.length} cabeçote(s)!`);
+      setBatchDesc('');
+      setBatchHorimeter('');
+      setBatchDate('');
+      setBatchSelected([]);
+      setBatchMaintOpen(false);
+    } catch {
+      toast.error('Erro ao registrar manutenção em lote.');
     }
   };
 
@@ -93,10 +184,16 @@ export default function CylinderHeadsPage() {
             <h1 className="text-2xl font-bold tracking-tight">Cabeçotes</h1>
             <p className="text-sm text-muted-foreground">Gestão de cabeçotes com rastreamento de horas</p>
           </div>
-          <Button onClick={() => setAddOpen(true)}>
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Novo Cabeçote
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setBatchSelected([]); setBatchMaintOpen(true); }}>
+              <Calendar className="h-4 w-4 mr-2" />
+              Manutenção em Lote
+            </Button>
+            <Button onClick={() => setAddOpen(true)}>
+              <PlusCircle className="h-4 w-4 mr-2" />
+              Novo Cabeçote
+            </Button>
+          </div>
         </div>
 
         {/* Summary Cards */}
@@ -130,7 +227,7 @@ export default function CylinderHeadsPage() {
                 <TableHead>S/N</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Última Manutenção</TableHead>
-                <TableHead>Ações</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -155,10 +252,15 @@ export default function CylinderHeadsPage() {
                     <TableCell className="font-mono text-sm">
                       {head.last_maintenance_date ? format(new Date(head.last_maintenance_date), 'dd/MM/yyyy') : '—'}
                     </TableCell>
-                    <TableCell>
-                      <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setDetailId(head.id); }}>
-                        Detalhes
-                      </Button>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="icon" variant="ghost" onClick={(e) => openEdit(head, e)} title="Editar">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={(e) => openDelete(head.id, e)} title="Excluir">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -187,6 +289,50 @@ export default function CylinderHeadsPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Cabeçote</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Número de Série</label>
+              <Input value={editSerial} onChange={e => setEditSerial(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Status</label>
+              <Select value={editStatus} onValueChange={setEditStatus}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="in_stock">Estoque</SelectItem>
+                  <SelectItem value="active">No Motor</SelectItem>
+                  <SelectItem value="maintenance">Em Reparo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEdit} disabled={store.updateCylinderHead.isPending}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir Cabeçote</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este cabeçote? Esta ação não pode ser desfeita.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={store.deleteCylinderHead.isPending}>Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Detail Dialog */}
       <Dialog open={!!detailId} onOpenChange={(open) => !open && setDetailId(null)}>
         <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -201,7 +347,6 @@ export default function CylinderHeadsPage() {
                 </DialogTitle>
               </DialogHeader>
 
-              {/* Metrics */}
               {metricsData && (
                 <div className="grid grid-cols-2 gap-4 my-4">
                   <Card className="border-[hsl(var(--industrial))]/20">
@@ -276,7 +421,7 @@ export default function CylinderHeadsPage() {
 
                 <TabsContent value="maintenances">
                   <div className="flex justify-end mb-3">
-                    <Button size="sm" onClick={() => setMaintOpen(true)}>
+                    <Button size="sm" onClick={() => { setMaintDate(''); setMaintOpen(true); }}>
                       <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
                       Registrar Manutenção
                     </Button>
@@ -308,13 +453,18 @@ export default function CylinderHeadsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Maintenance Registration Dialog */}
+      {/* Individual Maintenance Dialog */}
       <Dialog open={maintOpen} onOpenChange={setMaintOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Registrar Manutenção do Cabeçote</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Data da Manutenção</label>
+              <Input type="date" value={maintDate} onChange={e => setMaintDate(e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar a data de hoje.</p>
+            </div>
             <div>
               <label className="text-sm font-medium">Descrição</label>
               <Textarea value={maintDesc} onChange={e => setMaintDesc(e.target.value)} placeholder="Retífica completa, troca de válvulas..." />
@@ -327,6 +477,65 @@ export default function CylinderHeadsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setMaintOpen(false)}>Cancelar</Button>
             <Button onClick={handleAddMaintenance} disabled={store.addMaintenance.isPending}>Registrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Maintenance Dialog */}
+      <Dialog open={batchMaintOpen} onOpenChange={setBatchMaintOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Manutenção em Lote</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Selection */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium">Selecionar Cabeçotes</label>
+                <Button size="sm" variant="ghost" onClick={toggleAllBatch} className="text-xs h-7">
+                  {batchSelected.length === heads.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                </Button>
+              </div>
+              <div className="border rounded-md max-h-48 overflow-y-auto divide-y">
+                {heads.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-3 text-center">Nenhum cabeçote cadastrado.</p>
+                ) : heads.map(head => (
+                  <label key={head.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
+                    <Checkbox
+                      checked={batchSelected.includes(head.id)}
+                      onCheckedChange={() => toggleBatchSelect(head.id)}
+                    />
+                    <span className="font-mono text-sm flex-1">{head.serial_number || '—'}</span>
+                    <Badge className={`${statusColors[head.status]} text-xs`}>
+                      {cylinderHeadStatusLabels[head.status]}
+                    </Badge>
+                  </label>
+                ))}
+              </div>
+              {batchSelected.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">{batchSelected.length} selecionado(s)</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Data da Manutenção</label>
+              <Input type="date" value={batchDate} onChange={e => setBatchDate(e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar a data de hoje.</p>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Descrição</label>
+              <Textarea value={batchDesc} onChange={e => setBatchDesc(e.target.value)} placeholder="Retífica completa, troca de válvulas..." />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Horímetro no momento</label>
+              <Input type="number" value={batchHorimeter} onChange={e => setBatchHorimeter(e.target.value)} placeholder="0" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchMaintOpen(false)}>Cancelar</Button>
+            <Button onClick={handleBatchMaintenance} disabled={store.addMaintenance.isPending || batchSelected.length === 0}>
+              Registrar em {batchSelected.length} Cabeçote(s)
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
