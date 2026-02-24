@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
@@ -10,8 +11,10 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
@@ -20,6 +23,8 @@ const maintenanceTypeLabels: Record<string, string> = {
   spark_plug: 'Vela',
   liner: 'Camisa',
   piston: 'Pistão',
+  connecting_rod: 'Biela',
+  bearing: 'Bronzina',
 };
 
 interface MaintenancePlan {
@@ -31,6 +36,18 @@ interface MaintenancePlan {
   trigger_type: string;
   interval_value: number;
   last_execution_value: number;
+}
+
+interface CylComp {
+  id: string;
+  equipment_id: string;
+  cylinder_number: number;
+  component_type: string;
+  horimeter_at_install: number;
+}
+
+function fmtNum(n: number): string {
+  return n.toLocaleString('pt-BR');
 }
 
 function getStatus(current: number, lastExec: number, interval: number) {
@@ -52,11 +69,15 @@ const componentTypeLabels: Record<string, string> = {
   spark_plug: 'Vela',
   liner: 'Camisa',
   piston: 'Pistão',
+  connecting_rod: 'Biela',
+  bearing: 'Bronzina',
   turbine: 'Turbina',
   intercooler: 'Intercooler',
   oil_exchanger: 'Trocador de Óleo',
   oil_change: 'Troca de Óleo',
 };
+
+const cylinderComponentTypes = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
 
 const triggerLabels: Record<string, string> = {
   hours: 'Horas',
@@ -69,6 +90,14 @@ export default function EquipmentDetailPage() {
   const navigate = useNavigate();
   const { equipments, oilTypes } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
+
+  const [maintDialog, setMaintDialog] = useState<{
+    open: boolean;
+    cylinderNumber: number;
+    componentType: string;
+    cylinderComponentId: string;
+    installHorimeter: number;
+  }>({ open: false, cylinderNumber: 0, componentType: '', cylinderComponentId: '', installHorimeter: 0 });
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -87,6 +116,20 @@ export default function EquipmentDetailPage() {
     enabled: !!id,
   });
 
+  const cylinderComponents = useQuery({
+    queryKey: ['cylinder_components', id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('cylinder_components')
+        .select('*')
+        .eq('equipment_id', id)
+        .order('cylinder_number');
+      if (error) throw error;
+      return data as CylComp[];
+    },
+    enabled: !!id,
+  });
+
   if (!equipment) {
     return (
       <AppLayout>
@@ -100,6 +143,7 @@ export default function EquipmentDetailPage() {
 
   const oilName = oils.find(o => o.id === equipment.oil_type_id)?.name;
   const allPlans = plans.data || [];
+  const allCylComps = cylinderComponents.data || [];
   const equipmentLogs = (logs.data || []).filter((l: any) => l.equipment_id === id);
   const allLogItems = logItems.data || [];
 
@@ -107,12 +151,34 @@ export default function EquipmentDetailPage() {
   const warningPlans = allPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning');
   const criticalPlans = allPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical');
 
-  // Group plans by unique component_type + task
-  const uniquePlans = allPlans.reduce<MaintenancePlan[]>((acc, plan) => {
+  // Group plans by unique component_type + task (for non-cylinder plans)
+  const nonCylinderPlans = allPlans.filter(p => !cylinderComponentTypes.includes(p.component_type));
+  const uniqueNonCylPlans = nonCylinderPlans.reduce<MaintenancePlan[]>((acc, plan) => {
     const exists = acc.find(p => p.component_type === plan.component_type && p.task === plan.task);
     if (!exists) acc.push(plan);
     return acc;
   }, []);
+
+  // Get plan for a specific component type
+  const getPlanForType = (type: string) => allPlans.find(p => p.component_type === type);
+
+  // Group cylinder components by type
+  const cylByType = cylinderComponentTypes.map(type => ({
+    type,
+    label: componentTypeLabels[type] || type,
+    components: allCylComps.filter(c => c.component_type === type).sort((a, b) => a.cylinder_number - b.cylinder_number),
+    plan: getPlanForType(type),
+  })).filter(g => g.components.length > 0);
+
+  const openMaintDialog = (comp: CylComp) => {
+    setMaintDialog({
+      open: true,
+      cylinderNumber: comp.cylinder_number,
+      componentType: comp.component_type,
+      cylinderComponentId: comp.id,
+      installHorimeter: comp.horimeter_at_install,
+    });
+  };
 
   return (
     <AppLayout>
@@ -135,7 +201,7 @@ export default function EquipmentDetailPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">Horímetro</p>
-                <p className="font-bold">{equipment.total_horimeter}h</p>
+                <p className="font-bold">{fmtNum(equipment.total_horimeter)}h</p>
               </div>
             </CardContent>
           </Card>
@@ -144,7 +210,7 @@ export default function EquipmentDetailPage() {
               <Zap className="h-4 w-4 text-muted-foreground" />
               <div>
                 <p className="text-xs text-muted-foreground">Arranques</p>
-                <p className="font-bold">{equipment.total_starts}</p>
+                <p className="font-bold">{fmtNum(equipment.total_starts)}</p>
               </div>
             </CardContent>
           </Card>
@@ -228,22 +294,124 @@ export default function EquipmentDetailPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="plans">
+        <Tabs defaultValue="components">
           <TabsList>
-            <TabsTrigger value="plans">Planos de Manutenção</TabsTrigger>
+            <TabsTrigger value="components">Componentes por Cilindro</TabsTrigger>
+            <TabsTrigger value="plans">Planos Gerais</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="plans" className="mt-4">
-            {uniquePlans.length === 0 ? (
+          {/* Cylinder Components Tab */}
+          <TabsContent value="components" className="mt-4">
+            {cylByType.length === 0 ? (
               <Card>
                 <CardContent className="p-8 text-center text-muted-foreground">
-                  Nenhum plano de manutenção cadastrado.
+                  Nenhum componente de cilindro cadastrado.
+                </CardContent>
+              </Card>
+            ) : (
+              <Accordion type="multiple" defaultValue={cylByType.map(g => g.type)} className="space-y-3">
+                {cylByType.map(group => {
+                  const plan = group.plan;
+                  return (
+                    <AccordionItem key={group.type} value={group.type} className="border rounded-lg bg-card">
+                      <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                        <div className="flex items-center gap-2">
+                          <Wrench className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-semibold">{group.label}</span>
+                          <Badge variant="outline" className="ml-2 text-xs">
+                            {group.components.length} cilindros
+                          </Badge>
+                          {plan && (
+                            <span className="text-xs text-muted-foreground ml-2">
+                              Intervalo: {fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}
+                            </span>
+                          )}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                          {group.components.map(comp => {
+                            const usage = equipment.total_horimeter - comp.horimeter_at_install;
+                            const interval = plan?.interval_value || 0;
+                            const status = interval > 0 ? getStatus(equipment.total_horimeter, comp.horimeter_at_install, interval) : 'ok';
+                            const percent = interval > 0 ? getPercent(equipment.total_horimeter, comp.horimeter_at_install, interval) : 0;
+
+                            return (
+                              <Card
+                                key={comp.id}
+                                className={
+                                  status === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+                                  status === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+                                }
+                              >
+                                <CardContent className="p-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="font-semibold text-sm">Cilindro {comp.cylinder_number}</span>
+                                    <div className="flex items-center gap-2">
+                                      <Badge
+                                        variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
+                                        className={
+                                          status === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
+                                          status === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
+                                        }
+                                      >
+                                        {status === 'ok' ? 'Em dia' : status === 'warning' ? 'Atenção' : 'Vencida'}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground space-y-1 mb-2">
+                                    <div className="flex justify-between">
+                                      <span>Instalado em:</span>
+                                      <span className="font-mono">{fmtNum(comp.horimeter_at_install)}h</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span>Uso:</span>
+                                      <span className="font-mono">{fmtNum(usage)}h</span>
+                                    </div>
+                                    {interval > 0 && (
+                                      <div className="flex justify-between">
+                                        <span>Próximo em:</span>
+                                        <span className="font-mono">{fmtNum(Math.max(0, interval - usage))}h</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  {interval > 0 && (
+                                    <Progress value={percent} className="h-1.5 mb-2" />
+                                  )}
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full text-xs"
+                                    onClick={() => openMaintDialog(comp)}
+                                  >
+                                    <PlusCircle className="h-3 w-3 mr-1" />
+                                    Registrar Manutenção
+                                  </Button>
+                                </CardContent>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  );
+                })}
+              </Accordion>
+            )}
+          </TabsContent>
+
+          {/* General Plans Tab */}
+          <TabsContent value="plans" className="mt-4">
+            {uniqueNonCylPlans.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Nenhum plano de manutenção geral cadastrado.
                 </CardContent>
               </Card>
             ) : (
               <div className="space-y-3">
-                {uniquePlans.map(plan => {
+                {uniqueNonCylPlans.map(plan => {
                   const status = getStatus(equipment.total_horimeter, plan.last_execution_value, plan.interval_value);
                   const percent = getPercent(equipment.total_horimeter, plan.last_execution_value, plan.interval_value);
                   const usage = equipment.total_horimeter - plan.last_execution_value;
@@ -271,8 +439,8 @@ export default function EquipmentDetailPage() {
                         </div>
                         <div className="flex items-center gap-3">
                           <Progress value={percent} className="flex-1 h-2" />
-                          <span className="text-xs font-mono text-muted-foreground w-28 text-right">
-                            {usage}/{plan.interval_value} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}
+                          <span className="text-xs font-mono text-muted-foreground w-32 text-right">
+                            {fmtNum(usage)}/{fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}
                           </span>
                         </div>
                       </CardContent>
@@ -283,6 +451,7 @@ export default function EquipmentDetailPage() {
             )}
           </TabsContent>
 
+          {/* History Tab */}
           <TabsContent value="history" className="mt-4">
             {equipmentLogs.length === 0 ? (
               <Card>
@@ -309,7 +478,7 @@ export default function EquipmentDetailPage() {
                         <TableRow key={log.id}>
                           <TableCell className="font-mono text-xs">{format(new Date(log.service_date), 'dd/MM/yyyy')}</TableCell>
                           <TableCell>{maintenanceTypeLabels[log.maintenance_type] || log.maintenance_type}</TableCell>
-                          <TableCell className="font-mono">{log.horimeter_at_service}h</TableCell>
+                          <TableCell className="font-mono">{fmtNum(log.horimeter_at_service)}h</TableCell>
                           <TableCell className="text-xs">
                             {items.length > 0
                               ? items.map((i: any) => `${i.inventory_item_name} (${i.quantity})`).join(', ')
@@ -326,6 +495,20 @@ export default function EquipmentDetailPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Maintenance Dialog */}
+      {maintDialog.open && (
+        <CylinderMaintenanceDialog
+          open={maintDialog.open}
+          onOpenChange={(open) => setMaintDialog(prev => ({ ...prev, open }))}
+          equipmentId={id!}
+          equipmentHorimeter={equipment.total_horimeter}
+          cylinderNumber={maintDialog.cylinderNumber}
+          componentType={maintDialog.componentType}
+          cylinderComponentId={maintDialog.cylinderComponentId}
+          currentInstallHorimeter={maintDialog.installHorimeter}
+        />
+      )}
     </AppLayout>
   );
 }
