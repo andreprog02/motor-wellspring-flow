@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { useInventoryStore, InventoryItemDisplay } from '@/hooks/useInventoryStore';
 import { InventoryFormDialog } from '@/components/inventory/InventoryFormDialog';
+import { LocationsDialog } from '@/components/inventory/LocationsDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Package, Plus, Pencil, Trash2 } from 'lucide-react';
+import { Package, Plus, Pencil, Trash2, MapPin } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -15,6 +16,7 @@ import {
 export default function InventoryPage() {
   const store = useInventoryStore();
   const [formOpen, setFormOpen] = useState(false);
+  const [locationsOpen, setLocationsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItemDisplay | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -34,10 +36,16 @@ export default function InventoryPage() {
             <h1 className="text-2xl font-bold tracking-tight">Estoque de Peças</h1>
             <p className="text-sm text-muted-foreground mt-1">Catálogo de peças e controle de quantidades</p>
           </div>
-          <Button onClick={handleNew}>
-            <Plus className="h-4 w-4 mr-2" />
-            Novo Item
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setLocationsOpen(true)}>
+              <MapPin className="h-4 w-4 mr-2" />
+              Localização
+            </Button>
+            <Button onClick={handleNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Novo Item
+            </Button>
+          </div>
         </div>
 
         <Card>
@@ -121,6 +129,8 @@ export default function InventoryPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <LocationsDialog open={locationsOpen} onOpenChange={setLocationsOpen} />
     </AppLayout>
   );
 }
