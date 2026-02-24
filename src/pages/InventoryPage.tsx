@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { useInventoryStore, InventoryItemDisplay } from '@/hooks/useInventoryStore';
 import { InventoryFormDialog } from '@/components/inventory/InventoryFormDialog';
+import { InventoryExportMenu } from '@/components/inventory/InventoryExportMenu';
 import { LocationsDialog } from '@/components/inventory/LocationsDialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -37,6 +38,7 @@ export default function InventoryPage() {
             <p className="text-sm text-muted-foreground mt-1">Catálogo de peças e controle de quantidades</p>
           </div>
           <div className="flex gap-2">
+            <InventoryExportMenu items={store.items} />
             <Button variant="outline" onClick={() => setLocationsOpen(true)}>
               <MapPin className="h-4 w-4 mr-2" />
               Localização
