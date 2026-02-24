@@ -249,12 +249,22 @@ export function useCylinderHeadStore() {
       equipment_id: string;
       install_date: string;
       install_equipment_horimeter: number;
-      remove_date: string;
-      remove_equipment_horimeter: number;
+      remove_date?: string | null;
+      remove_equipment_horimeter?: number | null;
     }) => {
+      const insertData: Record<string, any> = {
+        cylinder_head_id: data.cylinder_head_id,
+        equipment_id: data.equipment_id,
+        install_date: data.install_date,
+        install_equipment_horimeter: data.install_equipment_horimeter,
+      };
+      if (data.remove_date) {
+        insertData.remove_date = data.remove_date;
+        insertData.remove_equipment_horimeter = data.remove_equipment_horimeter ?? 0;
+      }
       const { data: inst, error } = await (supabase as any)
         .from('cylinder_head_installations')
-        .insert(data)
+        .insert(insertData)
         .select()
         .single();
       if (error) throw error;
