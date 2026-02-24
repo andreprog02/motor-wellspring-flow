@@ -6,11 +6,12 @@ import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FileDown, Filter } from 'lucide-react';
+import { FileDown, Filter, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 import { cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
 import { turboComponentTypes } from '@/hooks/useTurboStore';
@@ -172,6 +173,46 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleExportPDF = async () => {
+    const { default: jsPDF } = await import('jspdf');
+    const { default: autoTable } = await import('jspdf-autotable');
+
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const title = reportType === 'installations' ? 'Relatório de Instalações' : reportType === 'maintenances' ? 'Relatório de Manutenções' : 'Relatório de Troca de Componentes';
+    doc.setFontSize(16);
+    doc.text(title, 14, 18);
+    doc.setFontSize(9);
+    doc.text(`Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 25);
+
+    if (reportType === 'installations') {
+      autoTable(doc, {
+        startY: 30,
+        head: [['Tipo', 'S/N', 'Equipamento', 'Data Instalação', 'Hor. Inst.', 'Data Remoção', 'Hor. Rem.', 'Delta (h)']],
+        body: installationRows.map(r => [r.type, r.serial, r.equipment, r.installDate ? format(new Date(r.installDate), 'dd/MM/yyyy') : '', fmtNum(r.installHor), r.removeDate ? format(new Date(r.removeDate), 'dd/MM/yyyy') : '—', r.removeHor != null ? fmtNum(r.removeHor) : '—', r.delta != null ? fmtNum(r.delta) : '—']),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [60, 60, 60] },
+      });
+    } else if (reportType === 'maintenances') {
+      autoTable(doc, {
+        startY: 30,
+        head: [['Tipo', 'S/N', 'Data', 'Horímetro', 'Descrição']],
+        body: maintenanceRows.map(r => [r.type, r.serial, format(new Date(r.date), 'dd/MM/yyyy'), fmtNum(r.horimeter), r.description]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [60, 60, 60] },
+      });
+    } else {
+      autoTable(doc, {
+        startY: 30,
+        head: [['Tipo', 'S/N', 'Componente', 'Data', 'Horímetro']],
+        body: componentRows.map(r => [r.type, r.serial, r.component, format(new Date(r.date), 'dd/MM/yyyy'), fmtNum(r.horimeter)]),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [60, 60, 60] },
+      });
+    }
+
+    doc.save(`relatorio_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
   const currentCount = reportType === 'installations' ? installationRows.length : reportType === 'maintenances' ? maintenanceRows.length : componentRows.length;
 
   return (
@@ -182,9 +223,21 @@ export default function ReportsPage() {
             <h1 className="text-2xl font-bold tracking-tight">Relatórios</h1>
             <p className="text-sm text-muted-foreground">Histórico consolidado de cabeçotes e turbos</p>
           </div>
-          <Button variant="outline" onClick={handleExportCSV} disabled={currentCount === 0}>
-            <FileDown className="h-4 w-4 mr-2" />Exportar CSV
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={currentCount === 0}>
+                <FileDown className="h-4 w-4 mr-2" />Exportar
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleExportCSV}>
+                <FileDown className="h-4 w-4 mr-2" />CSV
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportPDF}>
+                <FileText className="h-4 w-4 mr-2" />PDF
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
         {/* Filters */}
