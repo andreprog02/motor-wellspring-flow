@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
+import { useCylinderHeadStore, cylinderHeadStatusLabels } from '@/hooks/useCylinderHeadStore';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,9 +14,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge } from 'lucide-react';
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
+import { toast } from 'sonner';
+import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
@@ -92,11 +97,17 @@ export default function EquipmentDetailPage() {
   const { equipments, oilTypes } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
 
+  const chStore = useCylinderHeadStore();
+
   const [maintDialog, setMaintDialog] = useState<{
     open: boolean;
     componentType: string;
     preSelectedCylinders: number[];
   }>({ open: false, componentType: '', preSelectedCylinders: [] });
+
+  const [installChOpen, setInstallChOpen] = useState(false);
+  const [selectedChId, setSelectedChId] = useState('');
+  const [removeChId, setRemoveChId] = useState<string | null>(null);
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -145,6 +156,44 @@ export default function EquipmentDetailPage() {
   const allCylComps = cylinderComponents.data || [];
   const equipmentLogs = (logs.data || []).filter((l: any) => l.equipment_id === id);
   const allLogItems = logItems.data || [];
+
+  // Cylinder head data for this equipment
+  const allCylinderHeads = chStore.cylinderHeads.data || [];
+  const allChInstallations = chStore.installations.data || [];
+  const inStockHeads = allCylinderHeads.filter(h => h.status === 'in_stock');
+  const activeInstallations = allChInstallations.filter(i => i.equipment_id === id && !i.remove_date);
+  const activeHeadIds = activeInstallations.map(i => i.cylinder_head_id);
+  const activeHeads = allCylinderHeads.filter(h => activeHeadIds.includes(h.id));
+
+  const handleInstallHead = async () => {
+    if (!selectedChId || !id) return;
+    try {
+      await chStore.installCylinderHead.mutateAsync({
+        cylinder_head_id: selectedChId,
+        equipment_id: id,
+        install_equipment_horimeter: equipment.total_horimeter,
+      });
+      toast.success('Cabeçote montado com sucesso!');
+      setSelectedChId('');
+      setInstallChOpen(false);
+    } catch {
+      toast.error('Erro ao montar cabeçote.');
+    }
+  };
+
+  const handleRemoveHead = async (installationId: string, headId: string) => {
+    try {
+      await chStore.removeCylinderHead.mutateAsync({
+        installation_id: installationId,
+        cylinder_head_id: headId,
+        remove_equipment_horimeter: equipment.total_horimeter,
+      });
+      toast.success('Cabeçote removido!');
+      setRemoveChId(null);
+    } catch {
+      toast.error('Erro ao remover cabeçote.');
+    }
+  };
 
   const okPlans = allPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'ok');
   const warningPlans = allPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning');
@@ -306,6 +355,10 @@ export default function EquipmentDetailPage() {
             {cylByType.map(group => (
               <TabsTrigger key={group.type} value={group.type}>{group.label}s</TabsTrigger>
             ))}
+            <TabsTrigger value="cylinder_heads">
+              <Cog className="h-3.5 w-3.5 mr-1" />
+              Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
+            </TabsTrigger>
             <TabsTrigger value="plans">Planos Gerais</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
           </TabsList>
@@ -462,6 +515,42 @@ export default function EquipmentDetailPage() {
             );
           })}
 
+          {/* Cylinder Heads Tab */}
+          <TabsContent value="cylinder_heads" className="mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-muted-foreground">Cabeçotes montados neste equipamento</p>
+              <Button size="sm" onClick={() => setInstallChOpen(true)} disabled={inStockHeads.length === 0}>
+                <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                Montar Cabeçote
+              </Button>
+            </div>
+            {activeHeads.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Nenhum cabeçote montado. Clique em "Montar Cabeçote" para associar um do estoque.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeHeads.map(head => {
+                  const inst = activeInstallations.find(i => i.cylinder_head_id === head.id)!;
+                  const hoursOnThisEquip = equipment.total_horimeter - inst.install_equipment_horimeter;
+                  return (
+                    <CylinderHeadCard
+                      key={head.id}
+                      head={head}
+                      installation={inst}
+                      hoursOnEquipment={hoursOnThisEquip}
+                      equipmentHorimeter={equipment.total_horimeter}
+                      onRemove={() => handleRemoveHead(inst.id, head.id)}
+                      getMetrics={chStore.getMetrics}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
           {/* General Plans Tab */}
           <TabsContent value="plans" className="mt-4">
             {uniqueNonCylPlans.length === 0 ? (
@@ -569,6 +658,119 @@ export default function EquipmentDetailPage() {
           preSelectedCylinders={maintDialog.preSelectedCylinders}
         />
       )}
+
+      {/* Install Cylinder Head Dialog */}
+      <Dialog open={installChOpen} onOpenChange={setInstallChOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Montar Cabeçote</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Selecione um cabeçote disponível em estoque:</p>
+            <Select value={selectedChId} onValueChange={setSelectedChId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar cabeçote..." />
+              </SelectTrigger>
+              <SelectContent>
+                {inStockHeads.map(h => (
+                  <SelectItem key={h.id} value={h.id}>
+                    {h.serial_number || h.id.slice(0, 8)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Horímetro atual do equipamento: <span className="font-mono font-medium">{fmtNum(equipment.total_horimeter)}h</span>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInstallChOpen(false)}>Cancelar</Button>
+            <Button onClick={handleInstallHead} disabled={!selectedChId || chStore.installCylinderHead.isPending}>
+              Montar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
+  );
+}
+
+// Sub-component for cylinder head card with async metrics
+function CylinderHeadCard({
+  head,
+  installation,
+  hoursOnEquipment,
+  equipmentHorimeter,
+  onRemove,
+  getMetrics,
+}: {
+  head: { id: string; serial_number: string; status: string; last_maintenance_date: string | null };
+  installation: { id: string; install_date: string; install_equipment_horimeter: number };
+  hoursOnEquipment: number;
+  equipmentHorimeter: number;
+  onRemove: () => void;
+  getMetrics: (id: string) => Promise<CylinderHeadMetrics>;
+}) {
+  const metrics = useQuery({
+    queryKey: ['cylinder_head_metrics', head.id],
+    queryFn: () => getMetrics(head.id),
+  });
+
+  const m = metrics.data;
+
+  return (
+    <Card className="border-[hsl(var(--industrial))]/20">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Cog className="h-4 w-4 text-[hsl(var(--industrial))]" />
+            <span className="font-semibold text-sm">{head.serial_number || head.id.slice(0, 8)}</span>
+          </div>
+          <Badge className="bg-[hsl(var(--industrial))] text-[hsl(var(--industrial-foreground))]">
+            Montado
+          </Badge>
+        </div>
+
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div className="flex justify-between">
+            <span>Instalado em:</span>
+            <span className="font-mono">{format(new Date(installation.install_date), 'dd/MM/yyyy')} ({fmtNum(installation.install_equipment_horimeter)}h)</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Horas neste motor:</span>
+            <span className="font-mono font-medium">{fmtNum(Math.round(hoursOnEquipment))}h</span>
+          </div>
+        </div>
+
+        {m && (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-2 rounded-md bg-[hsl(var(--industrial))]/5 border border-[hsl(var(--industrial))]/10">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Clock className="h-3 w-3 text-[hsl(var(--industrial))]" />
+                <span className="text-[10px] text-muted-foreground">Horas Totais</span>
+              </div>
+              <p className="text-sm font-bold font-mono">{fmtNum(Math.round(m.total_hours))}h</p>
+            </div>
+            <div className="p-2 rounded-md bg-[hsl(var(--status-warning))]/5 border border-[hsl(var(--status-warning))]/10">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Gauge className="h-3 w-3 text-[hsl(var(--status-warning))]" />
+                <span className="text-[10px] text-muted-foreground">Pós-Revisão</span>
+              </div>
+              <p className="text-sm font-bold font-mono">{fmtNum(Math.round(m.hours_since_maintenance))}h</p>
+            </div>
+          </div>
+        )}
+
+        {head.last_maintenance_date && (
+          <p className="text-xs text-muted-foreground">
+            Última revisão: <span className="font-mono">{format(new Date(head.last_maintenance_date), 'dd/MM/yyyy')}</span>
+          </p>
+        )}
+
+        <Button size="sm" variant="outline" className="w-full text-xs" onClick={onRemove}>
+          Desmontar Cabeçote
+        </Button>
+      </CardContent>
+    </Card>
   );
 }

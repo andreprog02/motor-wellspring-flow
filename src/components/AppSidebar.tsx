@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, ClipboardList, Cog } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/inventory', label: 'Estoque', icon: Package },
   { to: '/manufacturers', label: 'Fabricantes', icon: Factory },
   { to: '/locations', label: 'Locais', icon: MapPin },
+  { to: '/cylinder-heads', label: 'Cabeçotes', icon: Cog },
   { to: '/maintenance', label: 'Manutenção', icon: Wrench },
   { to: '/maintenance/oil', label: 'Óleo', icon: Droplets },
   { to: '/maintenance/pistons', label: 'Pistões', icon: Cylinder },
