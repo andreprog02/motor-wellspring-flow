@@ -40,6 +40,7 @@ export default function CylinderHeadsPage() {
   const [maintOpen, setMaintOpen] = useState(false);
   const [batchMaintOpen, setBatchMaintOpen] = useState(false);
   const [compOpen, setCompOpen] = useState(false);
+  const [histInstOpen, setHistInstOpen] = useState(false);
 
   // Form states
   const [serialNumber, setSerialNumber] = useState('');
@@ -61,6 +62,13 @@ export default function CylinderHeadsPage() {
   const [compTypes, setCompTypes] = useState<string[]>([]);
   const [compDate, setCompDate] = useState('');
   const [compHorimeter, setCompHorimeter] = useState('');
+
+  // Historical installation states
+  const [histEquipId, setHistEquipId] = useState('');
+  const [histInstallDate, setHistInstallDate] = useState('');
+  const [histInstallHor, setHistInstallHor] = useState('');
+  const [histRemoveDate, setHistRemoveDate] = useState('');
+  const [histRemoveHor, setHistRemoveHor] = useState('');
 
   const heads = store.cylinderHeads.data || [];
   const allInstallations = store.installations.data || [];
@@ -206,7 +214,30 @@ export default function CylinderHeadsPage() {
     }
   };
 
-  // Get latest replacement per component type for a given head
+  const handleAddHistoricalInstallation = async () => {
+    if (!detailId || !histEquipId || !histInstallDate || !histRemoveDate) return;
+    try {
+      await store.addHistoricalInstallation.mutateAsync({
+        cylinder_head_id: detailId,
+        equipment_id: histEquipId,
+        install_date: histInstallDate,
+        install_equipment_horimeter: Number(histInstallHor) || 0,
+        remove_date: histRemoveDate,
+        remove_equipment_horimeter: Number(histRemoveHor) || 0,
+      });
+      toast.success('Instalação histórica registrada!');
+      setHistEquipId('');
+      setHistInstallDate('');
+      setHistInstallHor('');
+      setHistRemoveDate('');
+      setHistRemoveHor('');
+      setHistInstOpen(false);
+    } catch {
+      toast.error('Erro ao registrar instalação.');
+    }
+  };
+
+
   const getLatestReplacements = () => {
     const latest: Record<string, CylinderHeadComponent> = {};
     headComps.forEach(c => {
@@ -476,6 +507,12 @@ export default function CylinderHeadsPage() {
                 </TabsContent>
 
                 <TabsContent value="history">
+                  <div className="flex justify-end mb-3">
+                    <Button size="sm" onClick={() => { setHistEquipId(''); setHistInstallDate(''); setHistInstallHor(''); setHistRemoveDate(''); setHistRemoveHor(''); setHistInstOpen(true); }}>
+                      <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Adicionar Instalação
+                    </Button>
+                  </div>
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -677,6 +714,63 @@ export default function CylinderHeadsPage() {
             <Button variant="outline" onClick={() => setCompOpen(false)}>Cancelar</Button>
             <Button onClick={handleAddComponents} disabled={store.addHeadComponentsBatch.isPending || compTypes.length === 0}>
               Registrar {compTypes.length} Troca(s)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Historical Installation Dialog */}
+      <Dialog open={histInstOpen} onOpenChange={setHistInstOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Instalação Histórica</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Equipamento (Motor)</label>
+              <Select value={histEquipId} onValueChange={setHistEquipId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o motor" /></SelectTrigger>
+                <SelectContent>
+                  {(equipments.data || []).map(eq => (
+                    <SelectItem key={eq.id} value={eq.id}>{eq.name} — {eq.serial_number}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Data Instalação</label>
+                <Input type="date" value={histInstallDate} onChange={e => setHistInstallDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Horímetro Instalação</label>
+                <Input type="number" value={histInstallHor} onChange={e => setHistInstallHor(e.target.value)} placeholder="0" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Data Remoção</label>
+                <Input type="date" value={histRemoveDate} onChange={e => setHistRemoveDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Horímetro Remoção</label>
+                <Input type="number" value={histRemoveHor} onChange={e => setHistRemoveHor(e.target.value)} placeholder="0" />
+              </div>
+            </div>
+            {histInstallHor && histRemoveHor && Number(histRemoveHor) > Number(histInstallHor) && (
+              <div className="bg-secondary/50 rounded-md p-3 text-sm">
+                <span className="text-muted-foreground">Delta de horas: </span>
+                <span className="font-mono font-semibold">{fmtNum(Number(histRemoveHor) - Number(histInstallHor))}h</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setHistInstOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleAddHistoricalInstallation}
+              disabled={store.addHistoricalInstallation.isPending || !histEquipId || !histInstallDate || !histRemoveDate}
+            >
+              Registrar
             </Button>
           </DialogFooter>
         </DialogContent>
