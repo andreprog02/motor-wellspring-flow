@@ -62,7 +62,6 @@ export interface InventoryItem {
   name: string;
   manufacturer: string;
   partNumber: string;
-  estimatedLife: number;
   quantity: number;
   location: string;
   minStock: number;

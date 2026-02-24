@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { useInventoryStore, Manufacturer, ManufacturerModel } from '@/hooks/useInventoryStore';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -22,45 +22,36 @@ export default function ManufacturersPage() {
   const [mfrName, setMfrName] = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  // Model state
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const [editingModel, setEditingModel] = useState<ManufacturerModel | null>(null);
   const [modelName, setModelName] = useState('');
   const [modelMfrId, setModelMfrId] = useState('');
   const [deleteModelId, setDeleteModelId] = useState<string | null>(null);
 
-  // Expanded manufacturers
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-
   const toggleExpand = (id: string) => {
-    setExpanded(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
+    setExpanded(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   };
 
-  // Manufacturer handlers
   const openNewMfr = () => { setEditingMfr(null); setMfrName(''); setDialogOpen(true); };
   const openEditMfr = (m: Manufacturer) => { setEditingMfr(m); setMfrName(m.name); setDialogOpen(true); };
   const saveMfr = () => {
     if (!mfrName.trim()) return;
-    if (editingMfr) store.updateManufacturer(editingMfr.id, mfrName.trim());
-    else store.addManufacturer(mfrName.trim());
+    if (editingMfr) store.updateManufacturer.mutate({ id: editingMfr.id, name: mfrName.trim() });
+    else store.addManufacturer.mutate(mfrName.trim());
     setDialogOpen(false);
   };
-  const confirmDeleteMfr = () => { if (deleteId) { store.deleteManufacturer(deleteId); setDeleteId(null); } };
+  const confirmDeleteMfr = () => { if (deleteId) { store.deleteManufacturer.mutate(deleteId); setDeleteId(null); } };
 
-  // Model handlers
   const openNewModel = (mfrId: string) => { setEditingModel(null); setModelName(''); setModelMfrId(mfrId); setModelDialogOpen(true); };
-  const openEditModel = (m: ManufacturerModel) => { setEditingModel(m); setModelName(m.name); setModelMfrId(m.manufacturerId); setModelDialogOpen(true); };
+  const openEditModel = (m: ManufacturerModel) => { setEditingModel(m); setModelName(m.name); setModelMfrId(m.manufacturer_id); setModelDialogOpen(true); };
   const saveModel = () => {
     if (!modelName.trim()) return;
-    if (editingModel) store.updateModel(editingModel.id, modelName.trim());
-    else store.addModel(modelMfrId, modelName.trim());
+    if (editingModel) store.updateModel.mutate({ id: editingModel.id, name: modelName.trim() });
+    else store.addModel.mutate({ manufacturer_id: modelMfrId, name: modelName.trim() });
     setModelDialogOpen(false);
   };
-  const confirmDeleteModel = () => { if (deleteModelId) { store.deleteModel(deleteModelId); setDeleteModelId(null); } };
+  const confirmDeleteModel = () => { if (deleteModelId) { store.deleteModel.mutate(deleteModelId); setDeleteModelId(null); } };
 
   return (
     <AppLayout>
@@ -78,16 +69,13 @@ export default function ManufacturersPage() {
 
         <div className="space-y-3">
           {store.manufacturers.map(mfr => {
-            const mfrModels = store.models.filter(m => m.manufacturerId === mfr.id);
+            const mfrModels = store.models.filter(m => m.manufacturer_id === mfr.id);
             const isExpanded = expanded.has(mfr.id);
             return (
               <Card key={mfr.id}>
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
-                    <button
-                      className="flex items-center gap-3 text-left flex-1"
-                      onClick={() => toggleExpand(mfr.id)}
-                    >
+                    <button className="flex items-center gap-3 text-left flex-1" onClick={() => toggleExpand(mfr.id)}>
                       {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
                       <Factory className="h-5 w-5 text-primary" />
                       <span className="font-semibold">{mfr.name}</span>
@@ -98,7 +86,6 @@ export default function ManufacturersPage() {
                       <Button size="icon" variant="ghost" onClick={() => setDeleteId(mfr.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   </div>
-
                   {isExpanded && (
                     <div className="mt-4 ml-8 space-y-2">
                       <div className="flex items-center justify-between mb-2">
@@ -107,9 +94,7 @@ export default function ManufacturersPage() {
                           <Plus className="h-3 w-3 mr-1" /> Modelo
                         </Button>
                       </div>
-                      {mfrModels.length === 0 && (
-                        <p className="text-sm text-muted-foreground italic">Nenhum modelo cadastrado.</p>
-                      )}
+                      {mfrModels.length === 0 && <p className="text-sm text-muted-foreground italic">Nenhum modelo cadastrado.</p>}
                       {mfrModels.map(model => (
                         <div key={model.id} className="flex items-center justify-between rounded-md border px-3 py-2">
                           <span className="text-sm">{model.name}</span>
@@ -131,7 +116,6 @@ export default function ManufacturersPage() {
         </div>
       </div>
 
-      {/* Manufacturer Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -149,7 +133,6 @@ export default function ManufacturersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Model Dialog */}
       <Dialog open={modelDialogOpen} onOpenChange={setModelDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -167,7 +150,6 @@ export default function ManufacturersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Manufacturer Confirm */}
       <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -181,7 +163,6 @@ export default function ManufacturersPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Model Confirm */}
       <AlertDialog open={!!deleteModelId} onOpenChange={open => !open && setDeleteModelId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
