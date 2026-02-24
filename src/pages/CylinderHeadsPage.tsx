@@ -41,6 +41,7 @@ export default function CylinderHeadsPage() {
   const [batchMaintOpen, setBatchMaintOpen] = useState(false);
   const [compOpen, setCompOpen] = useState(false);
   const [histInstOpen, setHistInstOpen] = useState(false);
+  const [batchHistOpen, setBatchHistOpen] = useState(false);
 
   // Form states
   const [serialNumber, setSerialNumber] = useState('');
@@ -69,6 +70,14 @@ export default function CylinderHeadsPage() {
   const [histInstallHor, setHistInstallHor] = useState('');
   const [histRemoveDate, setHistRemoveDate] = useState('');
   const [histRemoveHor, setHistRemoveHor] = useState('');
+
+  // Batch historical installation states
+  const [batchHistSelected, setBatchHistSelected] = useState<string[]>([]);
+  const [batchHistEquipId, setBatchHistEquipId] = useState('');
+  const [batchHistInstallDate, setBatchHistInstallDate] = useState('');
+  const [batchHistInstallHor, setBatchHistInstallHor] = useState('');
+  const [batchHistRemoveDate, setBatchHistRemoveDate] = useState('');
+  const [batchHistRemoveHor, setBatchHistRemoveHor] = useState('');
 
   const heads = store.cylinderHeads.data || [];
   const allInstallations = store.installations.data || [];
@@ -238,6 +247,44 @@ export default function CylinderHeadsPage() {
   };
 
 
+  const toggleBatchHistSelect = (id: string) => {
+    setBatchHistSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const toggleAllBatchHist = () => {
+    if (batchHistSelected.length === heads.length) {
+      setBatchHistSelected([]);
+    } else {
+      setBatchHistSelected(heads.map(h => h.id));
+    }
+  };
+
+  const handleBatchHistoricalInstallation = async () => {
+    if (batchHistSelected.length === 0 || !batchHistEquipId || !batchHistInstallDate || !batchHistRemoveDate) return;
+    try {
+      for (const chId of batchHistSelected) {
+        await store.addHistoricalInstallation.mutateAsync({
+          cylinder_head_id: chId,
+          equipment_id: batchHistEquipId,
+          install_date: batchHistInstallDate,
+          install_equipment_horimeter: Number(batchHistInstallHor) || 0,
+          remove_date: batchHistRemoveDate,
+          remove_equipment_horimeter: Number(batchHistRemoveHor) || 0,
+        });
+      }
+      toast.success(`Instalação registrada em ${batchHistSelected.length} cabeçote(s)!`);
+      setBatchHistSelected([]);
+      setBatchHistEquipId('');
+      setBatchHistInstallDate('');
+      setBatchHistInstallHor('');
+      setBatchHistRemoveDate('');
+      setBatchHistRemoveHor('');
+      setBatchHistOpen(false);
+    } catch {
+      toast.error('Erro ao registrar instalações em lote.');
+    }
+  };
+
   const getLatestReplacements = () => {
     const latest: Record<string, CylinderHeadComponent> = {};
     headComps.forEach(c => {
@@ -257,6 +304,10 @@ export default function CylinderHeadsPage() {
             <p className="text-sm text-muted-foreground">Gestão de cabeçotes com rastreamento de horas</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => { setBatchHistSelected([]); setBatchHistOpen(true); }}>
+              <ArrowRightLeft className="h-4 w-4 mr-2" />
+              Instalações em Lote
+            </Button>
             <Button variant="outline" onClick={() => { setBatchSelected([]); setBatchMaintOpen(true); }}>
               <Calendar className="h-4 w-4 mr-2" />
               Manutenção em Lote
@@ -771,6 +822,92 @@ export default function CylinderHeadsPage() {
               disabled={store.addHistoricalInstallation.isPending || !histEquipId || !histInstallDate || !histRemoveDate}
             >
               Registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Batch Historical Installation Dialog */}
+      <Dialog open={batchHistOpen} onOpenChange={setBatchHistOpen}>
+        <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Instalações Históricas em Lote</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium">Selecionar Cabeçotes</label>
+                <Button size="sm" variant="ghost" onClick={toggleAllBatchHist} className="text-xs h-7">
+                  {batchHistSelected.length === heads.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                </Button>
+              </div>
+              <div className="border rounded-md max-h-48 overflow-y-auto divide-y">
+                {heads.length === 0 ? (
+                  <p className="text-sm text-muted-foreground p-3 text-center">Nenhum cabeçote cadastrado.</p>
+                ) : heads.map(head => (
+                  <label key={head.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
+                    <Checkbox
+                      checked={batchHistSelected.includes(head.id)}
+                      onCheckedChange={() => toggleBatchHistSelect(head.id)}
+                    />
+                    <span className="font-mono text-sm flex-1">{head.serial_number || '—'}</span>
+                    <Badge className={`${statusColors[head.status]} text-xs`}>
+                      {cylinderHeadStatusLabels[head.status]}
+                    </Badge>
+                  </label>
+                ))}
+              </div>
+              {batchHistSelected.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">{batchHistSelected.length} selecionado(s)</p>
+              )}
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Equipamento (Motor)</label>
+              <Select value={batchHistEquipId} onValueChange={setBatchHistEquipId}>
+                <SelectTrigger><SelectValue placeholder="Selecione o motor" /></SelectTrigger>
+                <SelectContent>
+                  {(equipments.data || []).map(eq => (
+                    <SelectItem key={eq.id} value={eq.id}>{eq.name} — {eq.serial_number}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Data Instalação</label>
+                <Input type="date" value={batchHistInstallDate} onChange={e => setBatchHistInstallDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Horímetro Instalação</label>
+                <Input type="number" value={batchHistInstallHor} onChange={e => setBatchHistInstallHor(e.target.value)} placeholder="0" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-sm font-medium">Data Remoção</label>
+                <Input type="date" value={batchHistRemoveDate} onChange={e => setBatchHistRemoveDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Horímetro Remoção</label>
+                <Input type="number" value={batchHistRemoveHor} onChange={e => setBatchHistRemoveHor(e.target.value)} placeholder="0" />
+              </div>
+            </div>
+            {batchHistInstallHor && batchHistRemoveHor && Number(batchHistRemoveHor) > Number(batchHistInstallHor) && (
+              <div className="bg-secondary/50 rounded-md p-3 text-sm">
+                <span className="text-muted-foreground">Delta de horas: </span>
+                <span className="font-mono font-semibold">{fmtNum(Number(batchHistRemoveHor) - Number(batchHistInstallHor))}h</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBatchHistOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={handleBatchHistoricalInstallation}
+              disabled={store.addHistoricalInstallation.isPending || batchHistSelected.length === 0 || !batchHistEquipId || !batchHistInstallDate || !batchHistRemoveDate}
+            >
+              Registrar em {batchHistSelected.length} Cabeçote(s)
             </Button>
           </DialogFooter>
         </DialogContent>
