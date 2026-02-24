@@ -1,17 +1,61 @@
+import { useState } from 'react';
 import { AppLayout } from '@/components/AppLayout';
-import { inventoryItems } from '@/data/mockData';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useInventoryStore } from '@/hooks/useInventoryStore';
+import { InventoryFormDialog } from '@/components/inventory/InventoryFormDialog';
+import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Package } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Package, Plus, Pencil, Trash2 } from 'lucide-react';
+import { InventoryItem } from '@/types/models';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function InventoryPage() {
+  const store = useInventoryStore();
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const handleNew = () => {
+    setEditingItem(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (item: InventoryItem) => {
+    setEditingItem(item);
+    setFormOpen(true);
+  };
+
+  const handleSave = (data: Omit<InventoryItem, 'id'>) => {
+    if (editingItem) {
+      store.updateItem(editingItem.id, data);
+    } else {
+      store.addItem(data);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (deleteId) {
+      store.deleteItem(deleteId);
+      setDeleteId(null);
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Estoque de Peças</h1>
-          <p className="text-sm text-muted-foreground mt-1">Catálogo de peças e controle de quantidades</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Estoque de Peças</h1>
+            <p className="text-sm text-muted-foreground mt-1">Catálogo de peças e controle de quantidades</p>
+          </div>
+          <Button onClick={handleNew}>
+            <Plus className="h-4 w-4 mr-2" />
+            Novo Item
+          </Button>
         </div>
 
         <Card>
@@ -25,10 +69,11 @@ export default function InventoryPage() {
                   <TableHead>Vida Útil</TableHead>
                   <TableHead>Quantidade</TableHead>
                   <TableHead>Local</TableHead>
+                  <TableHead className="w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {inventoryItems.map(item => {
+                {store.items.map(item => {
                   const isLow = item.quantity <= item.minStock;
                   return (
                     <TableRow key={item.id}>
@@ -47,14 +92,57 @@ export default function InventoryPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">{item.location}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button size="icon" variant="ghost" onClick={() => handleEdit(item)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button size="icon" variant="ghost" onClick={() => setDeleteId(item.id)} title="Excluir">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
+                {store.items.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      Nenhum item cadastrado. Clique em "Novo Item" para começar.
+                    </TableCell>
+                  </TableRow>
+                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
       </div>
+
+      <InventoryFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        item={editingItem}
+        manufacturers={store.manufacturers}
+        locations={store.locations}
+        onSave={handleSave}
+        onAddManufacturer={store.addManufacturer}
+        onAddLocation={store.addLocation}
+      />
+
+      <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este item do estoque? Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
