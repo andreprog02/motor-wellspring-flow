@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Equipment, OilType, useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight, Check, ChevronsUpDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface Props {
   equipment: Equipment;
@@ -21,11 +24,13 @@ const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'G
 
 export function EquipmentCard({ equipment, oilTypes }: Props) {
   const navigate = useNavigate();
-  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery } = useEquipmentStore();
+  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery, addOilType } = useEquipmentStore();
   const allOilTypes = oilTypesQuery.data || oilTypes;
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [oilComboOpen, setOilComboOpen] = useState(false);
+  const [oilSearch, setOilSearch] = useState('');
   const [editData, setEditData] = useState({
     name: equipment.name,
     serial_number: equipment.serial_number,
@@ -140,12 +145,54 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
             <div><Label>Data de Instalação</Label><Input type="date" value={editData.installation_date} onChange={e => setEditData(p => ({ ...p, installation_date: e.target.value }))} /></div>
             <div>
               <Label>Tipo de Óleo</Label>
-              <Select value={editData.oil_type_id} onValueChange={v => setEditData(p => ({ ...p, oil_type_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                <SelectContent>
-                  {allOilTypes.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Popover open={oilComboOpen} onOpenChange={setOilComboOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" aria-expanded={oilComboOpen} className="w-full justify-between">
+                    {editData.oil_type_id ? allOilTypes.find(o => o.id === editData.oil_type_id)?.name || 'Selecione...' : 'Selecione...'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Pesquisar ou criar..." value={oilSearch} onValueChange={setOilSearch} />
+                    <CommandList>
+                      <CommandEmpty>
+                        {oilSearch.trim() ? (
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-start text-sm"
+                            onClick={async () => {
+                              try {
+                                const newOil = await addOilType.mutateAsync(oilSearch.trim());
+                                setEditData(p => ({ ...p, oil_type_id: newOil.id }));
+                                setOilSearch('');
+                                setOilComboOpen(false);
+                              } catch { toast.error('Erro ao criar tipo de óleo'); }
+                            }}
+                          >
+                            + Criar "{oilSearch.trim()}"
+                          </Button>
+                        ) : 'Nenhum tipo de óleo encontrado.'}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {allOilTypes.map(o => (
+                          <CommandItem
+                            key={o.id}
+                            value={o.name}
+                            onSelect={() => {
+                              setEditData(p => ({ ...p, oil_type_id: o.id }));
+                              setOilComboOpen(false);
+                            }}
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", editData.oil_type_id === o.id ? "opacity-100" : "opacity-0")} />
+                            {o.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
           <DialogFooter>
