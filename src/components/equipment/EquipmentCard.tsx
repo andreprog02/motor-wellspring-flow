@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Equipment, OilType, useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { toast } from 'sonner';
 import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets } from 'lucide-react';
@@ -18,7 +19,8 @@ interface Props {
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
 export function EquipmentCard({ equipment, oilTypes }: Props) {
-  const { updateEquipment, deleteEquipment } = useEquipmentStore();
+  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery } = useEquipmentStore();
+  const allOilTypes = oilTypesQuery.data || oilTypes;
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
@@ -27,13 +29,20 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
     serial_number: equipment.serial_number,
     total_horimeter: equipment.total_horimeter,
     total_starts: equipment.total_starts,
+    cylinders: equipment.cylinders,
+    fuel_type: equipment.fuel_type,
+    installation_date: equipment.installation_date || '',
+    oil_type_id: equipment.oil_type_id || '',
   });
 
   const oilName = oilTypes.find(o => o.id === equipment.oil_type_id)?.name;
 
   const handleEdit = async () => {
     try {
-      await updateEquipment.mutateAsync({ id: equipment.id, updates: editData });
+      const updates: any = { ...editData };
+      if (!updates.oil_type_id) updates.oil_type_id = null;
+      if (!updates.installation_date) updates.installation_date = null;
+      await updateEquipment.mutateAsync({ id: equipment.id, updates });
       toast.success('Equipamento atualizado!');
       setEditOpen(false);
     } catch { toast.error('Erro ao atualizar'); }
@@ -104,11 +113,37 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
             <DialogTitle>Editar Equipamento</DialogTitle>
             <DialogDescription>Atualize os dados principais do equipamento.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
             <div><Label>Nome</Label><Input value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} /></div>
             <div><Label>Número de Série</Label><Input value={editData.serial_number} onChange={e => setEditData(p => ({ ...p, serial_number: e.target.value }))} /></div>
-            <div><Label>Horímetro</Label><Input type="number" value={editData.total_horimeter} onChange={e => setEditData(p => ({ ...p, total_horimeter: Number(e.target.value) }))} /></div>
-            <div><Label>Arranques</Label><Input type="number" value={editData.total_starts} onChange={e => setEditData(p => ({ ...p, total_starts: Number(e.target.value) }))} /></div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Horímetro</Label><Input type="number" value={editData.total_horimeter} onChange={e => setEditData(p => ({ ...p, total_horimeter: Number(e.target.value) }))} /></div>
+              <div><Label>Arranques</Label><Input type="number" value={editData.total_starts} onChange={e => setEditData(p => ({ ...p, total_starts: Number(e.target.value) }))} /></div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><Label>Cilindros</Label><Input type="number" value={editData.cylinders} onChange={e => setEditData(p => ({ ...p, cylinders: Number(e.target.value) }))} /></div>
+              <div>
+                <Label>Combustível</Label>
+                <Select value={editData.fuel_type} onValueChange={v => setEditData(p => ({ ...p, fuel_type: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="biogas">Biogás</SelectItem>
+                    <SelectItem value="landfill_gas">Gás de Aterro</SelectItem>
+                    <SelectItem value="natural_gas">Gás Natural</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div><Label>Data de Instalação</Label><Input type="date" value={editData.installation_date} onChange={e => setEditData(p => ({ ...p, installation_date: e.target.value }))} /></div>
+            <div>
+              <Label>Tipo de Óleo</Label>
+              <Select value={editData.oil_type_id} onValueChange={v => setEditData(p => ({ ...p, oil_type_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>
+                  {allOilTypes.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>

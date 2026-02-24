@@ -205,6 +205,7 @@ export type Database = {
           equipment_type: string
           fuel_type: string
           id: string
+          installation_date: string | null
           name: string
           oil_type_id: string | null
           serial_number: string
@@ -217,6 +218,7 @@ export type Database = {
           equipment_type?: string
           fuel_type?: string
           id?: string
+          installation_date?: string | null
           name: string
           oil_type_id?: string | null
           serial_number?: string
@@ -229,6 +231,7 @@ export type Database = {
           equipment_type?: string
           fuel_type?: string
           id?: string
+          installation_date?: string | null
           name?: string
           oil_type_id?: string | null
           serial_number?: string
