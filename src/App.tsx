@@ -16,6 +16,7 @@ import SparkPlugMaintenancePage from "./pages/SparkPlugMaintenancePage";
 import MaintenancePlansPage from "./pages/MaintenancePlansPage";
 import EquipmentDetailPage from "./pages/EquipmentDetailPage";
 import CylinderHeadsPage from "./pages/CylinderHeadsPage";
+import TurbosPage from "./pages/TurbosPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +41,7 @@ const App = () => (
           <Route path="/maintenance/plans" element={<MaintenancePlansPage />} />
           <Route path="/equipment/:id" element={<EquipmentDetailPage />} />
           <Route path="/cylinder-heads" element={<CylinderHeadsPage />} />
+          <Route path="/turbos" element={<TurbosPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

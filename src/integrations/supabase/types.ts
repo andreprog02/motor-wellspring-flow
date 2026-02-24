@@ -632,6 +632,159 @@ export type Database = {
         }
         Relationships: []
       }
+      turbo_components: {
+        Row: {
+          component_type: string
+          created_at: string
+          horimeter_at_replacement: number
+          id: string
+          replacement_date: string
+          turbo_id: string
+        }
+        Insert: {
+          component_type: string
+          created_at?: string
+          horimeter_at_replacement?: number
+          id?: string
+          replacement_date?: string
+          turbo_id: string
+        }
+        Update: {
+          component_type?: string
+          created_at?: string
+          horimeter_at_replacement?: number
+          id?: string
+          replacement_date?: string
+          turbo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turbo_components_turbo_id_fkey"
+            columns: ["turbo_id"]
+            isOneToOne: false
+            referencedRelation: "turbos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      turbo_installations: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          id: string
+          install_date: string
+          install_equipment_horimeter: number
+          remove_date: string | null
+          remove_equipment_horimeter: number | null
+          turbo_id: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          id?: string
+          install_date?: string
+          install_equipment_horimeter?: number
+          remove_date?: string | null
+          remove_equipment_horimeter?: number | null
+          turbo_id: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          install_date?: string
+          install_equipment_horimeter?: number
+          remove_date?: string | null
+          remove_equipment_horimeter?: number | null
+          turbo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turbo_installations_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turbo_installations_turbo_id_fkey"
+            columns: ["turbo_id"]
+            isOneToOne: false
+            referencedRelation: "turbos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      turbo_maintenances: {
+        Row: {
+          created_at: string
+          description: string
+          horimeter_at_maintenance: number
+          id: string
+          maintenance_date: string
+          turbo_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          horimeter_at_maintenance?: number
+          id?: string
+          maintenance_date?: string
+          turbo_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          horimeter_at_maintenance?: number
+          id?: string
+          maintenance_date?: string
+          turbo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turbo_maintenances_turbo_id_fkey"
+            columns: ["turbo_id"]
+            isOneToOne: false
+            referencedRelation: "turbos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      turbos: {
+        Row: {
+          created_at: string
+          id: string
+          last_maintenance_date: string | null
+          location_id: string | null
+          serial_number: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_maintenance_date?: string | null
+          location_id?: string | null
+          serial_number?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_maintenance_date?: string | null
+          location_id?: string | null
+          serial_number?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "turbos_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -641,6 +794,7 @@ export type Database = {
         Args: { p_cylinder_head_id: string }
         Returns: Json
       }
+      get_turbo_metrics: { Args: { p_turbo_id: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
