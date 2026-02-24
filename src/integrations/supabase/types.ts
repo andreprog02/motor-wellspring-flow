@@ -324,6 +324,93 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_log_items: {
+        Row: {
+          created_at: string
+          id: string
+          inventory_item_id: string
+          maintenance_log_id: string
+          quantity: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          inventory_item_id: string
+          maintenance_log_id: string
+          quantity?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          inventory_item_id?: string
+          maintenance_log_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_log_items_inventory_item_id_fkey"
+            columns: ["inventory_item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_log_items_maintenance_log_id_fkey"
+            columns: ["maintenance_log_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_logs: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          horimeter_at_service: number
+          id: string
+          maintenance_type: string
+          notes: string | null
+          oil_type_id: string | null
+          service_date: string
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          horimeter_at_service?: number
+          id?: string
+          maintenance_type?: string
+          notes?: string | null
+          oil_type_id?: string | null
+          service_date?: string
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          horimeter_at_service?: number
+          id?: string
+          maintenance_type?: string
+          notes?: string | null
+          oil_type_id?: string | null
+          service_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_logs_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_logs_oil_type_id_fkey"
+            columns: ["oil_type_id"]
+            isOneToOne: false
+            referencedRelation: "oil_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       manufacturer_models: {
         Row: {
           created_at: string
