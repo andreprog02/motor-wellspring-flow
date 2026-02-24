@@ -140,6 +140,124 @@ export type Database = {
           },
         ]
       }
+      cylinder_head_installations: {
+        Row: {
+          created_at: string
+          cylinder_head_id: string
+          equipment_id: string
+          id: string
+          install_date: string
+          install_equipment_horimeter: number
+          remove_date: string | null
+          remove_equipment_horimeter: number | null
+        }
+        Insert: {
+          created_at?: string
+          cylinder_head_id: string
+          equipment_id: string
+          id?: string
+          install_date?: string
+          install_equipment_horimeter?: number
+          remove_date?: string | null
+          remove_equipment_horimeter?: number | null
+        }
+        Update: {
+          created_at?: string
+          cylinder_head_id?: string
+          equipment_id?: string
+          id?: string
+          install_date?: string
+          install_equipment_horimeter?: number
+          remove_date?: string | null
+          remove_equipment_horimeter?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cylinder_head_installations_cylinder_head_id_fkey"
+            columns: ["cylinder_head_id"]
+            isOneToOne: false
+            referencedRelation: "cylinder_heads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cylinder_head_installations_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cylinder_head_maintenances: {
+        Row: {
+          created_at: string
+          cylinder_head_id: string
+          description: string
+          horimeter_at_maintenance: number
+          id: string
+          maintenance_date: string
+        }
+        Insert: {
+          created_at?: string
+          cylinder_head_id: string
+          description?: string
+          horimeter_at_maintenance?: number
+          id?: string
+          maintenance_date?: string
+        }
+        Update: {
+          created_at?: string
+          cylinder_head_id?: string
+          description?: string
+          horimeter_at_maintenance?: number
+          id?: string
+          maintenance_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cylinder_head_maintenances_cylinder_head_id_fkey"
+            columns: ["cylinder_head_id"]
+            isOneToOne: false
+            referencedRelation: "cylinder_heads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cylinder_heads: {
+        Row: {
+          created_at: string
+          id: string
+          last_maintenance_date: string | null
+          location_id: string | null
+          serial_number: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_maintenance_date?: string | null
+          location_id?: string | null
+          serial_number?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_maintenance_date?: string | null
+          location_id?: string | null
+          serial_number?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cylinder_heads_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_sub_components: {
         Row: {
           component_type: string
@@ -484,7 +602,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_cylinder_head_metrics: {
+        Args: { p_cylinder_head_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
