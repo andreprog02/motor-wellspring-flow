@@ -347,7 +347,7 @@ export default function EquipmentDetailPage() {
                               >
                                 <CardContent className="p-3">
                                   <div className="flex items-center justify-between mb-2">
-                                    <span className="font-semibold text-sm">Cilindro {comp.cylinder_number}</span>
+                                    <span className="font-semibold text-sm">{group.label} {comp.cylinder_number}</span>
                                     <div className="flex items-center gap-2">
                                       <Badge
                                         variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
