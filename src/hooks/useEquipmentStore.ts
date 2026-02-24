@@ -140,7 +140,7 @@ export function useEquipmentStore() {
           equipment_id: string; cylinder_number: number; component_type: string; horimeter_at_install: number;
         }> = [];
         for (let i = 1; i <= cylinders; i++) {
-          ['spark_plug', 'liner', 'piston'].forEach(type => {
+          ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'].forEach(type => {
             cylinderRows.push({ equipment_id: equipmentId, cylinder_number: i, component_type: type, horimeter_at_install: data.equipment.total_horimeter });
           });
         }
@@ -151,6 +151,8 @@ export function useEquipmentStore() {
           spark_plug: { task: 'Substituição da vela', interval: 2000 },
           liner: { task: 'Inspeção da camisa', interval: 8000 },
           piston: { task: 'Inspeção do pistão', interval: 12000 },
+          connecting_rod: { task: 'Inspeção da biela', interval: 15000 },
+          bearing: { task: 'Inspeção da bronzina', interval: 15000 },
         };
         const planRows = cylinderRows.map(cr => ({
           equipment_id: equipmentId, component_type: cr.component_type,
