@@ -158,15 +158,25 @@ export default function EquipmentDetailPage() {
     return acc;
   }, []);
 
-  // Get plan for a specific component type
-  const getPlanForType = (type: string) => allPlans.find(p => p.component_type === type);
+  // Get ALL plans for a specific component type
+  const getPlansForType = (type: string) => allPlans.filter(p => p.component_type === type);
+
+  // Helper to check if a log mentions a specific cylinder number
+  const logMatchesCylinder = (log: any, cylNumber: number) => {
+    if (!log.notes) return false;
+    // Match "Cil. X" patterns - handles "Cil. 1, 2, 3" and "Cil. 1"
+    const match = log.notes.match(/Cil\.\s*([\d,\s]+)/);
+    if (!match) return false;
+    const nums = match[1].split(',').map((s: string) => parseInt(s.trim(), 10));
+    return nums.includes(cylNumber);
+  };
 
   // Group cylinder components by type
   const cylByType = cylinderComponentTypes.map(type => ({
     type,
     label: componentTypeLabels[type] || type,
     components: allCylComps.filter(c => c.component_type === type).sort((a, b) => a.cylinder_number - b.cylinder_number),
-    plan: getPlanForType(type),
+    plans: getPlansForType(type),
   })).filter(g => g.components.length > 0);
 
   const openMaintDialog = (componentType: string, preSelectedCylinders?: number[]) => {
@@ -302,14 +312,20 @@ export default function EquipmentDetailPage() {
 
           {/* One tab per cylinder component type */}
           {cylByType.map(group => {
-            const plan = group.plan;
+            const plans = group.plans;
+            // Get unique tasks from plans
+            const uniquePlans = plans.reduce<MaintenancePlan[]>((acc, p) => {
+              if (!acc.find(a => a.task === p.task)) acc.push(p);
+              return acc;
+            }, []);
+            const mainPlan = plans[0]; // for interval display
             return (
               <TabsContent key={group.type} value={group.type} className="mt-4">
                 <div className="flex items-center justify-between mb-3">
-                  {plan ? (
+                  {mainPlan ? (
                     <div className="text-xs text-muted-foreground flex items-center gap-2">
                       <Wrench className="h-3.5 w-3.5" />
-                      Intervalo: <span className="font-mono font-medium">{fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}</span>
+                      Intervalo: <span className="font-mono font-medium">{fmtNum(mainPlan.interval_value)} {triggerLabels[mainPlan.trigger_type]?.toLowerCase() || mainPlan.trigger_type}</span>
                     </div>
                   ) : <div />}
                   <Button size="sm" onClick={() => openMaintDialog(group.type)}>
@@ -320,29 +336,42 @@ export default function EquipmentDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
                     const usage = equipment.total_horimeter - comp.horimeter_at_install;
-                    const interval = plan?.interval_value || 0;
-                    const status = interval > 0 ? getStatus(equipment.total_horimeter, comp.horimeter_at_install, interval) : 'ok';
-                    const percent = interval > 0 ? getPercent(equipment.total_horimeter, comp.horimeter_at_install, interval) : 0;
+
+                    // Per-task status for this cylinder
+                    const taskStatuses = uniquePlans.map(plan => {
+                      const st = getStatus(equipment.total_horimeter, comp.horimeter_at_install, plan.interval_value);
+                      const pct = getPercent(equipment.total_horimeter, comp.horimeter_at_install, plan.interval_value);
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value };
+                    });
+
+                    // Overall status = worst of all tasks
+                    const overallStatus = taskStatuses.some(t => t.status === 'critical') ? 'critical'
+                      : taskStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
+
+                    // Logs for THIS cylinder
+                    const compLogs = equipmentLogs.filter((log: any) =>
+                      log.maintenance_type === comp.component_type && logMatchesCylinder(log, comp.cylinder_number)
+                    );
 
                     return (
                       <Card
                         key={comp.id}
                         className={
-                          status === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
-                          status === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+                          overallStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+                          overallStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
                         }
                       >
                         <CardContent className="p-3">
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-semibold text-sm">{group.label} {comp.cylinder_number}</span>
                             <Badge
-                              variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
+                              variant={overallStatus === 'critical' ? 'destructive' : overallStatus === 'warning' ? 'secondary' : 'default'}
                               className={
-                                status === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
-                                status === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
+                                overallStatus === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
+                                overallStatus === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
                               }
                             >
-                              {status === 'ok' ? 'Em dia' : status === 'warning' ? 'Atenção' : 'Vencida'}
+                              {overallStatus === 'ok' ? 'Em dia' : overallStatus === 'warning' ? 'Atenção' : 'Vencida'}
                             </Badge>
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1 mb-2">
@@ -354,16 +383,33 @@ export default function EquipmentDetailPage() {
                               <span>Uso:</span>
                               <span className="font-mono">{fmtNum(usage)}h</span>
                             </div>
-                            {interval > 0 && (
-                              <div className="flex justify-between">
-                                <span>Próximo em:</span>
-                                <span className="font-mono">{fmtNum(Math.max(0, interval - usage))}h</span>
-                              </div>
-                            )}
                           </div>
-                          {interval > 0 && (
-                            <Progress value={percent} className="h-1.5 mb-2" />
+
+                          {/* Per-task plan status */}
+                          {taskStatuses.length > 0 && (
+                            <div className="space-y-1.5 mb-2">
+                              {taskStatuses.map((ts, i) => (
+                                <div key={i} className="space-y-0.5">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground truncate mr-2">{ts.task}</span>
+                                    <span className={
+                                      ts.status === 'critical' ? 'text-[hsl(var(--status-critical))] font-semibold' :
+                                      ts.status === 'warning' ? 'text-[hsl(var(--status-warning))] font-semibold' :
+                                      'text-[hsl(var(--status-ok))]'
+                                    }>
+                                      {ts.status === 'ok' ? 'Em dia' : ts.status === 'warning' ? 'Atenção' : 'Vencida'}
+                                    </span>
+                                  </div>
+                                  <Progress value={ts.percent} className="h-1" />
+                                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                                    <span className="font-mono">{fmtNum(usage)}h / {fmtNum(ts.interval)}h</span>
+                                    <span className="font-mono">{ts.percent}%</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
                           )}
+
                           <div className="flex gap-2">
                             <Button
                               size="sm"
@@ -377,41 +423,36 @@ export default function EquipmentDetailPage() {
                           </div>
 
                           {/* History section */}
-                          {(() => {
-                            const compLogs = equipmentLogs.filter((log: any) =>
-                              log.maintenance_type === comp.component_type &&
-                              log.notes && log.notes.includes(`Cil. ${comp.cylinder_number}`)
-                            );
-                            if (compLogs.length === 0) return null;
-                            return (
-                              <Collapsible>
-                                <CollapsibleTrigger asChild>
-                                  <Button variant="ghost" size="sm" className="w-full text-xs mt-2 text-muted-foreground">
-                                    <History className="h-3 w-3 mr-1" />
-                                    Histórico ({compLogs.length})
-                                    <ChevronDown className="h-3 w-3 ml-auto" />
-                                  </Button>
-                                </CollapsibleTrigger>
-                                <CollapsibleContent>
-                                  <Separator className="my-2" />
-                                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                                    {compLogs.map((log: any) => (
-                                      <div key={log.id} className="text-xs flex items-start gap-2 py-1">
-                                        <span className="font-mono text-muted-foreground whitespace-nowrap">
-                                          {format(new Date(log.service_date), 'dd/MM/yy')}
-                                        </span>
-                                        <span className="font-mono whitespace-nowrap">{fmtNum(log.horimeter_at_service)}h</span>
-                                        <span className="text-muted-foreground truncate flex-1">
-                                          {log.notes?.includes('Substituição') ? '🔄 Substituição' : '🔍 Inspeção'}
-                                          {log.notes?.split(' - ').slice(2).join(' - ') ? ` — ${log.notes.split(' - ').slice(2).join(' - ')}` : ''}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </CollapsibleContent>
-                              </Collapsible>
-                            );
-                          })()}
+                          {compLogs.length > 0 && (
+                            <Collapsible>
+                              <CollapsibleTrigger asChild>
+                                <Button variant="ghost" size="sm" className="w-full text-xs mt-2 text-muted-foreground">
+                                  <History className="h-3 w-3 mr-1" />
+                                  Histórico ({compLogs.length})
+                                  <ChevronDown className="h-3 w-3 ml-auto" />
+                                </Button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent>
+                                <Separator className="my-2" />
+                                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                                  {compLogs.map((log: any) => (
+                                    <div key={log.id} className="text-xs flex items-start gap-2 py-1">
+                                      <span className="font-mono text-muted-foreground whitespace-nowrap">
+                                        {format(new Date(log.service_date), 'dd/MM/yy')}
+                                      </span>
+                                      <span className="font-mono whitespace-nowrap">{fmtNum(log.horimeter_at_service)}h</span>
+                                      <span className="text-muted-foreground truncate flex-1">
+                                        {log.notes?.includes('Substituição') ? '🔄 Substituição' :
+                                         log.notes?.includes('Limpeza') ? '🧹 Limpeza' :
+                                         log.notes?.includes('Lubrificação') ? '🛢️ Lubrificação' : '🔍 Inspeção'}
+                                        {log.notes?.split(' - ').slice(2).join(' - ') ? ` — ${log.notes.split(' - ').slice(2).join(' - ')}` : ''}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          )}
                         </CardContent>
                       </Card>
                     );
