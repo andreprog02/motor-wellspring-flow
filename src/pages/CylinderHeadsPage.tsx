@@ -119,13 +119,22 @@ export default function CylinderHeadsPage() {
 
   const handleAdd = async () => {
     if (!serialNumber.trim()) return;
+    const existing = heads.find(h => h.serial_number === serialNumber.trim());
+    if (existing) {
+      toast.error('Já existe um cabeçote com esse código.');
+      return;
+    }
     try {
       await store.addCylinderHead.mutateAsync({ serial_number: serialNumber.trim() });
       toast.success('Cabeçote cadastrado!');
       setSerialNumber('');
       setAddOpen(false);
-    } catch {
-      toast.error('Erro ao cadastrar cabeçote.');
+    } catch (err: any) {
+      if (err?.message?.includes('duplicate') || err?.code === '23505') {
+        toast.error('Já existe um cabeçote com esse código.');
+      } else {
+        toast.error('Erro ao cadastrar cabeçote.');
+      }
     }
   };
 
