@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package } from 'lucide-react';
+import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package, Search, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics, CylinderHeadComponent } from '@/hooks/useCylinderHeadStore';
@@ -99,8 +99,33 @@ export default function CylinderHeadsPage() {
   const [editInstInstallHor, setEditInstInstallHor] = useState('');
   const [editInstRemoveHor, setEditInstRemoveHor] = useState('');
 
-  const heads = store.cylinderHeads.data || [];
+  // Filter & sort states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'serial' | 'maintenance'>('serial');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  const headsRaw = store.cylinderHeads.data || [];
   const allInstallations = store.installations.data || [];
+
+  const heads = headsRaw
+    .filter(h => {
+      if (statusFilter !== 'all' && h.status !== statusFilter) return false;
+      if (searchQuery.trim()) {
+        return h.serial_number.toLowerCase().includes(searchQuery.trim().toLowerCase());
+      }
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'serial') {
+        const cmp = a.serial_number.localeCompare(b.serial_number, 'pt-BR', { numeric: true });
+        return sortDir === 'asc' ? cmp : -cmp;
+      }
+      const da = a.last_maintenance_date || '';
+      const db = b.last_maintenance_date || '';
+      const cmp = da.localeCompare(db);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
   const allMaintenances = store.maintenances.data || [];
   const allComponents = store.headComponents.data || [];
 
@@ -119,7 +144,7 @@ export default function CylinderHeadsPage() {
 
   const handleAdd = async () => {
     if (!serialNumber.trim()) return;
-    const existing = heads.find(h => h.serial_number === serialNumber.trim());
+    const existing = headsRaw.find(h => h.serial_number === serialNumber.trim());
     if (existing) {
       toast.error('Já existe um cabeçote com esse código.');
       return;
@@ -199,10 +224,10 @@ export default function CylinderHeadsPage() {
   };
 
   const toggleAllBatch = () => {
-    if (batchSelected.length === heads.length) {
+    if (batchSelected.length === headsRaw.length) {
       setBatchSelected([]);
     } else {
-      setBatchSelected(heads.map(h => h.id));
+      setBatchSelected(headsRaw.map(h => h.id));
     }
   };
 
@@ -325,10 +350,10 @@ export default function CylinderHeadsPage() {
   };
 
   const toggleAllBatchHist = () => {
-    if (batchHistSelected.length === heads.length) {
+    if (batchHistSelected.length === headsRaw.length) {
       setBatchHistSelected([]);
     } else {
-      setBatchHistSelected(heads.map(h => h.id));
+      setBatchHistSelected(headsRaw.map(h => h.id));
     }
   };
 
@@ -437,6 +462,46 @@ export default function CylinderHeadsPage() {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por código..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="in_stock">Estoque</SelectItem>
+              <SelectItem value="active">No Motor</SelectItem>
+              <SelectItem value="maintenance">Em Reparo</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={`${sortBy}-${sortDir}`} onValueChange={v => {
+            const [by, dir] = v.split('-') as ['serial' | 'maintenance', 'asc' | 'desc'];
+            setSortBy(by);
+            setSortDir(dir);
+          }}>
+            <SelectTrigger className="w-[220px]">
+              <ArrowUpDown className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Ordenar" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="serial-asc">Código (A→Z)</SelectItem>
+              <SelectItem value="serial-desc">Código (Z→A)</SelectItem>
+              <SelectItem value="maintenance-desc">Manutenção (Recente)</SelectItem>
+              <SelectItem value="maintenance-asc">Manutenção (Antiga)</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* List */}
@@ -823,13 +888,13 @@ export default function CylinderHeadsPage() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium">Selecionar Cabeçotes</label>
                 <Button size="sm" variant="ghost" onClick={toggleAllBatch} className="text-xs h-7">
-                  {batchSelected.length === heads.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                  {batchSelected.length === headsRaw.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
                 </Button>
               </div>
               <div className="border rounded-md max-h-48 overflow-y-auto divide-y">
-                {heads.length === 0 ? (
+                {headsRaw.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-3 text-center">Nenhum cabeçote cadastrado.</p>
-                ) : heads.map(head => (
+                ) : headsRaw.map(head => (
                   <label key={head.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
                     <Checkbox
                       checked={batchSelected.includes(head.id)}
@@ -1029,13 +1094,13 @@ export default function CylinderHeadsPage() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium">Selecionar Cabeçotes</label>
                 <Button size="sm" variant="ghost" onClick={toggleAllBatchHist} className="text-xs h-7">
-                  {batchHistSelected.length === heads.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+                  {batchHistSelected.length === headsRaw.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
                 </Button>
               </div>
               <div className="border rounded-md max-h-48 overflow-y-auto divide-y">
-                {heads.length === 0 ? (
+                {headsRaw.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-3 text-center">Nenhum cabeçote cadastrado.</p>
-                ) : heads.map(head => (
+                ) : headsRaw.map(head => (
                   <label key={head.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
                     <Checkbox
                       checked={batchHistSelected.includes(head.id)}
