@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { formatLocalDate } from '@/lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -48,7 +49,7 @@ export function CylinderMaintenanceDialog({
   const [task, setTask] = useState('');
   const [serviceType, setServiceType] = useState('inspection');
   const [horimeter, setHorimeter] = useState(equipmentHorimeter);
-  const [serviceDate, setServiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [serviceDate, setServiceDate] = useState(formatLocalDate());
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -76,7 +77,7 @@ export function CylinderMaintenanceDialog({
     if (open) {
       setSelectedCylinders(preSelectedCylinders || []);
       setHorimeter(equipmentHorimeter);
-      setServiceDate(new Date().toISOString().split('T')[0]);
+      setServiceDate(formatLocalDate());
       setNotes('');
       setServiceType('inspection');
       setTask(uniqueTasks.length > 0 ? uniqueTasks[0] : '');

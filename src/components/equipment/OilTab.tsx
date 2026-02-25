@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatLocalDate } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,7 +59,7 @@ function getPercent(current: number, lastExec: number, interval: number) {
 export function OilTab({ equipmentId, equipmentHorimeter, oilName }: OilTabProps) {
   const queryClient = useQueryClient();
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false);
-  const [analysisDate, setAnalysisDate] = useState(new Date().toISOString().split('T')[0]);
+  const [analysisDate, setAnalysisDate] = useState(formatLocalDate());
   const [analysisHorimeter, setAnalysisHorimeter] = useState(String(equipmentHorimeter));
   const [analysisResult, setAnalysisResult] = useState('');
   const [analysisNotes, setAnalysisNotes] = useState('');

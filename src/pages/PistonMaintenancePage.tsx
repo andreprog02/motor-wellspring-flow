@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { formatLocalDate } from '@/lib/utils';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ export default function PistonMaintenancePage() {
   const [equipmentId, setEquipmentId] = useState('');
   const [horimeter, setHorimeter] = useState('');
   const [serviceType, setServiceType] = useState<'inspection' | 'replacement'>('inspection');
-  const [serviceDate, setServiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [serviceDate, setServiceDate] = useState(formatLocalDate());
   const [notes, setNotes] = useState('');
   const [selectedCylinders, setSelectedCylinders] = useState<number[]>([]);
 

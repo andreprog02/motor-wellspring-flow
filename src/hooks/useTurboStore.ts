@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { formatLocalDate } from '@/lib/utils';
 
 export interface Turbo {
   id: string;
@@ -149,7 +150,7 @@ export function useTurboStore() {
 
   const removeTurbo = useMutation({
     mutationFn: async (data: { installation_id: string; turbo_id: string; remove_equipment_horimeter: number }) => {
-      await (supabase as any).from('turbo_installations').update({ remove_date: new Date().toISOString().split('T')[0], remove_equipment_horimeter: data.remove_equipment_horimeter }).eq('id', data.installation_id);
+      await (supabase as any).from('turbo_installations').update({ remove_date: formatLocalDate(), remove_equipment_horimeter: data.remove_equipment_horimeter }).eq('id', data.installation_id);
       await (supabase as any).from('turbos').update({ status: 'in_stock' }).eq('id', data.turbo_id);
     },
     onSuccess: () => invalidateAll(),
@@ -157,7 +158,7 @@ export function useTurboStore() {
 
   const addMaintenance = useMutation({
     mutationFn: async (data: { turbo_id: string; description: string; horimeter_at_maintenance: number; maintenance_date?: string }) => {
-      const mDate = data.maintenance_date || new Date().toISOString().split('T')[0];
+      const mDate = data.maintenance_date || formatLocalDate();
       const { data: m, error } = await (supabase as any).from('turbo_maintenances').insert({
         turbo_id: data.turbo_id, description: data.description, horimeter_at_maintenance: data.horimeter_at_maintenance, maintenance_date: mDate,
       }).select().single();
