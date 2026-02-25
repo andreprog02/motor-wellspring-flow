@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { formatLocalDate } from '@/lib/utils';
 
 export interface CylinderHead {
   id: string;
@@ -161,7 +162,7 @@ export function useCylinderHeadStore() {
       // Close installation
       await (supabase as any)
         .from('cylinder_head_installations')
-        .update({ remove_date: new Date().toISOString().split('T')[0], remove_equipment_horimeter: data.remove_equipment_horimeter })
+        .update({ remove_date: formatLocalDate(), remove_equipment_horimeter: data.remove_equipment_horimeter })
         .eq('id', data.installation_id);
       // Set status back to in_stock
       await (supabase as any)
@@ -180,7 +181,7 @@ export function useCylinderHeadStore() {
           cylinder_head_id: data.cylinder_head_id,
           description: data.description,
           horimeter_at_maintenance: data.horimeter_at_maintenance,
-          maintenance_date: data.maintenance_date || new Date().toISOString().split('T')[0],
+          maintenance_date: data.maintenance_date || formatLocalDate(),
         })
         .select()
         .single();
@@ -188,7 +189,7 @@ export function useCylinderHeadStore() {
       // Update last_maintenance_date cache
       await (supabase as any)
         .from('cylinder_heads')
-        .update({ last_maintenance_date: data.maintenance_date || new Date().toISOString().split('T')[0] })
+        .update({ last_maintenance_date: data.maintenance_date || formatLocalDate() })
         .eq('id', data.cylinder_head_id);
       return m as CylinderHeadMaintenance;
     },

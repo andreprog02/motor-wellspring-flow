@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatLocalDate } from '@/lib/utils';
 import { AppLayout } from '@/components/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +38,7 @@ export default function OilMaintenancePage() {
   const [equipmentId, setEquipmentId] = useState('');
   const [horimeter, setHorimeter] = useState('');
   const [oilTypeId, setOilTypeId] = useState('');
-  const [serviceDate, setServiceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [serviceDate, setServiceDate] = useState(formatLocalDate());
   const [notes, setNotes] = useState('');
 
   // Selected filters/items from inventory

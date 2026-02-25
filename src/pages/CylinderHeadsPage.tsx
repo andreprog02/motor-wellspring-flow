@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { formatLocalDate } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useCylinderHeadStore, cylinderHeadStatusLabels, cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
@@ -257,7 +258,7 @@ export default function CylinderHeadsPage() {
 
   const handleAddComponents = async () => {
     if (!detailId || compTypes.length === 0) return;
-    const dateVal = compDate || new Date().toISOString().split('T')[0];
+    const dateVal = compDate || formatLocalDate();
     const horimeterVal = Number(compHorimeter) || 0;
     try {
       const rows = compTypes.map(ct => ({
