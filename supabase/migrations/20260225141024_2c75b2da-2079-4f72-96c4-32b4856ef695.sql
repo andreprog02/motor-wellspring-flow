@@ -1,0 +1,1 @@
+ALTER TABLE public.cylinder_heads ADD CONSTRAINT cylinder_heads_serial_number_unique UNIQUE (serial_number);
