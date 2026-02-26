@@ -61,6 +61,7 @@ export default function ReportsPage() {
   const [dateTo, setDateTo] = useState('');
   const [equipFilter, setEquipFilter] = useState('all');
   const [serialFilter, setSerialFilter] = useState('');
+  const [selectedTurbos, setSelectedTurbos] = useState<Set<string>>(new Set());
 
   // Sort state per report type
   const [instSortBy, setInstSortBy] = useState<string>('installDate');
@@ -96,6 +97,19 @@ export default function ReportsPage() {
   const chMap = useMemo(() => Object.fromEntries(heads.map(h => [h.id, h.serial_number])), [heads]);
   const tbMap = useMemo(() => Object.fromEntries(turbos.map(t => [t.id, t.serial_number])), [turbos]);
 
+  const filterTurbo = (turboId: string) => {
+    if (selectedTurbos.size === 0) return true;
+    return selectedTurbos.has(turboId);
+  };
+
+  const toggleTurboSelection = (turboId: string) => {
+    setSelectedTurbos(prev => {
+      const next = new Set(prev);
+      if (next.has(turboId)) next.delete(turboId); else next.add(turboId);
+      return next;
+    });
+  };
+
   const filterDate = (dateStr: string) => {
     if (dateFrom && dateStr < dateFrom) return false;
     if (dateTo && dateStr > dateTo) return false;
@@ -124,6 +138,7 @@ export default function ReportsPage() {
 
     if (assetType !== 'cylinder_head') {
       tbInstallations.forEach(i => {
+        if (!filterTurbo(i.turbo_id)) return;
         const serial = tbMap[i.turbo_id] || '—';
         if (!filterSerial(serial)) return;
         if (!filterDate(i.install_date)) return;
@@ -142,7 +157,7 @@ export default function ReportsPage() {
       return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
     });
     return rows;
-  }, [assetType, chInstallations, tbInstallations, chMap, tbMap, eqMap, dateFrom, dateTo, equipFilter, serialFilter, instSortBy, instSortDir]);
+  }, [assetType, chInstallations, tbInstallations, chMap, tbMap, eqMap, dateFrom, dateTo, equipFilter, serialFilter, instSortBy, instSortDir, selectedTurbos]);
 
   // --- Maintenances ---
   const maintenanceRows = useMemo(() => {
@@ -159,6 +174,7 @@ export default function ReportsPage() {
 
     if (assetType !== 'cylinder_head') {
       tbMaintenances.forEach(m => {
+        if (!filterTurbo(m.turbo_id)) return;
         const serial = tbMap[m.turbo_id] || '—';
         if (!filterSerial(serial)) return;
         if (!filterDate(m.maintenance_date)) return;
@@ -175,7 +191,7 @@ export default function ReportsPage() {
       return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
     });
     return rows;
-  }, [assetType, chMaintenances, tbMaintenances, chMap, tbMap, dateFrom, dateTo, serialFilter, maintSortBy, maintSortDir]);
+  }, [assetType, chMaintenances, tbMaintenances, chMap, tbMap, dateFrom, dateTo, serialFilter, maintSortBy, maintSortDir, selectedTurbos]);
 
   // --- Components ---
   const componentRows = useMemo(() => {
@@ -192,6 +208,7 @@ export default function ReportsPage() {
 
     if (assetType !== 'cylinder_head') {
       tbComponents.forEach(c => {
+        if (!filterTurbo(c.turbo_id)) return;
         const serial = tbMap[c.turbo_id] || '—';
         if (!filterSerial(serial)) return;
         if (!filterDate(c.replacement_date)) return;
@@ -208,7 +225,7 @@ export default function ReportsPage() {
       return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
     });
     return rows;
-  }, [assetType, chComponents, tbComponents, chMap, tbMap, dateFrom, dateTo, serialFilter, compSortBy, compSortDir]);
+  }, [assetType, chComponents, tbComponents, chMap, tbMap, dateFrom, dateTo, serialFilter, compSortBy, compSortDir, selectedTurbos]);
 
   // Get active columns/sort config for current report type
   const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : componentColumns;
@@ -468,6 +485,31 @@ export default function ReportsPage() {
                 <Input type="date" className="h-9" value={dateTo} onChange={e => setDateTo(e.target.value)} />
               </div>
             </div>
+            {assetType !== 'cylinder_head' && turbos.length > 0 && (
+              <div className="mt-3 pt-3 border-t">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">Turbos selecionados</span>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setSelectedTurbos(new Set(turbos.map(t => t.id)))}>Todos</Button>
+                    <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={() => setSelectedTurbos(new Set())}>Limpar</Button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {turbos.map(t => (
+                    <label key={t.id} className="flex items-center gap-1.5 text-sm cursor-pointer bg-muted/50 rounded px-2 py-1 hover:bg-muted transition-colors">
+                      <Checkbox
+                        checked={selectedTurbos.size === 0 || selectedTurbos.has(t.id)}
+                        onCheckedChange={() => toggleTurboSelection(t.id)}
+                      />
+                      {t.serial_number}
+                    </label>
+                  ))}
+                </div>
+                {selectedTurbos.size > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">{selectedTurbos.size} de {turbos.length} turbo(s) selecionado(s)</p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
