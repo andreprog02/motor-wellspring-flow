@@ -3,14 +3,13 @@ import { AppLayout } from '@/components/AppLayout';
 import { useInventoryStore, InventoryItemDisplay } from '@/hooks/useInventoryStore';
 import { InventoryFormDialog } from '@/components/inventory/InventoryFormDialog';
 import { InventoryExportMenu } from '@/components/inventory/InventoryExportMenu';
+import { InventoryTable } from '@/components/inventory/InventoryTable';
 import { LocationsDialog } from '@/components/inventory/LocationsDialog';
 import { Card, CardContent } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Package, Plus, Pencil, Trash2, MapPin, Search, ArrowUpDown } from 'lucide-react';
+import { Package, Plus, MapPin, Search, ArrowUpDown, Wrench } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -29,6 +28,33 @@ const sortOptions: { value: SortField; label: string }[] = [
   { value: 'quantity', label: 'Quantidade' },
   { value: 'location_name', label: 'Local' },
 ];
+
+function sortAndFilter(items: InventoryItemDisplay[], search: string, sortBy: SortField, sortDir: 'asc' | 'desc', filterLocation: string) {
+  let result = items;
+
+  if (filterLocation && filterLocation !== 'all') {
+    result = result.filter(i => i.location_id === filterLocation);
+  }
+
+  if (search.trim()) {
+    const q = search.toLowerCase();
+    result = result.filter(i =>
+      i.name.toLowerCase().includes(q) ||
+      i.part_number.toLowerCase().includes(q) ||
+      (i.codigo && i.codigo.toLowerCase().includes(q))
+    );
+  }
+
+  const dir = sortDir === 'asc' ? 1 : -1;
+  result = [...result].sort((a, b) => {
+    const av = (a as any)[sortBy] ?? '';
+    const bv = (b as any)[sortBy] ?? '';
+    if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+    return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+  });
+
+  return result;
+}
 
 export default function InventoryPage() {
   const store = useInventoryStore();
@@ -49,34 +75,17 @@ export default function InventoryPage() {
   };
   const confirmDelete = () => { if (deleteId) { store.deleteItem.mutate(deleteId); setDeleteId(null); } };
 
-  const filteredItems = useMemo(() => {
-    let items = store.items;
-
-    // Filter
-    if (filterLocation && filterLocation !== 'all') {
-      items = items.filter(i => i.location_id === filterLocation);
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      items = items.filter(i =>
-        i.name.toLowerCase().includes(q) ||
-        i.part_number.toLowerCase().includes(q) ||
-        (i.codigo && i.codigo.toLowerCase().includes(q))
-      );
-    }
-
-    // Sort
-    const dir = sortDir === 'asc' ? 1 : -1;
-    items = [...items].sort((a, b) => {
-      const av = (a as any)[sortBy] ?? '';
-      const bv = (b as any)[sortBy] ?? '';
-      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
-      return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
-    });
-
-    return items;
+  const estoqueItems = useMemo(() => {
+    const nonTools = store.items.filter(i => i.tipo !== 'Ferramenta');
+    return sortAndFilter(nonTools, search, sortBy, sortDir, filterLocation);
   }, [store.items, search, sortBy, sortDir, filterLocation]);
+
+  const ferramentaItems = useMemo(() => {
+    const tools = store.items.filter(i => i.tipo === 'Ferramenta');
+    return sortAndFilter(tools, search, sortBy, sortDir, filterLocation);
+  }, [store.items, search, sortBy, sortDir, filterLocation]);
+
+  const allFiltered = useMemo(() => [...estoqueItems, ...ferramentaItems], [estoqueItems, ferramentaItems]);
 
   return (
     <AppLayout>
@@ -87,7 +96,7 @@ export default function InventoryPage() {
             <p className="text-sm text-muted-foreground mt-1">Inventário completo de peças e equipamentos</p>
           </div>
           <div className="flex gap-2">
-            <InventoryExportMenu items={filteredItems} />
+            <InventoryExportMenu items={allFiltered} />
             <Button variant="outline" onClick={() => setLocationsOpen(true)}>
               <MapPin className="h-4 w-4 mr-2" />
               Localização
@@ -146,68 +155,41 @@ export default function InventoryPage() {
             </Select>
           </div>
           {(search || filterLocation !== 'all') && (
-            <span className="text-xs text-muted-foreground">{filteredItems.length} resultado(s)</span>
+            <span className="text-xs text-muted-foreground">{allFiltered.length} resultado(s)</span>
           )}
         </div>
 
+        {/* Estoque de Peças */}
         <Card>
           <CardContent className="p-0 overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Código</TableHead>
-                  <TableHead>Cód. Alt. 01</TableHead>
-                  <TableHead>Cód. Alt. 02</TableHead>
-                  <TableHead>Part Number</TableHead>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Aplicação</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Gerador</TableHead>
-                  <TableHead>Qtd</TableHead>
-                  <TableHead>Local</TableHead>
-                  <TableHead className="w-[100px]">Ações</TableHead>
-
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredItems.map(item => (
-                  <TableRow key={item.id}>
-                    <TableCell className="font-mono text-sm">{item.codigo || '—'}</TableCell>
-                    <TableCell className="font-mono text-sm">{item.codigo_alt_01 || '—'}</TableCell>
-                    <TableCell className="font-mono text-sm">{item.codigo_alt_02 || '—'}</TableCell>
-                    <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Package className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="font-medium text-sm">{item.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm">{item.aplicacao}</TableCell>
-                    <TableCell className="text-sm">{item.tipo}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{item.gerador || '—'}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="font-mono">{item.quantity}</Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{item.location_name}</TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button size="icon" variant="ghost" onClick={() => handleEdit(item)}><Pencil className="h-4 w-4" /></Button>
-                        <Button size="icon" variant="ghost" onClick={() => setDeleteId(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredItems.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-                      {search ? 'Nenhum item encontrado.' : 'Nenhum item cadastrado. Clique em "Novo Item" para começar.'}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+            <InventoryTable
+              items={estoqueItems}
+              onEdit={handleEdit}
+              onDelete={id => setDeleteId(id)}
+              emptyMessage={search ? 'Nenhum item encontrado.' : 'Nenhum item cadastrado. Clique em "Novo Item" para começar.'}
+            />
           </CardContent>
         </Card>
+
+        {/* Ferramentas */}
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Wrench className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-xl font-bold tracking-tight">Ferramentas</h2>
+            <span className="text-sm text-muted-foreground">({ferramentaItems.length})</span>
+          </div>
+          <Card>
+            <CardContent className="p-0 overflow-x-auto">
+              <InventoryTable
+                items={ferramentaItems}
+                onEdit={handleEdit}
+                onDelete={id => setDeleteId(id)}
+                showTipo={false}
+                emptyMessage="Nenhuma ferramenta cadastrada."
+              />
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <InventoryFormDialog
