@@ -13,7 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FileDown, Filter, FileText, Columns3, ArrowUpDown } from 'lucide-react';
+import { FileDown, Filter, FileText, Columns3, ArrowUpDown, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
 import { turboComponentTypes } from '@/hooks/useTurboStore';
@@ -236,54 +237,100 @@ export default function ReportsPage() {
   const setActiveSortBy = reportType === 'installations' ? setInstSortBy : reportType === 'maintenances' ? setMaintSortBy : setCompSortBy;
   const setActiveSortDir = reportType === 'installations' ? setInstSortDir : reportType === 'maintenances' ? setMaintSortDir : setCompSortDir;
 
-  const handleExportCSV = () => {
-    let csv = '';
-    if (reportType === 'installations') {
-      const allCols = [
-        { key: 'type', label: 'Tipo' }, { key: 'serial', label: 'S/N' }, { key: 'equipment', label: 'Equipamento' },
-        { key: 'installDate', label: 'Data Instalação' }, { key: 'installHor', label: 'Horímetro Inst.' },
-        { key: 'removeDate', label: 'Data Remoção' }, { key: 'removeHor', label: 'Horímetro Rem.' }, { key: 'delta', label: 'Delta (h)' },
-      ];
-      // Map visible UI cols to CSV cols
-      const visibleKeys = new Set<string>();
-      if (instCols.has('type')) visibleKeys.add('type');
-      if (instCols.has('serial')) visibleKeys.add('serial');
-      if (instCols.has('equipment')) visibleKeys.add('equipment');
-      if (instCols.has('installDate')) { visibleKeys.add('installDate'); visibleKeys.add('installHor'); }
-      if (instCols.has('removeDate')) { visibleKeys.add('removeDate'); visibleKeys.add('removeHor'); }
-      if (instCols.has('delta')) visibleKeys.add('delta');
-      const cols = allCols.filter(c => visibleKeys.has(c.key));
-      csv = cols.map(c => c.label).join(';') + '\n';
-      installationRows.forEach(r => {
-        const vals: Record<string, string> = {
-          type: r.type, serial: r.serial, equipment: r.equipment, installDate: r.installDate,
-          installHor: String(r.installHor), removeDate: r.removeDate || '', removeHor: r.removeHor != null ? String(r.removeHor) : '', delta: r.delta != null ? String(r.delta) : '',
-        };
-        csv += cols.map(c => vals[c.key]).join(';') + '\n';
-      });
-    } else if (reportType === 'maintenances') {
-      const cols = maintenanceColumns.filter(c => maintCols.has(c.key));
-      csv = cols.map(c => c.label).join(';') + '\n';
-      maintenanceRows.forEach(r => {
-        const vals: Record<string, string> = { type: r.type, serial: r.serial, date: r.date, horimeter: String(r.horimeter), description: r.description };
-        csv += cols.map(c => vals[c.key]).join(';') + '\n';
-      });
-    } else {
-      const cols = componentColumns.filter(c => compCols.has(c.key));
-      csv = cols.map(c => c.label).join(';') + '\n';
-      componentRows.forEach(r => {
-        const vals: Record<string, string> = { type: r.type, serial: r.serial, component: r.component, date: r.date, horimeter: String(r.horimeter) };
-        csv += cols.map(c => vals[c.key]).join(';') + '\n';
-      });
-    }
+  const reportTypeLabels: Record<ReportType, string> = {
+    installations: 'instalacoes',
+    maintenances: 'manutencoes',
+    components: 'troca_componentes',
+  };
 
+  const buildFileName = (ext: string) => {
+    const typeLabel = reportTypeLabels[reportType];
+    const assetLabel = assetType === 'cylinder_head' ? '_cabecotes' : assetType === 'turbo' ? '_turbinas' : '';
+    const dateStr = format(new Date(), 'dd-MM-yyyy');
+    return `relatorio_${typeLabel}${assetLabel}_${dateStr}.${ext}`;
+  };
+
+  const buildInstallationExportRows = (rows: typeof installationRows) => {
+    const allCols = [
+      { key: 'type', label: 'Tipo' }, { key: 'serial', label: 'S/N' }, { key: 'equipment', label: 'Equipamento' },
+      { key: 'installDate', label: 'Data Instalação' }, { key: 'installHor', label: 'Horímetro Inst.' },
+      { key: 'removeDate', label: 'Data Remoção' }, { key: 'removeHor', label: 'Horímetro Rem.' }, { key: 'delta', label: 'Delta (h)' },
+    ];
+    const visibleKeys = new Set<string>();
+    if (instCols.has('type')) visibleKeys.add('type');
+    if (instCols.has('serial')) visibleKeys.add('serial');
+    if (instCols.has('equipment')) visibleKeys.add('equipment');
+    if (instCols.has('installDate')) { visibleKeys.add('installDate'); visibleKeys.add('installHor'); }
+    if (instCols.has('removeDate')) { visibleKeys.add('removeDate'); visibleKeys.add('removeHor'); }
+    if (instCols.has('delta')) visibleKeys.add('delta');
+    const cols = allCols.filter(c => visibleKeys.has(c.key));
+    return { header: cols.map(c => c.label), body: rows.map(r => {
+      const vals: Record<string, any> = { type: r.type, serial: r.serial, equipment: r.equipment, installDate: r.installDate, installHor: r.installHor, removeDate: r.removeDate || '', removeHor: r.removeHor ?? '', delta: r.delta ?? '' };
+      return cols.map(c => vals[c.key]);
+    }) };
+  };
+
+  const buildMaintenanceExportRows = (rows: typeof maintenanceRows) => {
+    const cols = maintenanceColumns.filter(c => maintCols.has(c.key));
+    return { header: cols.map(c => c.label), body: rows.map(r => {
+      const vals: Record<string, any> = { type: r.type, serial: r.serial, date: r.date, horimeter: r.horimeter, description: r.description };
+      return cols.map(c => vals[c.key]);
+    }) };
+  };
+
+  const buildComponentExportRows = (rows: typeof componentRows) => {
+    const cols = componentColumns.filter(c => compCols.has(c.key));
+    return { header: cols.map(c => c.label), body: rows.map(r => {
+      const vals: Record<string, any> = { type: r.type, serial: r.serial, component: r.component, date: r.date, horimeter: r.horimeter };
+      return cols.map(c => vals[c.key]);
+    }) };
+  };
+
+  const getExportData = (rows?: any[]) => {
+    const r = rows ?? (reportType === 'installations' ? installationRows : reportType === 'maintenances' ? maintenanceRows : componentRows);
+    if (reportType === 'installations') return buildInstallationExportRows(r as any);
+    if (reportType === 'maintenances') return buildMaintenanceExportRows(r as any);
+    return buildComponentExportRows(r as any);
+  };
+
+  const handleExportCSV = () => {
+    const { header, body } = getExportData();
+    const csv = [header, ...body].map(r => r.map(c => `"${c}"`).join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `relatorio_${reportType}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = buildFileName('csv');
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const handleExportExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const currentRows = reportType === 'installations' ? installationRows : reportType === 'maintenances' ? maintenanceRows : componentRows;
+
+    const cabeçoteRows = currentRows.filter((r: any) => r.type === 'Cabeçote');
+    const turboRows = currentRows.filter((r: any) => r.type === 'Turbo');
+
+    const addSheet = (rows: any[], sheetName: string) => {
+      if (rows.length === 0) return;
+      const { header, body } = getExportData(rows);
+      const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+      XLSX.utils.book_append_sheet(wb, ws, sheetName);
+    };
+
+    if (assetType === 'all') {
+      addSheet(cabeçoteRows, 'Cabeçotes');
+      addSheet(turboRows, 'Turbinas');
+      if (cabeçoteRows.length === 0 && turboRows.length === 0) {
+        const ws = XLSX.utils.aoa_to_sheet([['Nenhum registro']]);
+        XLSX.utils.book_append_sheet(wb, ws, 'Vazio');
+      }
+    } else {
+      addSheet(currentRows, assetType === 'cylinder_head' ? 'Cabeçotes' : 'Turbinas');
+    }
+
+    XLSX.writeFile(wb, buildFileName('xlsx'));
   };
 
   const handleExportPDF = async () => {
@@ -297,68 +344,15 @@ export default function ReportsPage() {
     doc.setFontSize(9);
     doc.text(`Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 25);
 
-    if (reportType === 'installations') {
-      const allPdfCols = [
-        { key: 'type', label: 'Tipo' }, { key: 'serial', label: 'S/N' }, { key: 'equipment', label: 'Equipamento' },
-        { key: 'installDate', label: 'Data Instalação' }, { key: 'installHor', label: 'Hor. Inst.' },
-        { key: 'removeDate', label: 'Data Remoção' }, { key: 'removeHor', label: 'Hor. Rem.' }, { key: 'delta', label: 'Delta (h)' },
-      ];
-      const visibleKeys = new Set<string>();
-      if (instCols.has('type')) visibleKeys.add('type');
-      if (instCols.has('serial')) visibleKeys.add('serial');
-      if (instCols.has('equipment')) visibleKeys.add('equipment');
-      if (instCols.has('installDate')) { visibleKeys.add('installDate'); visibleKeys.add('installHor'); }
-      if (instCols.has('removeDate')) { visibleKeys.add('removeDate'); visibleKeys.add('removeHor'); }
-      if (instCols.has('delta')) visibleKeys.add('delta');
-      const cols = allPdfCols.filter(c => visibleKeys.has(c.key));
-      autoTable(doc, {
-        startY: 30,
-        head: [cols.map(c => c.label)],
-        body: installationRows.map(r => {
-          const vals: Record<string, string> = {
-            type: r.type, serial: r.serial, equipment: r.equipment,
-            installDate: r.installDate ? format(new Date(r.installDate), 'dd/MM/yyyy') : '',
-            installHor: fmtNum(r.installHor),
-            removeDate: r.removeDate ? format(new Date(r.removeDate), 'dd/MM/yyyy') : '—',
-            removeHor: r.removeHor != null ? fmtNum(r.removeHor) : '—',
-            delta: r.delta != null ? fmtNum(r.delta) : '—',
-          };
-          return cols.map(c => vals[c.key]);
-        }),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [60, 60, 60] },
-      });
-    } else if (reportType === 'maintenances') {
-      const cols = maintenanceColumns.filter(c => maintCols.has(c.key));
-      autoTable(doc, {
-        startY: 30,
-        head: [cols.map(c => c.label)],
-        body: maintenanceRows.map(r => {
-          const vals: Record<string, string> = {
-            type: r.type, serial: r.serial, date: format(new Date(r.date), 'dd/MM/yyyy'), horimeter: fmtNum(r.horimeter) + 'h', description: r.description,
-          };
-          return cols.map(c => vals[c.key]);
-        }),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [60, 60, 60] },
-      });
-    } else {
-      const cols = componentColumns.filter(c => compCols.has(c.key));
-      autoTable(doc, {
-        startY: 30,
-        head: [cols.map(c => c.label)],
-        body: componentRows.map(r => {
-          const vals: Record<string, string> = {
-            type: r.type, serial: r.serial, component: r.component, date: format(new Date(r.date), 'dd/MM/yyyy'), horimeter: fmtNum(r.horimeter) + 'h',
-          };
-          return cols.map(c => vals[c.key]);
-        }),
-        styles: { fontSize: 8 },
-        headStyles: { fillColor: [60, 60, 60] },
-      });
-    }
+    const { header, body } = getExportData();
+    const fmtBody = body.map(row => row.map(cell => {
+      if (typeof cell === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(cell)) return format(new Date(cell + 'T12:00:00'), 'dd/MM/yyyy');
+      if (typeof cell === 'number') return fmtNum(cell);
+      return cell;
+    }));
 
-    doc.save(`relatorio_${reportType}_${new Date().toISOString().split('T')[0]}.pdf`);
+    autoTable(doc, { startY: 30, head: [header], body: fmtBody, styles: { fontSize: 8 }, headStyles: { fillColor: [60, 60, 60] } });
+    doc.save(buildFileName('pdf'));
   };
 
   const currentCount = reportType === 'installations' ? installationRows.length : reportType === 'maintenances' ? maintenanceRows.length : componentRows.length;
@@ -432,6 +426,9 @@ export default function ReportsPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />Excel
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportCSV}>
                   <FileDown className="h-4 w-4 mr-2" />CSV
                 </DropdownMenuItem>
