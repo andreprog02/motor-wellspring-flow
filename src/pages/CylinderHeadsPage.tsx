@@ -708,57 +708,82 @@ export default function CylinderHeadsPage() {
                   <TabsTrigger value="maintenances">Manutenções</TabsTrigger>
                 </TabsList>
 
-                {/* Report tab - unified timeline */}
+                {/* Report tab - consolidated per head */}
                 <TabsContent value="report">
-                  <div className="space-y-4">
-                    <p className="text-xs text-muted-foreground">Histórico completo do Cabeçote {selectedHead.serial_number}</p>
+                  <div className="space-y-5">
+                    {/* Header */}
+                    <div className="bg-secondary/40 rounded-lg p-4">
+                      <h3 className="text-lg font-bold tracking-tight">Cabeçote {selectedHead.serial_number}</h3>
+                      <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1 text-sm text-muted-foreground">
+                        <span>Status: <Badge className={`ml-1 ${statusColors[selectedHead.status] || ''}`}>{cylinderHeadStatusLabels[selectedHead.status] || selectedHead.status}</Badge></span>
+                        {metrics.data && (
+                          <>
+                            <span>Horas Totais: <strong className="text-foreground font-mono">{fmtNum(metrics.data.total_hours)}h</strong></span>
+                            <span>Horas Pós-Revisão: <strong className="text-foreground font-mono">{fmtNum(metrics.data.hours_since_maintenance)}h</strong></span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Sections by type */}
                     {(() => {
-                      type TimelineEvent = { date: string; type: 'install' | 'remove' | 'maintenance' | 'component'; description: string; horimeter?: number };
-                      const events: TimelineEvent[] = [];
-                      
-                      headInstallations.forEach(inst => {
-                        const eqName = equipments.data?.find(e => e.id === inst.equipment_id)?.name || '—';
-                        events.push({ date: inst.install_date, type: 'install', description: `Instalado no ${eqName}`, horimeter: inst.install_equipment_horimeter });
-                        if (inst.remove_date) {
-                          events.push({ date: inst.remove_date, type: 'remove', description: `Removido do ${eqName}`, horimeter: inst.remove_equipment_horimeter! });
-                        }
-                      });
-                      headMaintenances.forEach(m => {
-                        events.push({ date: m.maintenance_date, type: 'maintenance', description: m.description || 'Manutenção', horimeter: m.horimeter_at_maintenance });
-                      });
-                      headComps.forEach(c => {
-                        events.push({ date: c.replacement_date, type: 'component', description: `Troca: ${cylinderHeadComponentTypes[c.component_type] || c.component_type}`, horimeter: c.horimeter_at_replacement });
-                      });
+                      const sections: Array<{ title: string; icon: string; color: string; items: Array<{ date: string; description: string; horimeter?: number }> }> = [];
 
-                      events.sort((a, b) => b.date.localeCompare(a.date));
-
-                      if (events.length === 0) {
-                        return <p className="text-sm text-muted-foreground text-center py-6">Nenhum evento registrado.</p>;
+                      // Manutenções
+                      const maintItems = headMaintenances.map(m => ({
+                        date: m.maintenance_date,
+                        description: m.description || 'Manutenção',
+                        horimeter: m.horimeter_at_maintenance,
+                      })).sort((a, b) => b.date.localeCompare(a.date));
+                      if (maintItems.length > 0) {
+                        sections.push({ title: 'Manutenções / Revisões', icon: '🔧', color: 'border-l-[hsl(var(--status-warning))]', items: maintItems });
                       }
 
-                      const typeStyles: Record<string, { icon: string; color: string }> = {
-                        install: { icon: '🟢', color: 'border-l-[hsl(var(--status-ok))]' },
-                        remove: { icon: '🔴', color: 'border-l-destructive' },
-                        maintenance: { icon: '🔧', color: 'border-l-[hsl(var(--status-warning))]' },
-                        component: { icon: '🔄', color: 'border-l-[hsl(var(--industrial))]' },
-                      };
+                      // Instalações / Remoções
+                      const instItems: Array<{ date: string; description: string; horimeter?: number }> = [];
+                      headInstallations.forEach(inst => {
+                        const eqName = equipments.data?.find(e => e.id === inst.equipment_id)?.name || '—';
+                        instItems.push({ date: inst.install_date, description: `Instalado no ${eqName}`, horimeter: inst.install_equipment_horimeter });
+                        if (inst.remove_date) {
+                          instItems.push({ date: inst.remove_date, description: `Removido do ${eqName}`, horimeter: inst.remove_equipment_horimeter! });
+                        }
+                      });
+                      instItems.sort((a, b) => b.date.localeCompare(a.date));
+                      if (instItems.length > 0) {
+                        sections.push({ title: 'Instalações / Remoções', icon: '🔄', color: 'border-l-[hsl(var(--industrial))]', items: instItems });
+                      }
 
-                      return (
-                        <div className="space-y-1.5">
-                          {events.map((ev, idx) => (
-                            <div key={idx} className={`flex items-start gap-3 py-2 px-3 rounded-md bg-secondary/30 border-l-4 ${typeStyles[ev.type]?.color || ''}`}>
-                              <span className="text-base mt-0.5">{typeStyles[ev.type]?.icon}</span>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium">{ev.description}</p>
-                                <div className="flex gap-3 text-xs text-muted-foreground">
-                                  <span className="font-mono">{format(new Date(ev.date), 'dd/MM/yyyy')}</span>
-                                  {ev.horimeter != null && <span className="font-mono">{fmtNum(ev.horimeter)}h</span>}
-                                </div>
+                      // Troca de componentes
+                      const compItems = headComps.map(c => ({
+                        date: c.replacement_date,
+                        description: cylinderHeadComponentTypes[c.component_type] || c.component_type,
+                        horimeter: c.horimeter_at_replacement,
+                      })).sort((a, b) => b.date.localeCompare(a.date));
+                      if (compItems.length > 0) {
+                        sections.push({ title: 'Troca de Componentes', icon: '⚙️', color: 'border-l-[hsl(var(--status-ok))]', items: compItems });
+                      }
+
+                      if (sections.length === 0) {
+                        return <p className="text-sm text-muted-foreground text-center py-6">Nenhum evento registrado para este cabeçote.</p>;
+                      }
+
+                      return sections.map((section, sIdx) => (
+                        <div key={sIdx}>
+                          <h4 className="text-sm font-semibold mb-2 flex items-center gap-2">
+                            <span>{section.icon}</span> {section.title}
+                            <Badge variant="secondary" className="text-xs font-mono">{section.items.length}</Badge>
+                          </h4>
+                          <div className="space-y-1">
+                            {section.items.map((item, iIdx) => (
+                              <div key={iIdx} className={`flex items-center gap-3 py-2 px-3 rounded-md bg-secondary/30 border-l-4 ${section.color}`}>
+                                <span className="font-mono text-sm font-medium min-w-[90px]">{format(new Date(item.date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                                <span className="text-sm flex-1">{item.description}</span>
+                                {item.horimeter != null && <span className="font-mono text-xs text-muted-foreground">{fmtNum(item.horimeter)}h</span>}
                               </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
-                      );
+                      ));
                     })()}
                   </div>
                 </TabsContent>
