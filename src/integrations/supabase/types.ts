@@ -405,6 +405,7 @@ export type Database = {
         Row: {
           aplicacao: string
           category: string
+          codigo: string
           created_at: string
           gerador: string
           id: string
@@ -420,6 +421,7 @@ export type Database = {
         Insert: {
           aplicacao?: string
           category?: string
+          codigo?: string
           created_at?: string
           gerador?: string
           id?: string
@@ -435,6 +437,7 @@ export type Database = {
         Update: {
           aplicacao?: string
           category?: string
+          codigo?: string
           created_at?: string
           gerador?: string
           id?: string

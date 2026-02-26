@@ -16,9 +16,10 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type SortField = 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'quantity' | 'location_name';
+type SortField = 'codigo' | 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'quantity' | 'location_name';
 const sortOptions: { value: SortField; label: string }[] = [
-  { value: 'part_number', label: 'Código' },
+  { value: 'codigo', label: 'Código' },
+  { value: 'part_number', label: 'Part Number' },
   { value: 'name', label: 'Nome' },
   { value: 'aplicacao', label: 'Aplicação' },
   { value: 'tipo', label: 'Tipo' },
@@ -58,7 +59,8 @@ export default function InventoryPage() {
       const q = search.toLowerCase();
       items = items.filter(i =>
         i.name.toLowerCase().includes(q) ||
-        i.part_number.toLowerCase().includes(q)
+        i.part_number.toLowerCase().includes(q) ||
+        (i.codigo && i.codigo.toLowerCase().includes(q))
       );
     }
 
@@ -152,6 +154,7 @@ export default function InventoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Código</TableHead>
+                  <TableHead>Part Number</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Aplicação</TableHead>
                   <TableHead>Tipo</TableHead>
@@ -159,11 +162,13 @@ export default function InventoryPage() {
                   <TableHead>Qtd</TableHead>
                   <TableHead>Local</TableHead>
                   <TableHead className="w-[100px]">Ações</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredItems.map(item => (
                   <TableRow key={item.id}>
+                    <TableCell className="font-mono text-sm">{item.codigo || '—'}</TableCell>
                     <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -188,7 +193,7 @@ export default function InventoryPage() {
                 ))}
                 {filteredItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       {search ? 'Nenhum item encontrado.' : 'Nenhum item cadastrado. Clique em "Novo Item" para começar.'}
                     </TableCell>
                   </TableRow>
