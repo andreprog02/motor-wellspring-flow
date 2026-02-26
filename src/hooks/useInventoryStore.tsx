@@ -17,26 +17,31 @@ export interface Location {
   name: string;
 }
 
-export const INVENTORY_CATEGORIES = [
-  'Compensadores', 'Equipamento', 'Filtros', 'Insumos', 'Junta', 'Mangueira', 'O-ring', 'Peça',
+export const APLICACAO_OPTIONS = ['Mecânica', 'Elétrica'] as const;
+export type Aplicacao = typeof APLICACAO_OPTIONS[number];
+
+export const TIPO_OPTIONS = [
+  'Arruela', 'Cabo', 'Compensador', 'Equipamento', 'Ferramenta', 'Filtro',
+  'Insumos', 'Junta', 'Mangueira', 'O-ring', 'Outros', 'Parafuso',
+  'Peça', 'Porca', 'Sensor', 'Válvula',
 ] as const;
-export type InventoryCategory = typeof INVENTORY_CATEGORIES[number];
+export type Tipo = typeof TIPO_OPTIONS[number];
+
+export const GERADOR_OPTIONS = ['Série 3', 'Série 03', 'Outros', ''] as const;
+export type Gerador = typeof GERADOR_OPTIONS[number];
 
 export interface InventoryItemRow {
   id: string;
-  name: string;
-  manufacturer_id: string;
-  model_id: string | null;
   part_number: string;
+  name: string;
+  aplicacao: string;
+  tipo: string;
+  gerador: string;
   quantity: number;
-  min_stock: number;
   location_id: string;
-  category: InventoryCategory;
 }
 
 export interface InventoryItemDisplay extends InventoryItemRow {
-  manufacturer_name: string;
-  model_name: string | null;
   location_name: string;
 }
 
@@ -75,21 +80,18 @@ export function useInventoryStore() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('inventory_items')
-        .select('*, manufacturers(name), manufacturer_models(name), locations(name)')
+        .select('*, locations(name)')
         .order('name');
       if (error) throw error;
       return (data as any[]).map((row: any) => ({
         id: row.id,
-        name: row.name,
-        manufacturer_id: row.manufacturer_id,
-        model_id: row.model_id,
         part_number: row.part_number,
+        name: row.name,
+        aplicacao: row.aplicacao ?? '',
+        tipo: row.tipo ?? '',
+        gerador: row.gerador ?? '',
         quantity: row.quantity,
-        min_stock: row.min_stock,
         location_id: row.location_id,
-        category: row.category ?? 'Peça',
-        manufacturer_name: row.manufacturers?.name ?? '',
-        model_name: row.manufacturer_models?.name ?? null,
         location_name: row.locations?.name ?? '',
       })) as InventoryItemDisplay[];
     },
@@ -183,7 +185,18 @@ export function useInventoryStore() {
   // Inventory items
   const addItem = useMutation({
     mutationFn: async (item: Omit<InventoryItemRow, 'id'>) => {
-      const { error } = await (supabase as any).from('inventory_items').insert(item);
+      const { error } = await (supabase as any).from('inventory_items').insert({
+        part_number: item.part_number,
+        name: item.name,
+        aplicacao: item.aplicacao,
+        tipo: item.tipo,
+        gerador: item.gerador,
+        quantity: item.quantity,
+        location_id: item.location_id,
+        category: item.tipo,
+        min_stock: 0,
+        manufacturer_id: null,
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory_items'] }),
@@ -191,7 +204,9 @@ export function useInventoryStore() {
 
   const updateItem = useMutation({
     mutationFn: async ({ id, ...data }: Partial<InventoryItemRow> & { id: string }) => {
-      const { error } = await (supabase as any).from('inventory_items').update(data).eq('id', id);
+      const updateData: any = { ...data };
+      if (data.tipo) updateData.category = data.tipo;
+      const { error } = await (supabase as any).from('inventory_items').update(updateData).eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['inventory_items'] }),

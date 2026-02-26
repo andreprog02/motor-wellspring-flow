@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { InventoryItemDisplay } from '@/hooks/useInventoryStore';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,14 +9,14 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-type SortField = 'part_number' | 'name' | 'category' | 'manufacturer_name' | 'model_name' | 'location_name';
+type SortField = 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'location_name';
 
 const sortLabels: Record<SortField, string> = {
-  part_number: 'Part Number',
-  name: 'Peça',
-  category: 'Categoria',
-  manufacturer_name: 'Fabricante',
-  model_name: 'Modelo',
+  part_number: 'Código',
+  name: 'Nome',
+  aplicacao: 'Aplicação',
+  tipo: 'Tipo',
+  gerador: 'Gerador',
   location_name: 'Local',
 };
 
@@ -29,26 +28,31 @@ function sortItems(items: InventoryItemDisplay[], field: SortField) {
   });
 }
 
-const headers = ['Peça', 'Categoria', 'Fabricante', 'Modelo', 'Part Number', 'Quantidade', 'Estoque Mín.', 'Local'];
+function formatDate() {
+  const d = new Date();
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+}
+
+const headers = ['Código', 'Nome', 'Aplicação', 'Tipo', 'Gerador', 'Qtd', 'Local'];
 
 function toRows(items: InventoryItemDisplay[]) {
   return items.map(i => [
-    i.name, i.category, i.manufacturer_name, i.model_name ?? '—',
-    i.part_number, i.quantity, i.min_stock, i.location_name,
+    i.part_number, i.name, i.aplicacao, i.tipo, i.gerador || '—',
+    i.quantity, i.location_name,
   ]);
 }
 
 function exportCSV(items: InventoryItemDisplay[]) {
   const rows = [headers, ...toRows(items)];
   const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-  downloadBlob(csv, 'estoque.csv', 'text/csv;charset=utf-8;');
+  downloadBlob(csv, `estoque_atualizado_em_${formatDate()}.csv`, 'text/csv;charset=utf-8;');
 }
 
 function exportExcel(items: InventoryItemDisplay[]) {
   const ws = XLSX.utils.aoa_to_sheet([headers, ...toRows(items)]);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Estoque');
-  XLSX.writeFile(wb, 'estoque.xlsx');
+  XLSX.writeFile(wb, `estoque_atualizado_em_${formatDate()}.xlsx`);
 }
 
 function exportPDF(items: InventoryItemDisplay[]) {
@@ -56,7 +60,7 @@ function exportPDF(items: InventoryItemDisplay[]) {
   doc.setFontSize(16);
   doc.text('Estoque de Peças', 14, 18);
   doc.setFontSize(9);
-  doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 24);
+  doc.text(`Atualizado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 24);
 
   autoTable(doc, {
     startY: 30,
@@ -66,7 +70,7 @@ function exportPDF(items: InventoryItemDisplay[]) {
     headStyles: { fillColor: [41, 65, 94] },
   });
 
-  doc.save('estoque.pdf');
+  doc.save(`estoque_atualizado_em_${formatDate()}.pdf`);
 }
 
 function downloadBlob(content: string, filename: string, type: string) {
