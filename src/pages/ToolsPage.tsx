@@ -9,13 +9,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, MapPin, Search, ArrowUpDown } from 'lucide-react';
+import { Wrench, Plus, MapPin, Search, ArrowUpDown } from 'lucide-react';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type SortField = 'codigo' | 'codigo_alt_01' | 'codigo_alt_02' | 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'quantity' | 'location_name';
+type SortField = 'codigo' | 'codigo_alt_01' | 'codigo_alt_02' | 'part_number' | 'name' | 'aplicacao' | 'gerador' | 'quantity' | 'location_name';
 const sortOptions: { value: SortField; label: string }[] = [
   { value: 'codigo', label: 'Código' },
   { value: 'codigo_alt_01', label: 'Cód. Alt. 01' },
@@ -23,13 +23,12 @@ const sortOptions: { value: SortField; label: string }[] = [
   { value: 'part_number', label: 'Part Number' },
   { value: 'name', label: 'Nome' },
   { value: 'aplicacao', label: 'Aplicação' },
-  { value: 'tipo', label: 'Tipo' },
   { value: 'gerador', label: 'Gerador' },
   { value: 'quantity', label: 'Quantidade' },
   { value: 'location_name', label: 'Local' },
 ];
 
-export default function InventoryPage() {
+export default function ToolsPage() {
   const store = useInventoryStore();
   const [formOpen, setFormOpen] = useState(false);
   const [locationsOpen, setLocationsOpen] = useState(false);
@@ -43,13 +42,15 @@ export default function InventoryPage() {
   const handleNew = () => { setEditingItem(null); setFormOpen(true); };
   const handleEdit = (item: InventoryItemDisplay) => { setEditingItem(item); setFormOpen(true); };
   const handleSave = (data: any) => {
-    if (editingItem) store.updateItem.mutate({ id: editingItem.id, ...data });
-    else store.addItem.mutate(data);
+    // Force tipo to "Ferramenta" for items created from this page
+    const payload = { ...data, tipo: 'Ferramenta' };
+    if (editingItem) store.updateItem.mutate({ id: editingItem.id, ...payload });
+    else store.addItem.mutate(payload);
   };
   const confirmDelete = () => { if (deleteId) { store.deleteItem.mutate(deleteId); setDeleteId(null); } };
 
   const filteredItems = useMemo(() => {
-    let items = store.items.filter(i => i.tipo !== 'Ferramenta');
+    let items = store.items.filter(i => i.tipo === 'Ferramenta');
 
     if (filterLocation && filterLocation !== 'all') {
       items = items.filter(i => i.location_id === filterLocation);
@@ -80,8 +81,8 @@ export default function InventoryPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Estoque de Peças</h1>
-            <p className="text-sm text-muted-foreground mt-1">Inventário completo de peças e equipamentos</p>
+            <h1 className="text-2xl font-bold tracking-tight">Ferramentas</h1>
+            <p className="text-sm text-muted-foreground mt-1">Inventário de ferramentas e instrumentos</p>
           </div>
           <div className="flex gap-2">
             <InventoryExportMenu items={filteredItems} />
@@ -91,7 +92,7 @@ export default function InventoryPage() {
             </Button>
             <Button onClick={handleNew}>
               <Plus className="h-4 w-4 mr-2" />
-              Novo Item
+              Nova Ferramenta
             </Button>
           </div>
         </div>
@@ -134,7 +135,8 @@ export default function InventoryPage() {
               items={filteredItems}
               onEdit={handleEdit}
               onDelete={id => setDeleteId(id)}
-              emptyMessage={search ? 'Nenhum item encontrado.' : 'Nenhum item cadastrado. Clique em "Novo Item" para começar.'}
+              showTipo={false}
+              emptyMessage={search ? 'Nenhuma ferramenta encontrada.' : 'Nenhuma ferramenta cadastrada. Clique em "Nova Ferramenta" para começar.'}
             />
           </CardContent>
         </Card>
@@ -153,7 +155,7 @@ export default function InventoryPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>Tem certeza que deseja excluir este item do estoque?</AlertDialogDescription>
+            <AlertDialogDescription>Tem certeza que deseja excluir esta ferramenta?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
