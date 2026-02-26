@@ -294,6 +294,25 @@ export function useCylinderHeadStore() {
     onSuccess: () => invalidateAll(),
   });
 
+  const updateMaintenance = useMutation({
+    mutationFn: async (data: { id: string; description: string; horimeter_at_maintenance: number; maintenance_date: string }) => {
+      const { error } = await (supabase as any)
+        .from('cylinder_head_maintenances')
+        .update({ description: data.description, horimeter_at_maintenance: data.horimeter_at_maintenance, maintenance_date: data.maintenance_date })
+        .eq('id', data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
+  const deleteMaintenance = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('cylinder_head_maintenances').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
   return {
     cylinderHeads,
     installations,
@@ -310,5 +329,7 @@ export function useCylinderHeadStore() {
     addHeadComponentsBatch,
     addHistoricalInstallation,
     updateInstallation,
+    updateMaintenance,
+    deleteMaintenance,
   };
 }
