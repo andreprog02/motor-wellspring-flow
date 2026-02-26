@@ -261,6 +261,7 @@ export type Database = {
       cylinder_heads: {
         Row: {
           created_at: string
+          estimated_total_hours: number | null
           id: string
           last_maintenance_date: string | null
           location_id: string | null
@@ -269,6 +270,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          estimated_total_hours?: number | null
           id?: string
           last_maintenance_date?: string | null
           location_id?: string | null
@@ -277,6 +279,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          estimated_total_hours?: number | null
           id?: string
           last_maintenance_date?: string | null
           location_id?: string | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.cylinder_heads ADD COLUMN estimated_total_hours numeric DEFAULT 0;
