@@ -16,9 +16,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package, Search, ArrowUpDown } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package, Search, ArrowUpDown, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import type { CylinderHeadMetrics, CylinderHeadComponent } from '@/hooks/useCylinderHeadStore';
 
 interface CompInventoryItem {
@@ -462,6 +466,96 @@ export default function CylinderHeadsPage() {
     }
   };
 
+  // --- Export functions ---
+  const buildExportRows = () => {
+    return heads.map(head => {
+      const activeInst = allInstallations.find(i => i.cylinder_head_id === head.id && !i.remove_date);
+      const eqName = activeInst ? equipments.data?.find(e => e.id === activeInst.equipment_id)?.name : '';
+      const headMaints = allMaintenances.filter(m => m.cylinder_head_id === head.id)
+        .sort((a, b) => a.maintenance_date.localeCompare(b.maintenance_date));
+      const maintStr = headMaints.map((m, i) => `${i + 1}ª: ${fmtNum(m.horimeter_at_maintenance)}h (${format(new Date(m.maintenance_date + 'T12:00:00'), 'dd/MM/yyyy')})`).join(' | ');
+      return {
+        sn: head.serial_number,
+        status: cylinderHeadStatusLabels[head.status] || head.status,
+        equipment: eqName || '—',
+        estimatedHours: head.estimated_total_hours || 0,
+        maintenances: headMaints.length,
+        maintDetail: maintStr || '—',
+        lastMaint: head.last_maintenance_date ? format(new Date(head.last_maintenance_date + 'T12:00:00'), 'dd/MM/yyyy') : '—',
+      };
+    });
+  };
+
+  const exportPDF = () => {
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const rows = buildExportRows();
+    doc.setFontSize(16);
+    doc.text('Relatório de Cabeçotes', 14, 18);
+    doc.setFontSize(9);
+    doc.text(`Gerado em: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 25);
+
+    autoTable(doc, {
+      startY: 32,
+      head: [['S/N', 'Status', 'Equipamento', 'Horas Estimadas', 'Manutenções', 'Última Manutenção']],
+      body: rows.map(r => [r.sn, r.status, r.equipment, fmtNum(r.estimatedHours), String(r.maintenances), r.lastMaint]),
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [41, 65, 94], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 247, 250] },
+    });
+
+    // Summary table at the end
+    const finalY = (doc as any).lastAutoTable?.finalY || 80;
+    const pageHeight = doc.internal.pageSize.height;
+    let startY = finalY + 15;
+    if (startY + 20 > pageHeight) {
+      doc.addPage();
+      startY = 20;
+    }
+    doc.setFontSize(13);
+    doc.text('Resumo — Horímetro por Cabeçote', 14, startY);
+    autoTable(doc, {
+      startY: startY + 8,
+      head: [['S/N', 'Horas Totais Estimadas', 'Qtd. Manutenções', 'Detalhe Manutenções']],
+      body: rows.map(r => [r.sn, fmtNum(r.estimatedHours) + 'h', String(r.maintenances), r.maintDetail]),
+      styles: { fontSize: 7, cellPadding: 2 },
+      headStyles: { fillColor: [30, 80, 120], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [240, 245, 250] },
+      columnStyles: { 3: { cellWidth: 120 } },
+    });
+
+    doc.save(`cabecotes_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+    toast.success('PDF exportado!');
+  };
+
+  const exportExcel = () => {
+    const rows = buildExportRows();
+    const wsData = [
+      ['S/N', 'Status', 'Equipamento', 'Horas Estimadas', 'Manutenções', 'Última Manutenção', 'Detalhe Manutenções'],
+      ...rows.map(r => [r.sn, r.status, r.equipment, r.estimatedHours, r.maintenances, r.lastMaint, r.maintDetail]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 20 }, { wch: 18 }, { wch: 12 }, { wch: 16 }, { wch: 60 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Cabeçotes');
+    XLSX.writeFile(wb, `cabecotes_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    toast.success('Excel exportado!');
+  };
+
+  const exportCSV = () => {
+    const rows = buildExportRows();
+    const header = 'S/N;Status;Equipamento;Horas Estimadas;Manutenções;Última Manutenção;Detalhe';
+    const lines = rows.map(r => `${r.sn};${r.status};${r.equipment};${r.estimatedHours};${r.maintenances};${r.lastMaint};${r.maintDetail}`);
+    const csv = [header, ...lines].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cabecotes_${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('CSV exportado!');
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -471,6 +565,19 @@ export default function CylinderHeadsPage() {
             <p className="text-sm text-muted-foreground">Gestão de cabeçotes com rastreamento de horas</p>
           </div>
           <div className="flex gap-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={exportPDF}>PDF</DropdownMenuItem>
+                <DropdownMenuItem onClick={exportExcel}>Excel</DropdownMenuItem>
+                <DropdownMenuItem onClick={exportCSV}>CSV</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="outline" onClick={() => { setBatchHistSelected([]); setBatchHistOpen(true); }}>
               <ArrowRightLeft className="h-4 w-4 mr-2" />
               Instalações em Lote
@@ -556,6 +663,7 @@ export default function CylinderHeadsPage() {
               <TableRow>
                 <TableHead>S/N</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead className="text-right">Horas Estimadas</TableHead>
                 <TableHead>Última Manutenção</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -563,7 +671,7 @@ export default function CylinderHeadsPage() {
             <TableBody>
               {heads.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     Nenhum cabeçote cadastrado.
                   </TableCell>
                 </TableRow>
@@ -578,6 +686,9 @@ export default function CylinderHeadsPage() {
                         {cylinderHeadStatusLabels[head.status] || head.status}
                       </Badge>
                       {eqName && <span className="ml-2 text-xs text-muted-foreground">({eqName})</span>}
+                    </TableCell>
+                    <TableCell className="font-mono text-sm text-right">
+                      {head.estimated_total_hours > 0 ? fmtNum(head.estimated_total_hours) + 'h' : '—'}
                     </TableCell>
                     <TableCell className="font-mono text-sm">
                       {head.last_maintenance_date ? format(new Date(head.last_maintenance_date), 'dd/MM/yyyy') : '—'}
@@ -678,7 +789,7 @@ export default function CylinderHeadsPage() {
               </DialogHeader>
 
               {metricsData && (
-                <div className="grid grid-cols-2 gap-4 my-4">
+                <div className="grid grid-cols-3 gap-4 my-4">
                   <Card className="border-[hsl(var(--industrial))]/20">
                     <CardContent className="p-4 flex items-center gap-3">
                       <Clock className="h-5 w-5 text-[hsl(var(--industrial))]" />
@@ -697,6 +808,17 @@ export default function CylinderHeadsPage() {
                       </div>
                     </CardContent>
                   </Card>
+                  {selectedHead.estimated_total_hours > 0 && (
+                    <Card className="border-primary/20">
+                      <CardContent className="p-4 flex items-center gap-3">
+                        <Clock className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-xs text-muted-foreground">Estimativa Total</p>
+                          <p className="text-xl font-bold font-mono">{fmtNum(selectedHead.estimated_total_hours)}h</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </div>
               )}
 
@@ -721,6 +843,9 @@ export default function CylinderHeadsPage() {
                             <span>Horas Totais: <strong className="text-foreground font-mono">{fmtNum(metrics.data.total_hours)}h</strong></span>
                             <span>Horas Pós-Revisão: <strong className="text-foreground font-mono">{fmtNum(metrics.data.hours_since_maintenance)}h</strong></span>
                           </>
+                        )}
+                        {selectedHead.estimated_total_hours > 0 && (
+                          <span>Estimativa Total: <strong className="text-foreground font-mono">{fmtNum(selectedHead.estimated_total_hours)}h</strong></span>
                         )}
                       </div>
                     </div>

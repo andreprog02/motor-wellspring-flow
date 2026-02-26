@@ -8,6 +8,7 @@ export interface CylinderHead {
   status: string;
   location_id: string | null;
   last_maintenance_date: string | null;
+  estimated_total_hours: number;
   created_at: string;
 }
 
