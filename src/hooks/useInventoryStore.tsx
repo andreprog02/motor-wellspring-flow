@@ -33,6 +33,8 @@ export type Gerador = typeof GERADOR_OPTIONS[number];
 export interface InventoryItemRow {
   id: string;
   codigo: string;
+  codigo_alt_01: string;
+  codigo_alt_02: string;
   part_number: string;
   name: string;
   aplicacao: string;
@@ -87,6 +89,8 @@ export function useInventoryStore() {
       return (data as any[]).map((row: any) => ({
         id: row.id,
         codigo: row.codigo ?? '',
+        codigo_alt_01: row.codigo_alt_01 ?? '',
+        codigo_alt_02: row.codigo_alt_02 ?? '',
         part_number: row.part_number,
         name: row.name,
         aplicacao: row.aplicacao ?? '',
@@ -189,6 +193,8 @@ export function useInventoryStore() {
     mutationFn: async (item: Omit<InventoryItemRow, 'id'>) => {
       const { error } = await (supabase as any).from('inventory_items').insert({
         codigo: item.codigo,
+        codigo_alt_01: item.codigo_alt_01,
+        codigo_alt_02: item.codigo_alt_02,
         part_number: item.part_number,
         name: item.name,
         aplicacao: item.aplicacao,
