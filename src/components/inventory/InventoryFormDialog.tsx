@@ -23,6 +23,8 @@ interface Props {
 
 interface FormState {
   codigo: string;
+  codigo_alt_01: string;
+  codigo_alt_02: string;
   part_number: string;
   name: string;
   aplicacao: string;
@@ -34,6 +36,8 @@ interface FormState {
 
 const emptyForm: FormState = {
   codigo: '',
+  codigo_alt_01: '',
+  codigo_alt_02: '',
   part_number: '',
   name: '',
   aplicacao: 'Mecânica',
@@ -54,6 +58,8 @@ export function InventoryFormDialog({
     if (item) {
       setForm({
         codigo: item.codigo || '',
+        codigo_alt_01: item.codigo_alt_01 || '',
+        codigo_alt_02: item.codigo_alt_02 || '',
         part_number: item.part_number,
         name: item.name,
         aplicacao: item.aplicacao || 'Mecânica',
@@ -72,6 +78,8 @@ export function InventoryFormDialog({
     if (!form.name || !form.location_id) return;
     onSave({
       codigo: form.codigo,
+      codigo_alt_01: form.codigo_alt_01,
+      codigo_alt_02: form.codigo_alt_02,
       part_number: form.part_number,
       name: form.name,
       aplicacao: form.aplicacao,
@@ -107,6 +115,16 @@ export function InventoryFormDialog({
           <div className="grid gap-1.5">
             <Label>Código</Label>
             <Input value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} placeholder="Ex: ABC-001" className="font-mono" />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>Código Alternativo 01</Label>
+            <Input value={form.codigo_alt_01} onChange={e => setForm(f => ({ ...f, codigo_alt_01: e.target.value }))} placeholder="Ex: ALT-001" className="font-mono" />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>Código Alternativo 02</Label>
+            <Input value={form.codigo_alt_02} onChange={e => setForm(f => ({ ...f, codigo_alt_02: e.target.value }))} placeholder="Ex: ALT-002" className="font-mono" />
           </div>
 
           <div className="grid gap-1.5">

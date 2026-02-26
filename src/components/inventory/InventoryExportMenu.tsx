@@ -9,10 +9,12 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-type SortField = 'codigo' | 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'location_name';
+type SortField = 'codigo' | 'codigo_alt_01' | 'codigo_alt_02' | 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'location_name';
 
 const sortLabels: Record<SortField, string> = {
   codigo: 'Código',
+  codigo_alt_01: 'Cód. Alt. 01',
+  codigo_alt_02: 'Cód. Alt. 02',
   part_number: 'Part Number',
   name: 'Nome',
   aplicacao: 'Aplicação',
@@ -34,11 +36,11 @@ function formatDate() {
   return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
 }
 
-const headers = ['Código', 'Part Number', 'Nome', 'Aplicação', 'Tipo', 'Gerador', 'Qtd', 'Local'];
+const headers = ['Código', 'Cód. Alt. 01', 'Cód. Alt. 02', 'Part Number', 'Nome', 'Aplicação', 'Tipo', 'Gerador', 'Qtd', 'Local'];
 
 function toRows(items: InventoryItemDisplay[]) {
   return items.map(i => [
-    i.codigo || '—', i.part_number, i.name, i.aplicacao, i.tipo, i.gerador || '—',
+    i.codigo || '—', i.codigo_alt_01 || '—', i.codigo_alt_02 || '—', i.part_number, i.name, i.aplicacao, i.tipo, i.gerador || '—',
     i.quantity, i.location_name,
   ]);
 }

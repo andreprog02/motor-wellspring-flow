@@ -406,6 +406,8 @@ export type Database = {
           aplicacao: string
           category: string
           codigo: string
+          codigo_alt_01: string
+          codigo_alt_02: string
           created_at: string
           gerador: string
           id: string
@@ -422,6 +424,8 @@ export type Database = {
           aplicacao?: string
           category?: string
           codigo?: string
+          codigo_alt_01?: string
+          codigo_alt_02?: string
           created_at?: string
           gerador?: string
           id?: string
@@ -438,6 +442,8 @@ export type Database = {
           aplicacao?: string
           category?: string
           codigo?: string
+          codigo_alt_01?: string
+          codigo_alt_02?: string
           created_at?: string
           gerador?: string
           id?: string

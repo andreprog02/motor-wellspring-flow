@@ -16,9 +16,11 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type SortField = 'codigo' | 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'quantity' | 'location_name';
+type SortField = 'codigo' | 'codigo_alt_01' | 'codigo_alt_02' | 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'quantity' | 'location_name';
 const sortOptions: { value: SortField; label: string }[] = [
   { value: 'codigo', label: 'Código' },
+  { value: 'codigo_alt_01', label: 'Cód. Alt. 01' },
+  { value: 'codigo_alt_02', label: 'Cód. Alt. 02' },
   { value: 'part_number', label: 'Part Number' },
   { value: 'name', label: 'Nome' },
   { value: 'aplicacao', label: 'Aplicação' },
@@ -154,6 +156,8 @@ export default function InventoryPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Código</TableHead>
+                  <TableHead>Cód. Alt. 01</TableHead>
+                  <TableHead>Cód. Alt. 02</TableHead>
                   <TableHead>Part Number</TableHead>
                   <TableHead>Nome</TableHead>
                   <TableHead>Aplicação</TableHead>
@@ -169,6 +173,8 @@ export default function InventoryPage() {
                 {filteredItems.map(item => (
                   <TableRow key={item.id}>
                     <TableCell className="font-mono text-sm">{item.codigo || '—'}</TableCell>
+                    <TableCell className="font-mono text-sm">{item.codigo_alt_01 || '—'}</TableCell>
+                    <TableCell className="font-mono text-sm">{item.codigo_alt_02 || '—'}</TableCell>
                     <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -193,7 +199,7 @@ export default function InventoryPage() {
                 ))}
                 {filteredItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
                       {search ? 'Nenhum item encontrado.' : 'Nenhum item cadastrado. Clique em "Novo Item" para começar.'}
                     </TableCell>
                   </TableRow>
