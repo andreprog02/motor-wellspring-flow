@@ -36,6 +36,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [filterLocation, setFilterLocation] = useState<string>('all');
 
   const handleNew = () => { setEditingItem(null); setFormOpen(true); };
   const handleEdit = (item: InventoryItemDisplay) => { setEditingItem(item); setFormOpen(true); };
@@ -49,6 +50,10 @@ export default function InventoryPage() {
     let items = store.items;
 
     // Filter
+    if (filterLocation && filterLocation !== 'all') {
+      items = items.filter(i => i.location_id === filterLocation);
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase();
       items = items.filter(i =>
@@ -67,7 +72,7 @@ export default function InventoryPage() {
     });
 
     return items;
-  }, [store.items, search, sortBy, sortDir]);
+  }, [store.items, search, sortBy, sortDir, filterLocation]);
 
   return (
     <AppLayout>
@@ -122,7 +127,21 @@ export default function InventoryPage() {
               <span className="text-xs font-bold">{sortDir === 'asc' ? 'A→Z' : 'Z→A'}</span>
             </Button>
           </div>
-          {search && (
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 text-muted-foreground" />
+            <Select value={filterLocation} onValueChange={setFilterLocation}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Todos os locais" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os locais</SelectItem>
+                {store.locations.map(loc => (
+                  <SelectItem key={loc.id} value={loc.id}>{loc.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {(search || filterLocation !== 'all') && (
             <span className="text-xs text-muted-foreground">{filteredItems.length} resultado(s)</span>
           )}
         </div>
