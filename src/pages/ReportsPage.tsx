@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FileDown, Filter, FileText, Columns3 } from 'lucide-react';
+import { FileDown, Filter, FileText, Columns3, ArrowUpDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
 import { turboComponentTypes } from '@/hooks/useTurboStore';
@@ -61,6 +61,14 @@ export default function ReportsPage() {
   const [dateTo, setDateTo] = useState('');
   const [equipFilter, setEquipFilter] = useState('all');
   const [serialFilter, setSerialFilter] = useState('');
+
+  // Sort state per report type
+  const [instSortBy, setInstSortBy] = useState<string>('installDate');
+  const [instSortDir, setInstSortDir] = useState<'asc' | 'desc'>('desc');
+  const [maintSortBy, setMaintSortBy] = useState<string>('date');
+  const [maintSortDir, setMaintSortDir] = useState<'asc' | 'desc'>('desc');
+  const [compSortBy, setCompSortBy] = useState<string>('date');
+  const [compSortDir, setCompSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Column visibility state per report type
   const [instCols, setInstCols] = useState<Set<string>>(new Set(installationColumns.map(c => c.key)));
@@ -125,9 +133,16 @@ export default function ReportsPage() {
       });
     }
 
-    rows.sort((a, b) => b.installDate.localeCompare(a.installDate));
+    const sortKey = instSortBy;
+    const dir = instSortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      const av = (a as any)[sortKey] ?? '';
+      const bv = (b as any)[sortKey] ?? '';
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+    });
     return rows;
-  }, [assetType, chInstallations, tbInstallations, chMap, tbMap, eqMap, dateFrom, dateTo, equipFilter, serialFilter]);
+  }, [assetType, chInstallations, tbInstallations, chMap, tbMap, eqMap, dateFrom, dateTo, equipFilter, serialFilter, instSortBy, instSortDir]);
 
   // --- Maintenances ---
   const maintenanceRows = useMemo(() => {
@@ -151,9 +166,16 @@ export default function ReportsPage() {
       });
     }
 
-    rows.sort((a, b) => b.date.localeCompare(a.date));
+    const sortKey = maintSortBy;
+    const dir = maintSortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      const av = (a as any)[sortKey] ?? '';
+      const bv = (b as any)[sortKey] ?? '';
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+    });
     return rows;
-  }, [assetType, chMaintenances, tbMaintenances, chMap, tbMap, dateFrom, dateTo, serialFilter]);
+  }, [assetType, chMaintenances, tbMaintenances, chMap, tbMap, dateFrom, dateTo, serialFilter, maintSortBy, maintSortDir]);
 
   // --- Components ---
   const componentRows = useMemo(() => {
@@ -177,14 +199,25 @@ export default function ReportsPage() {
       });
     }
 
-    rows.sort((a, b) => b.date.localeCompare(a.date));
+    const sortKey = compSortBy;
+    const dir = compSortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      const av = (a as any)[sortKey] ?? '';
+      const bv = (b as any)[sortKey] ?? '';
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir;
+      return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+    });
     return rows;
-  }, [assetType, chComponents, tbComponents, chMap, tbMap, dateFrom, dateTo, serialFilter]);
+  }, [assetType, chComponents, tbComponents, chMap, tbMap, dateFrom, dateTo, serialFilter, compSortBy, compSortDir]);
 
-  // Get active columns config for current report type
+  // Get active columns/sort config for current report type
   const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : componentColumns;
   const activeColsSet = reportType === 'installations' ? instCols : reportType === 'maintenances' ? maintCols : compCols;
   const activeColsSetFn = reportType === 'installations' ? setInstCols : reportType === 'maintenances' ? setMaintCols : setCompCols;
+  const activeSortBy = reportType === 'installations' ? instSortBy : reportType === 'maintenances' ? maintSortBy : compSortBy;
+  const activeSortDir = reportType === 'installations' ? instSortDir : reportType === 'maintenances' ? maintSortDir : compSortDir;
+  const setActiveSortBy = reportType === 'installations' ? setInstSortBy : reportType === 'maintenances' ? setMaintSortBy : setCompSortBy;
+  const setActiveSortDir = reportType === 'installations' ? setInstSortDir : reportType === 'maintenances' ? setMaintSortDir : setCompSortDir;
 
   const handleExportCSV = () => {
     let csv = '';
@@ -326,6 +359,34 @@ export default function ReportsPage() {
             <p className="text-sm text-muted-foreground">Histórico consolidado de cabeçotes e turbos</p>
           </div>
           <div className="flex items-center gap-2">
+            {/* Sort control */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <ArrowUpDown className="h-4 w-4 mr-2" />Ordenar
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Ordenar por</p>
+                <div className="space-y-2">
+                  <Select value={activeSortBy} onValueChange={setActiveSortBy}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {activeColsDef.map(col => (
+                        <SelectItem key={col.key} value={col.key}>{col.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={activeSortDir} onValueChange={(v) => setActiveSortDir(v as 'asc' | 'desc')}>
+                    <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Crescente (A→Z)</SelectItem>
+                      <SelectItem value="desc">Decrescente (Z→A)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </PopoverContent>
+            </Popover>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm">
