@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Manufacturer, ManufacturerModel, Location, InventoryItemRow, InventoryItemDisplay, INVENTORY_CATEGORIES, InventoryCategory } from '@/hooks/useInventoryStore';
+import { Location, InventoryItemRow, InventoryItemDisplay, APLICACAO_OPTIONS, TIPO_OPTIONS, GERADOR_OPTIONS } from '@/hooks/useInventoryStore';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -16,91 +16,67 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item?: InventoryItemDisplay | null;
-  manufacturers: Manufacturer[];
-  models: ManufacturerModel[];
   locations: Location[];
   onSave: (data: Omit<InventoryItemRow, 'id'>) => void;
-  onAddManufacturer: UseMutationResult<Manufacturer, Error, string>;
   onAddLocation: UseMutationResult<Location, Error, string>;
-  onAddModel: UseMutationResult<ManufacturerModel, Error, { manufacturer_id: string; name: string }>;
 }
 
 interface FormState {
-  name: string;
-  manufacturer_id: string;
-  model_id: string;
   part_number: string;
+  name: string;
+  aplicacao: string;
+  tipo: string;
+  gerador: string;
   quantity: number;
   location_id: string;
-  min_stock: number;
-  category: InventoryCategory;
 }
 
 const emptyForm: FormState = {
-  name: '',
-  manufacturer_id: '',
-  model_id: '',
   part_number: '',
+  name: '',
+  aplicacao: 'Mecânica',
+  tipo: 'Peça',
+  gerador: '',
   quantity: 0,
   location_id: '',
-  min_stock: 1,
-  category: 'Peça',
 };
 
 export function InventoryFormDialog({
-  open, onOpenChange, item, manufacturers, models, locations, onSave, onAddManufacturer, onAddLocation, onAddModel,
+  open, onOpenChange, item, locations, onSave, onAddLocation,
 }: Props) {
   const [form, setForm] = useState<FormState>(emptyForm);
-  const [newMfr, setNewMfr] = useState('');
-  const [showNewMfr, setShowNewMfr] = useState(false);
   const [newLoc, setNewLoc] = useState('');
   const [showNewLoc, setShowNewLoc] = useState(false);
-  const [newModel, setNewModel] = useState('');
-  const [showNewModel, setShowNewModel] = useState(false);
 
   useEffect(() => {
     if (item) {
       setForm({
-        name: item.name,
-        manufacturer_id: item.manufacturer_id,
-        model_id: item.model_id || '',
         part_number: item.part_number,
+        name: item.name,
+        aplicacao: item.aplicacao || 'Mecânica',
+        tipo: item.tipo || 'Peça',
+        gerador: item.gerador || '',
         quantity: item.quantity,
         location_id: item.location_id,
-        min_stock: item.min_stock,
-        category: item.category || 'Peça',
       });
     } else {
       setForm(emptyForm);
     }
-    setShowNewMfr(false);
     setShowNewLoc(false);
-    setShowNewModel(false);
   }, [item, open]);
 
-  const filteredModels = form.manufacturer_id ? models.filter(m => m.manufacturer_id === form.manufacturer_id) : [];
-
   const handleSave = () => {
-    if (!form.name || !form.manufacturer_id || !form.location_id) return;
+    if (!form.name || !form.location_id) return;
     onSave({
-      name: form.name,
-      manufacturer_id: form.manufacturer_id,
-      model_id: form.model_id || null,
       part_number: form.part_number,
+      name: form.name,
+      aplicacao: form.aplicacao,
+      tipo: form.tipo,
+      gerador: form.gerador,
       quantity: form.quantity,
       location_id: form.location_id,
-      min_stock: form.min_stock,
-      category: form.category,
     });
     onOpenChange(false);
-  };
-
-  const handleAddMfr = async () => {
-    if (!newMfr.trim()) return;
-    const m = await onAddManufacturer.mutateAsync(newMfr.trim());
-    setForm(f => ({ ...f, manufacturer_id: m.id, model_id: '' }));
-    setNewMfr('');
-    setShowNewMfr(false);
   };
 
   const handleAddLoc = async () => {
@@ -109,14 +85,6 @@ export function InventoryFormDialog({
     setForm(f => ({ ...f, location_id: l.id }));
     setNewLoc('');
     setShowNewLoc(false);
-  };
-
-  const handleAddModel = async () => {
-    if (!newModel.trim() || !form.manufacturer_id) return;
-    const m = await onAddModel.mutateAsync({ manufacturer_id: form.manufacturer_id, name: newModel.trim() });
-    setForm(f => ({ ...f, model_id: m.id }));
-    setNewModel('');
-    setShowNewModel(false);
   };
 
   const isEdit = !!item;
@@ -133,16 +101,21 @@ export function InventoryFormDialog({
 
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
-            <Label>Nome da Peça</Label>
-            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Filtro de Óleo CAT" />
+            <Label>Código</Label>
+            <Input value={form.part_number} onChange={e => setForm(f => ({ ...f, part_number: e.target.value }))} placeholder="Ex: 100012" className="font-mono" />
           </div>
 
           <div className="grid gap-1.5">
-            <Label>Categoria</Label>
-            <Select value={form.category} onValueChange={v => setForm(f => ({ ...f, category: v as InventoryCategory }))}>
+            <Label>Nome</Label>
+            <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: O-ring verde pequeno" />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>Aplicação</Label>
+            <Select value={form.aplicacao} onValueChange={v => setForm(f => ({ ...f, aplicacao: v }))}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
-                {INVENTORY_CATEGORIES.map(c => (
+                {APLICACAO_OPTIONS.map(c => (
                   <SelectItem key={c} value={c}>{c}</SelectItem>
                 ))}
               </SelectContent>
@@ -150,64 +123,34 @@ export function InventoryFormDialog({
           </div>
 
           <div className="grid gap-1.5">
-            <Label>Part Number</Label>
-            <Input value={form.part_number} onChange={e => setForm(f => ({ ...f, part_number: e.target.value }))} placeholder="Ex: 1R-0751" className="font-mono" />
+            <Label>Tipo</Label>
+            <Select value={form.tipo} onValueChange={v => setForm(f => ({ ...f, tipo: v }))}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {TIPO_OPTIONS.map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Manufacturer */}
           <div className="grid gap-1.5">
-            <Label>Fabricante</Label>
-            {showNewMfr ? (
-              <div className="flex gap-2">
-                <Input value={newMfr} onChange={e => setNewMfr(e.target.value)} placeholder="Nome do fabricante" autoFocus />
-                <Button size="sm" onClick={handleAddMfr} disabled={onAddManufacturer.isPending}>Salvar</Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowNewMfr(false)}>Cancelar</Button>
-              </div>
-            ) : (
-              <div className="flex gap-2">
-                <Select value={form.manufacturer_id} onValueChange={v => setForm(f => ({ ...f, manufacturer_id: v, model_id: '' }))}>
-                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {manufacturers.map(m => (
-                      <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button size="icon" variant="outline" onClick={() => setShowNewMfr(true)} title="Adicionar fabricante">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+            <Label>Gerador</Label>
+            <Select value={form.gerador || '_none'} onValueChange={v => setForm(f => ({ ...f, gerador: v === '_none' ? '' : v }))}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="_none">— Nenhum —</SelectItem>
+                {GERADOR_OPTIONS.filter(g => g !== '').map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          {/* Model (filtered by manufacturer) */}
-          {form.manufacturer_id && (
-            <div className="grid gap-1.5">
-              <Label>Modelo</Label>
-              {showNewModel ? (
-                <div className="flex gap-2">
-                  <Input value={newModel} onChange={e => setNewModel(e.target.value)} placeholder="Nome do modelo" autoFocus />
-                  <Button size="sm" onClick={handleAddModel} disabled={onAddModel.isPending}>Salvar</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setShowNewModel(false)}>Cancelar</Button>
-                </div>
-              ) : (
-                <div className="flex gap-2">
-                  <Select value={form.model_id || '_none'} onValueChange={v => setForm(f => ({ ...f, model_id: v === '_none' ? '' : v }))}>
-                    <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione (opcional)" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="_none">— Nenhum —</SelectItem>
-                      {filteredModels.map(m => (
-                        <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button size="icon" variant="outline" onClick={() => setShowNewModel(true)} title="Adicionar modelo">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="grid gap-1.5">
+            <Label>Quantidade</Label>
+            <Input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: Number(e.target.value) }))} />
+          </div>
 
           {/* Location */}
           <div className="grid gap-1.5">
@@ -234,22 +177,11 @@ export function InventoryFormDialog({
               </div>
             )}
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="grid gap-1.5">
-              <Label>Quantidade</Label>
-              <Input type="number" value={form.quantity} onChange={e => setForm(f => ({ ...f, quantity: Number(e.target.value) }))} />
-            </div>
-            <div className="grid gap-1.5">
-              <Label>Estoque Mín.</Label>
-              <Input type="number" value={form.min_stock} onChange={e => setForm(f => ({ ...f, min_stock: Number(e.target.value) }))} />
-            </div>
-          </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSave} disabled={!form.name || !form.manufacturer_id || !form.location_id}>
+          <Button onClick={handleSave} disabled={!form.name || !form.location_id}>
             {isEdit ? 'Salvar Alterações' : 'Adicionar'}
           </Button>
         </DialogFooter>

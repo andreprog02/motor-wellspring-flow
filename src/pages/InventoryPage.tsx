@@ -32,10 +32,10 @@ export default function InventoryPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">Estoque de Peças</h1>
-            <p className="text-sm text-muted-foreground mt-1">Catálogo de peças e controle de quantidades</p>
+            <p className="text-sm text-muted-foreground mt-1">Inventário completo de peças e equipamentos</p>
           </div>
           <div className="flex gap-2">
             <InventoryExportMenu items={store.items} />
@@ -51,50 +51,45 @@ export default function InventoryPage() {
         </div>
 
         <Card>
-          <CardContent className="p-0">
+          <CardContent className="p-0 overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Peça</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Fabricante</TableHead>
-                  <TableHead>Modelo</TableHead>
-                  <TableHead>Part Number</TableHead>
-                  <TableHead>Quantidade</TableHead>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Aplicação</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Gerador</TableHead>
+                  <TableHead>Qtd</TableHead>
                   <TableHead>Local</TableHead>
                   <TableHead className="w-[100px]">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {store.items.map(item => {
-                  const isLow = item.quantity <= item.min_stock;
-                  return (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Package className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium text-sm">{item.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">{item.category}</TableCell>
-                      <TableCell className="text-sm">{item.manufacturer_name}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{item.model_name || '—'}</TableCell>
-                      <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
-                      <TableCell>
-                        <Badge variant={isLow ? 'destructive' : 'secondary'} className="font-mono">
-                          {item.quantity} {isLow && `(mín: ${item.min_stock})`}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">{item.location_name}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1">
-                          <Button size="icon" variant="ghost" onClick={() => handleEdit(item)}><Pencil className="h-4 w-4" /></Button>
-                          <Button size="icon" variant="ghost" onClick={() => setDeleteId(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {store.items.map(item => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="font-medium text-sm">{item.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm">{item.aplicacao}</TableCell>
+                    <TableCell className="text-sm">{item.tipo}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{item.gerador || '—'}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="font-mono">{item.quantity}</Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{item.location_name}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button size="icon" variant="ghost" onClick={() => handleEdit(item)}><Pencil className="h-4 w-4" /></Button>
+                        <Button size="icon" variant="ghost" onClick={() => setDeleteId(item.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
                 {store.items.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
@@ -112,13 +107,9 @@ export default function InventoryPage() {
         open={formOpen}
         onOpenChange={setFormOpen}
         item={editingItem}
-        manufacturers={store.manufacturers}
-        models={store.models}
         locations={store.locations}
         onSave={handleSave}
-        onAddManufacturer={store.addManufacturer}
         onAddLocation={store.addLocation}
-        onAddModel={store.addModel}
       />
 
       <AlertDialog open={!!deleteId} onOpenChange={open => !open && setDeleteId(null)}>
