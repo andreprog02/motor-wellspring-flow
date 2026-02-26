@@ -204,10 +204,12 @@ export function useCylinderHeadStore() {
   };
 
   const updateCylinderHead = useMutation({
-    mutationFn: async (data: { id: string; serial_number: string; status: string }) => {
+    mutationFn: async (data: { id: string; serial_number: string; status: string; estimated_total_hours?: number | null }) => {
+      const updates: Record<string, any> = { serial_number: data.serial_number, status: data.status };
+      if (data.estimated_total_hours !== undefined) updates.estimated_total_hours = data.estimated_total_hours;
       const { error } = await (supabase as any)
         .from('cylinder_heads')
-        .update({ serial_number: data.serial_number, status: data.status })
+        .update(updates)
         .eq('id', data.id);
       if (error) throw error;
     },

@@ -66,6 +66,7 @@ export default function CylinderHeadsPage() {
   const [serialNumber, setSerialNumber] = useState('');
   const [editSerial, setEditSerial] = useState('');
   const [editStatus, setEditStatus] = useState('in_stock');
+  const [editEstimatedHours, setEditEstimatedHours] = useState('');
   const [editId, setEditId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [maintDesc, setMaintDesc] = useState('');
@@ -182,13 +183,14 @@ export default function CylinderHeadsPage() {
     setEditId(head.id);
     setEditSerial(head.serial_number);
     setEditStatus(head.status);
+    setEditEstimatedHours(head.estimated_total_hours != null ? String(head.estimated_total_hours) : '');
     setEditOpen(true);
   };
 
   const handleEdit = async () => {
     if (!editId || !editSerial.trim()) return;
     try {
-      await store.updateCylinderHead.mutateAsync({ id: editId, serial_number: editSerial.trim(), status: editStatus });
+      await store.updateCylinderHead.mutateAsync({ id: editId, serial_number: editSerial.trim(), status: editStatus, estimated_total_hours: editEstimatedHours ? Number(editEstimatedHours) : null });
       toast.success('Cabeçote atualizado!');
       setEditOpen(false);
     } catch {
@@ -751,6 +753,10 @@ export default function CylinderHeadsPage() {
                   <SelectItem value="maintenance">Em Reparo</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Horas Totais Estimadas</label>
+              <Input type="number" placeholder="Ex: 25000" value={editEstimatedHours} onChange={e => setEditEstimatedHours(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
