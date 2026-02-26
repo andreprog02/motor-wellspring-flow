@@ -22,6 +22,7 @@ interface Props {
 }
 
 interface FormState {
+  codigo: string;
   part_number: string;
   name: string;
   aplicacao: string;
@@ -32,6 +33,7 @@ interface FormState {
 }
 
 const emptyForm: FormState = {
+  codigo: '',
   part_number: '',
   name: '',
   aplicacao: 'Mecânica',
@@ -51,6 +53,7 @@ export function InventoryFormDialog({
   useEffect(() => {
     if (item) {
       setForm({
+        codigo: item.codigo || '',
         part_number: item.part_number,
         name: item.name,
         aplicacao: item.aplicacao || 'Mecânica',
@@ -68,6 +71,7 @@ export function InventoryFormDialog({
   const handleSave = () => {
     if (!form.name || !form.location_id) return;
     onSave({
+      codigo: form.codigo,
       part_number: form.part_number,
       name: form.name,
       aplicacao: form.aplicacao,
@@ -102,6 +106,11 @@ export function InventoryFormDialog({
         <div className="grid gap-4 py-2">
           <div className="grid gap-1.5">
             <Label>Código</Label>
+            <Input value={form.codigo} onChange={e => setForm(f => ({ ...f, codigo: e.target.value }))} placeholder="Ex: ABC-001" className="font-mono" />
+          </div>
+
+          <div className="grid gap-1.5">
+            <Label>Part Number</Label>
             <Input value={form.part_number} onChange={e => setForm(f => ({ ...f, part_number: e.target.value }))} placeholder="Ex: 100012" className="font-mono" />
           </div>
 

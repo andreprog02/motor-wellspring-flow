@@ -9,10 +9,11 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-type SortField = 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'location_name';
+type SortField = 'codigo' | 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'location_name';
 
 const sortLabels: Record<SortField, string> = {
-  part_number: 'Código',
+  codigo: 'Código',
+  part_number: 'Part Number',
   name: 'Nome',
   aplicacao: 'Aplicação',
   tipo: 'Tipo',
@@ -33,11 +34,11 @@ function formatDate() {
   return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
 }
 
-const headers = ['Código', 'Nome', 'Aplicação', 'Tipo', 'Gerador', 'Qtd', 'Local'];
+const headers = ['Código', 'Part Number', 'Nome', 'Aplicação', 'Tipo', 'Gerador', 'Qtd', 'Local'];
 
 function toRows(items: InventoryItemDisplay[]) {
   return items.map(i => [
-    i.part_number, i.name, i.aplicacao, i.tipo, i.gerador || '—',
+    i.codigo || '—', i.part_number, i.name, i.aplicacao, i.tipo, i.gerador || '—',
     i.quantity, i.location_name,
   ]);
 }

@@ -1,0 +1,1 @@
+ALTER TABLE public.inventory_items ADD COLUMN codigo text NOT NULL DEFAULT '';
