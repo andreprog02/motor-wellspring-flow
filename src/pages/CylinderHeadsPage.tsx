@@ -55,6 +55,8 @@ export default function CylinderHeadsPage() {
   const [histInstOpen, setHistInstOpen] = useState(false);
   const [batchHistOpen, setBatchHistOpen] = useState(false);
   const [editInstOpen, setEditInstOpen] = useState(false);
+  const [editMaintOpen, setEditMaintOpen] = useState(false);
+  const [deleteMaintOpen, setDeleteMaintOpen] = useState(false);
 
   // Form states
   const [serialNumber, setSerialNumber] = useState('');
@@ -99,6 +101,13 @@ export default function CylinderHeadsPage() {
   const [editInstEquipId, setEditInstEquipId] = useState('');
   const [editInstInstallHor, setEditInstInstallHor] = useState('');
   const [editInstRemoveHor, setEditInstRemoveHor] = useState('');
+
+  // Edit/delete maintenance states
+  const [editMaintId, setEditMaintId] = useState('');
+  const [editMaintDesc, setEditMaintDesc] = useState('');
+  const [editMaintHorimeter, setEditMaintHorimeter] = useState('');
+  const [editMaintDate, setEditMaintDate] = useState('');
+  const [deleteMaintId, setDeleteMaintId] = useState('');
 
   // Filter & sort states
   const [searchQuery, setSearchQuery] = useState('');
@@ -418,6 +427,41 @@ export default function CylinderHeadsPage() {
     }
   };
 
+  const openEditMaintenance = (m: typeof headMaintenances[0]) => {
+    setEditMaintId(m.id);
+    setEditMaintDesc(m.description);
+    setEditMaintHorimeter(String(m.horimeter_at_maintenance));
+    setEditMaintDate(m.maintenance_date);
+    setEditMaintOpen(true);
+  };
+
+  const handleEditMaintenance = async () => {
+    if (!editMaintId || !editMaintDesc.trim()) return;
+    try {
+      await store.updateMaintenance.mutateAsync({
+        id: editMaintId,
+        description: editMaintDesc.trim(),
+        horimeter_at_maintenance: Number(editMaintHorimeter) || 0,
+        maintenance_date: editMaintDate,
+      });
+      toast.success('Manutenção atualizada!');
+      setEditMaintOpen(false);
+    } catch {
+      toast.error('Erro ao atualizar manutenção.');
+    }
+  };
+
+  const handleDeleteMaintenance = async () => {
+    if (!deleteMaintId) return;
+    try {
+      await store.deleteMaintenance.mutateAsync(deleteMaintId);
+      toast.success('Manutenção excluída!');
+      setDeleteMaintOpen(false);
+    } catch {
+      toast.error('Erro ao excluir manutenção.');
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -656,12 +700,68 @@ export default function CylinderHeadsPage() {
                 </div>
               )}
 
-              <Tabs defaultValue="components" className="space-y-4">
+              <Tabs defaultValue="report" className="space-y-4">
                 <TabsList>
+                  <TabsTrigger value="report">Relatório</TabsTrigger>
                   <TabsTrigger value="components">Componentes</TabsTrigger>
-                  <TabsTrigger value="history">Histórico de Instalações</TabsTrigger>
+                  <TabsTrigger value="history">Instalações</TabsTrigger>
                   <TabsTrigger value="maintenances">Manutenções</TabsTrigger>
                 </TabsList>
+
+                {/* Report tab - unified timeline */}
+                <TabsContent value="report">
+                  <div className="space-y-4">
+                    <p className="text-xs text-muted-foreground">Histórico completo do Cabeçote {selectedHead.serial_number}</p>
+                    {(() => {
+                      type TimelineEvent = { date: string; type: 'install' | 'remove' | 'maintenance' | 'component'; description: string; horimeter?: number };
+                      const events: TimelineEvent[] = [];
+                      
+                      headInstallations.forEach(inst => {
+                        const eqName = equipments.data?.find(e => e.id === inst.equipment_id)?.name || '—';
+                        events.push({ date: inst.install_date, type: 'install', description: `Instalado no ${eqName}`, horimeter: inst.install_equipment_horimeter });
+                        if (inst.remove_date) {
+                          events.push({ date: inst.remove_date, type: 'remove', description: `Removido do ${eqName}`, horimeter: inst.remove_equipment_horimeter! });
+                        }
+                      });
+                      headMaintenances.forEach(m => {
+                        events.push({ date: m.maintenance_date, type: 'maintenance', description: m.description || 'Manutenção', horimeter: m.horimeter_at_maintenance });
+                      });
+                      headComps.forEach(c => {
+                        events.push({ date: c.replacement_date, type: 'component', description: `Troca: ${cylinderHeadComponentTypes[c.component_type] || c.component_type}`, horimeter: c.horimeter_at_replacement });
+                      });
+
+                      events.sort((a, b) => b.date.localeCompare(a.date));
+
+                      if (events.length === 0) {
+                        return <p className="text-sm text-muted-foreground text-center py-6">Nenhum evento registrado.</p>;
+                      }
+
+                      const typeStyles: Record<string, { icon: string; color: string }> = {
+                        install: { icon: '🟢', color: 'border-l-[hsl(var(--status-ok))]' },
+                        remove: { icon: '🔴', color: 'border-l-destructive' },
+                        maintenance: { icon: '🔧', color: 'border-l-[hsl(var(--status-warning))]' },
+                        component: { icon: '🔄', color: 'border-l-[hsl(var(--industrial))]' },
+                      };
+
+                      return (
+                        <div className="space-y-1.5">
+                          {events.map((ev, idx) => (
+                            <div key={idx} className={`flex items-start gap-3 py-2 px-3 rounded-md bg-secondary/30 border-l-4 ${typeStyles[ev.type]?.color || ''}`}>
+                              <span className="text-base mt-0.5">{typeStyles[ev.type]?.icon}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium">{ev.description}</p>
+                                <div className="flex gap-3 text-xs text-muted-foreground">
+                                  <span className="font-mono">{format(new Date(ev.date), 'dd/MM/yyyy')}</span>
+                                  {ev.horimeter != null && <span className="font-mono">{fmtNum(ev.horimeter)}h</span>}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </TabsContent>
 
                 <TabsContent value="components">
                   <div className="flex justify-end mb-3">
@@ -694,7 +794,6 @@ export default function CylinderHeadsPage() {
                     );
                   })()}
 
-                  {/* Full history */}
                   {headComps.length > 0 && (
                     <div className="mt-4">
                       <p className="text-xs font-medium text-muted-foreground mb-2">Histórico completo de trocas</p>
@@ -788,16 +887,27 @@ export default function CylinderHeadsPage() {
                         <TableHead>Data</TableHead>
                         <TableHead>Horímetro</TableHead>
                         <TableHead>Descrição</TableHead>
+                        <TableHead className="w-20 text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {headMaintenances.length === 0 ? (
-                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Nenhuma manutenção.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">Nenhuma manutenção.</TableCell></TableRow>
                       ) : headMaintenances.map(m => (
                         <TableRow key={m.id}>
                           <TableCell className="font-mono text-sm">{format(new Date(m.maintenance_date), 'dd/MM/yyyy')}</TableCell>
                           <TableCell className="font-mono text-sm">{fmtNum(m.horimeter_at_maintenance)}h</TableCell>
                           <TableCell className="text-sm">{m.description}</TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button size="icon" variant="ghost" onClick={() => openEditMaintenance(m)} title="Editar">
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => { setDeleteMaintId(m.id); setDeleteMaintOpen(true); }} title="Excluir">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -845,6 +955,47 @@ export default function CylinderHeadsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditInstOpen(false)}>Cancelar</Button>
             <Button onClick={handleEditInstallation} disabled={store.updateInstallation.isPending}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Maintenance Dialog */}
+      <Dialog open={editMaintOpen} onOpenChange={setEditMaintOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Manutenção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Data da Manutenção</label>
+              <Input type="date" value={editMaintDate} onChange={e => setEditMaintDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Descrição</label>
+              <Textarea value={editMaintDesc} onChange={e => setEditMaintDesc(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Horímetro no momento</label>
+              <Input type="number" value={editMaintHorimeter} onChange={e => setEditMaintHorimeter(e.target.value)} placeholder="0" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditMaintOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEditMaintenance} disabled={store.updateMaintenance.isPending}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Maintenance Confirmation */}
+      <Dialog open={deleteMaintOpen} onOpenChange={setDeleteMaintOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Excluir Manutenção</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este registro de manutenção?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteMaintOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteMaintenance} disabled={store.deleteMaintenance.isPending}>Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
