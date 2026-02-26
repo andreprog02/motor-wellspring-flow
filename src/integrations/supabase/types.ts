@@ -403,40 +403,49 @@ export type Database = {
       }
       inventory_items: {
         Row: {
+          aplicacao: string
           category: string
           created_at: string
+          gerador: string
           id: string
           location_id: string
-          manufacturer_id: string
+          manufacturer_id: string | null
           min_stock: number
           model_id: string | null
           name: string
           part_number: string
           quantity: number
+          tipo: string
         }
         Insert: {
+          aplicacao?: string
           category?: string
           created_at?: string
+          gerador?: string
           id?: string
           location_id: string
-          manufacturer_id: string
+          manufacturer_id?: string | null
           min_stock?: number
           model_id?: string | null
           name: string
           part_number?: string
           quantity?: number
+          tipo?: string
         }
         Update: {
+          aplicacao?: string
           category?: string
           created_at?: string
+          gerador?: string
           id?: string
           location_id?: string
-          manufacturer_id?: string
+          manufacturer_id?: string | null
           min_stock?: number
           model_id?: string | null
           name?: string
           part_number?: string
           quantity?: number
+          tipo?: string
         }
         Relationships: [
           {
