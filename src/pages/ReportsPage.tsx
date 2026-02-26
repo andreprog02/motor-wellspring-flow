@@ -195,14 +195,13 @@ export default function ReportsPage() {
     return rows;
   }, [assetType, chMaintenances, tbMaintenances, chMap, tbMap, dateFrom, dateTo, serialFilter, maintSortBy, maintSortDir, selectedTurbos]);
 
-  // Summary: unique cylinder head S/N with estimated hours from maintenance rows
+  // Summary: all cylinder heads with estimated hours
   const maintenanceSummary = useMemo(() => {
-    const uniqueSerials = new Set<string>();
-    maintenanceRows.forEach(r => { if (r.type === 'Cabeçote') uniqueSerials.add(r.serial); });
-    return Array.from(uniqueSerials)
-      .map(sn => ({ serial: sn, hours: chHoursMap[sn] ?? 0 }))
+    return heads
+      .filter(h => h.estimated_total_hours != null && h.estimated_total_hours > 0)
+      .map(h => ({ serial: h.serial_number, hours: h.estimated_total_hours ?? 0 }))
       .sort((a, b) => a.serial.localeCompare(b.serial, 'pt-BR', { numeric: true }));
-  }, [maintenanceRows, chHoursMap]);
+  }, [heads]);
 
   // --- Components ---
   const componentRows = useMemo(() => {
