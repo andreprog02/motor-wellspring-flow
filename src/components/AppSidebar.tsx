@@ -6,6 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/inventory', label: 'Estoque', icon: Package },
+  { to: '/tools', label: 'Ferramentas', icon: Wrench },
   { to: '/manufacturers', label: 'Fabricantes', icon: Factory },
   { to: '/locations', label: 'Locais', icon: MapPin },
   { to: '/cylinder-heads', label: 'Cabeçotes', icon: Cog },

@@ -19,6 +19,7 @@ import CylinderHeadsPage from "./pages/CylinderHeadsPage";
 import TurbosPage from "./pages/TurbosPage";
 import BearingMaintenancePage from "./pages/BearingMaintenancePage";
 import ReportsPage from "./pages/ReportsPage";
+import ToolsPage from "./pages/ToolsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/motor/:id" element={<MotorDetail />} />
           <Route path="/inventory" element={<InventoryPage />} />
+          <Route path="/tools" element={<ToolsPage />} />
           <Route path="/manufacturers" element={<ManufacturersPage />} />
           <Route path="/locations" element={<LocationsPage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
