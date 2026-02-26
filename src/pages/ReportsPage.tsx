@@ -96,6 +96,7 @@ export default function ReportsPage() {
   const eqList = equipments.data || [];
   const eqMap = useMemo(() => Object.fromEntries(eqList.map(e => [e.id, e.name])), [eqList]);
   const chMap = useMemo(() => Object.fromEntries(heads.map(h => [h.id, h.serial_number])), [heads]);
+  const chHoursMap = useMemo(() => Object.fromEntries(heads.map(h => [h.serial_number, h.estimated_total_hours ?? 0])), [heads]);
   const tbMap = useMemo(() => Object.fromEntries(turbos.map(t => [t.id, t.serial_number])), [turbos]);
 
   const filterTurbo = (turboId: string) => {
@@ -193,6 +194,15 @@ export default function ReportsPage() {
     });
     return rows;
   }, [assetType, chMaintenances, tbMaintenances, chMap, tbMap, dateFrom, dateTo, serialFilter, maintSortBy, maintSortDir, selectedTurbos]);
+
+  // Summary: unique cylinder head S/N with estimated hours from maintenance rows
+  const maintenanceSummary = useMemo(() => {
+    const uniqueSerials = new Set<string>();
+    maintenanceRows.forEach(r => { if (r.type === 'Cabeçote') uniqueSerials.add(r.serial); });
+    return Array.from(uniqueSerials)
+      .map(sn => ({ serial: sn, hours: chHoursMap[sn] ?? 0 }))
+      .sort((a, b) => a.serial.localeCompare(b.serial, 'pt-BR', { numeric: true }));
+  }, [maintenanceRows, chHoursMap]);
 
   // --- Components ---
   const componentRows = useMemo(() => {
@@ -352,6 +362,21 @@ export default function ReportsPage() {
     }));
 
     autoTable(doc, { startY: 30, head: [header], body: fmtBody, styles: { fontSize: 8 }, headStyles: { fillColor: [60, 60, 60] } });
+
+    // Add summary table for maintenances report
+    if (reportType === 'maintenances' && maintenanceSummary.length > 0) {
+      const finalY = (doc as any).lastAutoTable?.finalY ?? 50;
+      doc.setFontSize(12);
+      doc.text('Quadro Resumo — Horas Totais Estimadas', 14, finalY + 12);
+      autoTable(doc, {
+        startY: finalY + 16,
+        head: [['S/N Cabeçote', 'Horas Totais']],
+        body: maintenanceSummary.map(s => [s.serial, fmtNum(s.hours) + 'h']),
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [60, 60, 60] },
+      });
+    }
+
     doc.save(buildFileName('pdf'));
   };
 
@@ -587,6 +612,30 @@ export default function ReportsPage() {
                 </TableBody>
               </Table>
             </Card>
+            {/* Summary table */}
+            {maintenanceSummary.length > 0 && (
+              <Card className="mt-4">
+                <CardContent className="pt-4">
+                  <h3 className="text-sm font-semibold mb-2">Quadro Resumo — Horas Totais Estimadas</h3>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>S/N Cabeçote</TableHead>
+                        <TableHead className="text-right">Horas Totais</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {maintenanceSummary.map(s => (
+                        <TableRow key={s.serial}>
+                          <TableCell className="font-mono font-medium text-sm">{s.serial}</TableCell>
+                          <TableCell className="text-right font-mono text-sm">{fmtNum(s.hours)}h</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="components">
