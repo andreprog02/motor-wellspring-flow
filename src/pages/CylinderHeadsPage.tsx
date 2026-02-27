@@ -43,6 +43,19 @@ const statusColors: Record<string, string> = {
   maintenance: 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]',
 };
 
+const maintenanceDescriptions = [
+  'Revisão Geral',
+  'Retífica Completa',
+  'Troca de Válvulas',
+  'Troca de Sedes de Válvulas',
+  'Troca de Guias de Válvulas',
+  'Retífica de Sedes',
+  'Lapidação de Válvulas',
+  'Teste de Estanqueidade',
+  'Troca de Juntas',
+  'Inspeção Visual',
+];
+
 export default function CylinderHeadsPage() {
   const store = useCylinderHeadStore();
   const { equipments } = useEquipmentStore();
@@ -1128,7 +1141,12 @@ export default function CylinderHeadsPage() {
             </div>
             <div>
               <label className="text-sm font-medium">Descrição</label>
-              <Textarea value={editMaintDesc} onChange={e => setEditMaintDesc(e.target.value)} />
+              <Select value={editMaintDesc} onValueChange={setEditMaintDesc}>
+                <SelectTrigger><SelectValue placeholder="Selecione a descrição" /></SelectTrigger>
+                <SelectContent>
+                  {maintenanceDescriptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-sm font-medium">Horímetro no momento</label>
@@ -1170,7 +1188,12 @@ export default function CylinderHeadsPage() {
             </div>
             <div>
               <label className="text-sm font-medium">Descrição</label>
-              <Textarea value={maintDesc} onChange={e => setMaintDesc(e.target.value)} placeholder="Retífica completa, troca de válvulas..." />
+              <Select value={maintDesc} onValueChange={setMaintDesc}>
+                <SelectTrigger><SelectValue placeholder="Selecione a descrição" /></SelectTrigger>
+                <SelectContent>
+                  {maintenanceDescriptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-sm font-medium">Horímetro no momento</label>
@@ -1227,7 +1250,12 @@ export default function CylinderHeadsPage() {
             </div>
             <div>
               <label className="text-sm font-medium">Descrição</label>
-              <Textarea value={batchDesc} onChange={e => setBatchDesc(e.target.value)} placeholder="Retífica completa, troca de válvulas..." />
+              <Select value={batchDesc} onValueChange={setBatchDesc}>
+                <SelectTrigger><SelectValue placeholder="Selecione a descrição" /></SelectTrigger>
+                <SelectContent>
+                  {maintenanceDescriptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="text-sm font-medium">Horímetro no momento</label>
