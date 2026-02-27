@@ -55,6 +55,8 @@ export default function TurbosPage() {
   const [editInstOpen, setEditInstOpen] = useState(false);
   const [editMaintOpen, setEditMaintOpen] = useState(false);
   const [deleteMaintOpen, setDeleteMaintOpen] = useState(false);
+  const [removeOpen, setRemoveOpen] = useState(false);
+  const [removeHorimeter, setRemoveHorimeter] = useState('');
 
   const [serialNumber, setSerialNumber] = useState('');
   const [editSerial, setEditSerial] = useState('');
@@ -270,6 +272,15 @@ export default function TurbosPage() {
       toast.success('Manutenção excluída!'); setDeleteMaintOpen(false);
     } catch { toast.error('Erro ao excluir manutenção.'); }
   };
+  const activeInstallation = detailId ? allInstallations.find(i => i.turbo_id === detailId && !i.remove_date) : null;
+
+  const handleRemoveTurbo = async () => {
+    if (!activeInstallation || !detailId) return;
+    try {
+      await store.removeTurbo.mutateAsync({ installation_id: activeInstallation.id, turbo_id: detailId, remove_equipment_horimeter: Number(removeHorimeter) || 0 });
+      toast.success('Turbo desmontado com sucesso!'); setRemoveOpen(false); setRemoveHorimeter('');
+    } catch { toast.error('Erro ao desmontar turbo.'); }
+  };
 
   return (
     <AppLayout>
@@ -416,6 +427,19 @@ export default function TurbosPage() {
                   <Badge className={statusColors[selectedItem.status]}>{turboStatusLabels[selectedItem.status]}</Badge>
                 </DialogTitle>
               </DialogHeader>
+
+              {activeInstallation && (
+                <div className="flex items-center justify-between bg-secondary/50 rounded-md p-3">
+                  <div className="text-sm">
+                    <span className="text-muted-foreground">Instalado em: </span>
+                    <span className="font-medium">{equipments.data?.find(e => e.id === activeInstallation.equipment_id)?.name || '—'}</span>
+                    <span className="text-muted-foreground ml-2">({fmtNum(activeInstallation.install_equipment_horimeter)}h)</span>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => { setRemoveHorimeter(''); setRemoveOpen(true); }}>
+                    <ArrowRightLeft className="h-3.5 w-3.5 mr-1.5" />Desmontar
+                  </Button>
+                </div>
+              )}
 
               {metricsData && (
                 <div className="grid grid-cols-2 gap-4 my-4">
@@ -842,6 +866,35 @@ export default function TurbosPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteMaintOpen(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={handleDeleteMaintenance} disabled={store.deleteMaintenance.isPending}>Excluir</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Remove Turbo Dialog */}
+      <Dialog open={removeOpen} onOpenChange={setRemoveOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Desmontar Turbo</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            {activeInstallation && (
+              <div className="bg-secondary/50 rounded-md p-3 text-sm">
+                <span className="text-muted-foreground">Equipamento: </span>
+                <span className="font-medium">{equipments.data?.find(e => e.id === activeInstallation.equipment_id)?.name || '—'}</span>
+              </div>
+            )}
+            <div>
+              <label className="text-sm font-medium">Horímetro de Remoção</label>
+              <Input type="number" value={removeHorimeter} onChange={e => setRemoveHorimeter(e.target.value)} placeholder="Horímetro atual do equipamento" />
+            </div>
+            {activeInstallation && removeHorimeter && Number(removeHorimeter) > activeInstallation.install_equipment_horimeter && (
+              <div className="bg-secondary/50 rounded-md p-3 text-sm">
+                <span className="text-muted-foreground">Delta de horas: </span>
+                <span className="font-mono font-semibold">{fmtNum(Number(removeHorimeter) - activeInstallation.install_equipment_horimeter)}h</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoveOpen(false)}>Cancelar</Button>
+            <Button onClick={handleRemoveTurbo} disabled={store.removeTurbo.isPending}>Desmontar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
