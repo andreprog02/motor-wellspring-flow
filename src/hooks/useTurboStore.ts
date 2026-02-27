@@ -183,6 +183,26 @@ export function useTurboStore() {
     onSuccess: () => invalidateAll(),
   });
 
+  const updateMaintenance = useMutation({
+    mutationFn: async (data: { id: string; description: string; horimeter_at_maintenance: number; maintenance_date: string }) => {
+      const { error } = await (supabase as any).from('turbo_maintenances').update({
+        description: data.description,
+        horimeter_at_maintenance: data.horimeter_at_maintenance,
+        maintenance_date: data.maintenance_date,
+      }).eq('id', data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
+  const deleteMaintenance = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('turbo_maintenances').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(),
+  });
+
   const addHistoricalInstallation = useMutation({
     mutationFn: async (data: { turbo_id: string; equipment_id: string; install_date: string; install_equipment_horimeter: number; remove_date?: string | null; remove_equipment_horimeter?: number | null }) => {
       const insertData: Record<string, any> = { turbo_id: data.turbo_id, equipment_id: data.equipment_id, install_date: data.install_date, install_equipment_horimeter: data.install_equipment_horimeter };
@@ -213,5 +233,6 @@ export function useTurboStore() {
     addMaintenance, getMetrics,
     addTurboComponentsBatch,
     addHistoricalInstallation, updateInstallation,
+    updateMaintenance, deleteMaintenance,
   };
 }

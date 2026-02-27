@@ -53,6 +53,8 @@ export default function TurbosPage() {
   const [histInstOpen, setHistInstOpen] = useState(false);
   const [batchHistOpen, setBatchHistOpen] = useState(false);
   const [editInstOpen, setEditInstOpen] = useState(false);
+  const [editMaintOpen, setEditMaintOpen] = useState(false);
+  const [deleteMaintOpen, setDeleteMaintOpen] = useState(false);
 
   const [serialNumber, setSerialNumber] = useState('');
   const [editSerial, setEditSerial] = useState('');
@@ -91,6 +93,12 @@ export default function TurbosPage() {
   const [editInstEquipId, setEditInstEquipId] = useState('');
   const [editInstInstallHor, setEditInstInstallHor] = useState('');
   const [editInstRemoveHor, setEditInstRemoveHor] = useState('');
+
+  const [editMaintId, setEditMaintId] = useState('');
+  const [editMaintDesc, setEditMaintDesc] = useState('');
+  const [editMaintHorimeter, setEditMaintHorimeter] = useState('');
+  const [editMaintDate, setEditMaintDate] = useState('');
+  const [deleteMaintId, setDeleteMaintId] = useState('');
 
   const items = store.turbos.data || [];
   const allInstallations = store.installations.data || [];
@@ -237,6 +245,30 @@ export default function TurbosPage() {
       await store.updateInstallation.mutateAsync({ id: editInstId, equipment_id: editInstEquipId, install_equipment_horimeter: Number(editInstInstallHor) || 0, remove_equipment_horimeter: editInstRemoveHor ? Number(editInstRemoveHor) : null });
       toast.success('Instalação atualizada!'); setEditInstOpen(false);
     } catch { toast.error('Erro ao atualizar instalação.'); }
+  };
+
+  const openEditMaintenance = (m: typeof itemMaintenances[0]) => {
+    setEditMaintId(m.id);
+    setEditMaintDesc(m.description);
+    setEditMaintHorimeter(String(m.horimeter_at_maintenance));
+    setEditMaintDate(m.maintenance_date);
+    setEditMaintOpen(true);
+  };
+
+  const handleEditMaintenance = async () => {
+    if (!editMaintId || !editMaintDesc.trim()) return;
+    try {
+      await store.updateMaintenance.mutateAsync({ id: editMaintId, description: editMaintDesc.trim(), horimeter_at_maintenance: Number(editMaintHorimeter) || 0, maintenance_date: editMaintDate });
+      toast.success('Manutenção atualizada!'); setEditMaintOpen(false);
+    } catch { toast.error('Erro ao atualizar manutenção.'); }
+  };
+
+  const handleDeleteMaintenance = async () => {
+    if (!deleteMaintId) return;
+    try {
+      await store.deleteMaintenance.mutateAsync(deleteMaintId);
+      toast.success('Manutenção excluída!'); setDeleteMaintOpen(false);
+    } catch { toast.error('Erro ao excluir manutenção.'); }
   };
 
   return (
@@ -501,15 +533,21 @@ export default function TurbosPage() {
                     </Button>
                   </div>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Horímetro</TableHead><TableHead>Descrição</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Horímetro</TableHead><TableHead>Descrição</TableHead><TableHead className="w-20"></TableHead></TableRow></TableHeader>
                     <TableBody>
                       {itemMaintenances.length === 0 ? (
-                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Nenhuma manutenção.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">Nenhuma manutenção.</TableCell></TableRow>
                       ) : itemMaintenances.map(m => (
                         <TableRow key={m.id}>
                           <TableCell className="font-mono text-sm">{format(new Date(m.maintenance_date), 'dd/MM/yyyy')}</TableCell>
                           <TableCell className="font-mono text-sm">{fmtNum(m.horimeter_at_maintenance)}h</TableCell>
                           <TableCell className="text-sm">{m.description}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-1">
+                              <Button size="icon" variant="ghost" onClick={() => openEditMaintenance(m)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
+                              <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => { setDeleteMaintId(m.id); setDeleteMaintOpen(true); }} title="Excluir"><Trash2 className="h-3.5 w-3.5" /></Button>
+                            </div>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -767,6 +805,43 @@ export default function TurbosPage() {
             <Button onClick={handleBatchHistoricalInstallation} disabled={store.addHistoricalInstallation.isPending || batchHistSelected.length === 0 || !batchHistEquipId || !batchHistInstallDate}>
               Registrar em {batchHistSelected.length} Turbo(s)
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Maintenance Dialog */}
+      <Dialog open={editMaintOpen} onOpenChange={setEditMaintOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Editar Manutenção</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Data</label>
+              <Input type="date" value={editMaintDate} onChange={e => setEditMaintDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Horímetro</label>
+              <Input type="number" value={editMaintHorimeter} onChange={e => setEditMaintHorimeter(e.target.value)} placeholder="0" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Descrição</label>
+              <Textarea value={editMaintDesc} onChange={e => setEditMaintDesc(e.target.value)} rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditMaintOpen(false)}>Cancelar</Button>
+            <Button onClick={handleEditMaintenance} disabled={store.updateMaintenance.isPending}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Maintenance Dialog */}
+      <Dialog open={deleteMaintOpen} onOpenChange={setDeleteMaintOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Excluir Manutenção</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">Tem certeza que deseja excluir este registro de manutenção? Esta ação não pode ser desfeita.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteMaintOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteMaintenance} disabled={store.deleteMaintenance.isPending}>Excluir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
