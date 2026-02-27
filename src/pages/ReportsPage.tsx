@@ -363,7 +363,7 @@ export default function ReportsPage() {
     autoTable(doc, { startY: 30, head: [header], body: fmtBody, styles: { fontSize: 8 }, headStyles: { fillColor: [60, 60, 60] } });
 
     // Add summary table for maintenances report
-    if (reportType === 'maintenances' && maintenanceSummary.length > 0) {
+    if (reportType === 'maintenances' && assetType !== 'turbo' && maintenanceSummary.length > 0) {
       const finalY = (doc as any).lastAutoTable?.finalY ?? 50;
       doc.setFontSize(12);
       doc.text('Quadro Resumo — Horas Totais Estimadas', 14, finalY + 12);
@@ -612,7 +612,7 @@ export default function ReportsPage() {
               </Table>
             </Card>
             {/* Summary table */}
-            {maintenanceSummary.length > 0 && (
+            {assetType !== 'turbo' && maintenanceSummary.length > 0 && (
               <Card className="mt-4">
                 <CardContent className="pt-4">
                   <h3 className="text-sm font-semibold mb-2">Quadro Resumo — Horas Totais Estimadas</h3>
