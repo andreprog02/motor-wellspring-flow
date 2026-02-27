@@ -57,6 +57,7 @@ export default function TurbosPage() {
   const [deleteMaintOpen, setDeleteMaintOpen] = useState(false);
   const [removeOpen, setRemoveOpen] = useState(false);
   const [removeHorimeter, setRemoveHorimeter] = useState('');
+  const [deleteAllDismountedOpen, setDeleteAllDismountedOpen] = useState(false);
 
   const [serialNumber, setSerialNumber] = useState('');
   const [editSerial, setEditSerial] = useState('');
@@ -282,6 +283,19 @@ export default function TurbosPage() {
     } catch { toast.error('Erro ao desmontar turbo.'); }
   };
 
+  const inStockTurbos = items.filter(t => t.status === 'in_stock');
+
+  const handleDeleteAllDismounted = async () => {
+    try {
+      for (const t of inStockTurbos) {
+        await store.deleteTurbo.mutateAsync(t.id);
+      }
+      toast.success(`${inStockTurbos.length} turbo(s) excluído(s)!`);
+      setDeleteAllDismountedOpen(false);
+      if (detailId && inStockTurbos.find(t => t.id === detailId)) setDetailId(null);
+    } catch { toast.error('Erro ao excluir turbos. Verifique se não há instalações vinculadas.'); }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -291,6 +305,11 @@ export default function TurbosPage() {
             <p className="text-sm text-muted-foreground">Gestão de turbos com rastreamento de horas</p>
           </div>
           <div className="flex gap-2">
+            {inStockTurbos.length > 0 && (
+              <Button variant="outline" className="text-destructive hover:text-destructive" onClick={() => setDeleteAllDismountedOpen(true)}>
+                <Trash2 className="h-4 w-4 mr-2" />Excluir Desmontados ({inStockTurbos.length})
+              </Button>
+            )}
             <Button variant="outline" onClick={() => { setBatchHistSelected([]); setBatchHistOpen(true); }}>
               <ArrowRightLeft className="h-4 w-4 mr-2" />Instalações em Lote
             </Button>
@@ -895,6 +914,22 @@ export default function TurbosPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRemoveOpen(false)}>Cancelar</Button>
             <Button onClick={handleRemoveTurbo} disabled={store.removeTurbo.isPending}>Desmontar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete All Dismounted Dialog */}
+      <Dialog open={deleteAllDismountedOpen} onOpenChange={setDeleteAllDismountedOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Excluir Turbos Desmontados</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Tem certeza que deseja excluir <strong>{inStockTurbos.length}</strong> turbo(s) em estoque? Esta ação não pode ser desfeita.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteAllDismountedOpen(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteAllDismounted} disabled={store.deleteTurbo.isPending}>
+              Excluir Todos
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
