@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { formatLocalDate } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
@@ -16,9 +16,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package } from 'lucide-react';
+import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package, FileText, Upload, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CompInventoryItem {
   compType: string;
@@ -67,6 +68,8 @@ export default function TurbosPage() {
   const [maintDesc, setMaintDesc] = useState('');
   const [maintHorimeter, setMaintHorimeter] = useState('');
   const [maintDate, setMaintDate] = useState('');
+  const [maintFile, setMaintFile] = useState<File | null>(null);
+  const maintFileRef = useRef<HTMLInputElement>(null);
 
   const [batchSelected, setBatchSelected] = useState<string[]>([]);
   const [batchDesc, setBatchDesc] = useState('');
@@ -101,6 +104,9 @@ export default function TurbosPage() {
   const [editMaintDesc, setEditMaintDesc] = useState('');
   const [editMaintHorimeter, setEditMaintHorimeter] = useState('');
   const [editMaintDate, setEditMaintDate] = useState('');
+  const [editMaintAttachment, setEditMaintAttachment] = useState<string | null>(null);
+  const [editMaintFile, setEditMaintFile] = useState<File | null>(null);
+  const editMaintFileRef = useRef<HTMLInputElement>(null);
   const [deleteMaintId, setDeleteMaintId] = useState('');
 
   const items = store.turbos.data || [];
@@ -153,11 +159,22 @@ export default function TurbosPage() {
     } catch { toast.error('Erro ao excluir. Verifique se não há instalações vinculadas.'); }
   };
 
+  const uploadMaintFile = async (file: File, turboId: string): Promise<string> => {
+    const ext = file.name.split('.').pop() || 'pdf';
+    const path = `${turboId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('turbo-maintenance-attachments').upload(path, file);
+    if (error) throw error;
+    const { data: urlData } = supabase.storage.from('turbo-maintenance-attachments').getPublicUrl(path);
+    return urlData.publicUrl;
+  };
+
   const handleAddMaintenance = async () => {
     if (!detailId || !maintDesc.trim()) return;
     try {
-      await store.addMaintenance.mutateAsync({ turbo_id: detailId, description: maintDesc.trim(), horimeter_at_maintenance: Number(maintHorimeter) || 0, maintenance_date: maintDate || undefined });
-      toast.success('Manutenção registrada!'); setMaintDesc(''); setMaintHorimeter(''); setMaintDate(''); setMaintOpen(false);
+      let attachmentUrl: string | null = null;
+      if (maintFile) attachmentUrl = await uploadMaintFile(maintFile, detailId);
+      await store.addMaintenance.mutateAsync({ turbo_id: detailId, description: maintDesc.trim(), horimeter_at_maintenance: Number(maintHorimeter) || 0, maintenance_date: maintDate || undefined, attachment_url: attachmentUrl });
+      toast.success('Manutenção registrada!'); setMaintDesc(''); setMaintHorimeter(''); setMaintDate(''); setMaintFile(null); setMaintOpen(false);
     } catch { toast.error('Erro ao registrar manutenção.'); }
   };
 
@@ -255,13 +272,19 @@ export default function TurbosPage() {
     setEditMaintDesc(m.description);
     setEditMaintHorimeter(String(m.horimeter_at_maintenance));
     setEditMaintDate(m.maintenance_date);
+    setEditMaintAttachment(m.attachment_url || null);
+    setEditMaintFile(null);
     setEditMaintOpen(true);
   };
 
   const handleEditMaintenance = async () => {
     if (!editMaintId || !editMaintDesc.trim()) return;
     try {
-      await store.updateMaintenance.mutateAsync({ id: editMaintId, description: editMaintDesc.trim(), horimeter_at_maintenance: Number(editMaintHorimeter) || 0, maintenance_date: editMaintDate });
+      let attachmentUrl = editMaintAttachment;
+      if (editMaintFile && detailId) {
+        attachmentUrl = await uploadMaintFile(editMaintFile, detailId);
+      }
+      await store.updateMaintenance.mutateAsync({ id: editMaintId, description: editMaintDesc.trim(), horimeter_at_maintenance: Number(editMaintHorimeter) || 0, maintenance_date: editMaintDate, attachment_url: attachmentUrl });
       toast.success('Manutenção atualizada!'); setEditMaintOpen(false);
     } catch { toast.error('Erro ao atualizar manutenção.'); }
   };
@@ -576,15 +599,22 @@ export default function TurbosPage() {
                     </Button>
                   </div>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Horímetro</TableHead><TableHead>Descrição</TableHead><TableHead className="w-20"></TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Horímetro</TableHead><TableHead>Descrição</TableHead><TableHead>Anexo</TableHead><TableHead className="w-20"></TableHead></TableRow></TableHeader>
                     <TableBody>
                       {itemMaintenances.length === 0 ? (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">Nenhuma manutenção.</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">Nenhuma manutenção.</TableCell></TableRow>
                       ) : itemMaintenances.map(m => (
                         <TableRow key={m.id}>
                           <TableCell className="font-mono text-sm">{format(new Date(m.maintenance_date), 'dd/MM/yyyy')}</TableCell>
                           <TableCell className="font-mono text-sm">{fmtNum(m.horimeter_at_maintenance)}h</TableCell>
                           <TableCell className="text-sm">{m.description}</TableCell>
+                          <TableCell>
+                            {m.attachment_url ? (
+                              <a href={m.attachment_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                                <FileText className="h-3.5 w-3.5" />PDF
+                              </a>
+                            ) : <span className="text-xs text-muted-foreground">—</span>}
+                          </TableCell>
                           <TableCell>
                             <div className="flex gap-1">
                               <Button size="icon" variant="ghost" onClick={() => openEditMaintenance(m)} title="Editar"><Pencil className="h-3.5 w-3.5" /></Button>
@@ -653,6 +683,16 @@ export default function TurbosPage() {
             <div>
               <label className="text-sm font-medium">Horímetro no momento</label>
               <Input type="number" value={maintHorimeter} onChange={e => setMaintHorimeter(e.target.value)} placeholder="0" />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Anexo (PDF)</label>
+              <div className="flex items-center gap-2">
+                <input ref={maintFileRef} type="file" accept=".pdf" className="hidden" onChange={e => setMaintFile(e.target.files?.[0] || null)} />
+                <Button type="button" variant="outline" size="sm" onClick={() => maintFileRef.current?.click()}>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />{maintFile ? maintFile.name : 'Selecionar PDF'}
+                </Button>
+                {maintFile && <Button type="button" variant="ghost" size="sm" onClick={() => { setMaintFile(null); if (maintFileRef.current) maintFileRef.current.value = ''; }}>Remover</Button>}
+              </div>
             </div>
           </div>
           <DialogFooter>
@@ -868,6 +908,24 @@ export default function TurbosPage() {
             <div>
               <label className="text-sm font-medium">Descrição</label>
               <Textarea value={editMaintDesc} onChange={e => setEditMaintDesc(e.target.value)} rows={3} />
+            </div>
+            <div>
+              <label className="text-sm font-medium">Anexo (PDF)</label>
+              {editMaintAttachment && !editMaintFile && (
+                <div className="flex items-center gap-2 mb-2">
+                  <a href={editMaintAttachment} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                    <FileText className="h-3.5 w-3.5" />Ver PDF atual
+                  </a>
+                  <Button type="button" variant="ghost" size="sm" className="text-xs h-6" onClick={() => setEditMaintAttachment(null)}>Remover</Button>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <input ref={editMaintFileRef} type="file" accept=".pdf" className="hidden" onChange={e => setEditMaintFile(e.target.files?.[0] || null)} />
+                <Button type="button" variant="outline" size="sm" onClick={() => editMaintFileRef.current?.click()}>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />{editMaintFile ? editMaintFile.name : 'Substituir PDF'}
+                </Button>
+                {editMaintFile && <Button type="button" variant="ghost" size="sm" onClick={() => { setEditMaintFile(null); if (editMaintFileRef.current) editMaintFileRef.current.value = ''; }}>Remover</Button>}
+              </div>
             </div>
           </div>
           <DialogFooter>

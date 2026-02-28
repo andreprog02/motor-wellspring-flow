@@ -779,6 +779,7 @@ export type Database = {
       }
       turbo_maintenances: {
         Row: {
+          attachment_url: string | null
           created_at: string
           description: string
           horimeter_at_maintenance: number
@@ -787,6 +788,7 @@ export type Database = {
           turbo_id: string
         }
         Insert: {
+          attachment_url?: string | null
           created_at?: string
           description?: string
           horimeter_at_maintenance?: number
@@ -795,6 +797,7 @@ export type Database = {
           turbo_id: string
         }
         Update: {
+          attachment_url?: string | null
           created_at?: string
           description?: string
           horimeter_at_maintenance?: number

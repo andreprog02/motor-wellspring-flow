@@ -28,6 +28,7 @@ export interface TurboMaintenance {
   maintenance_date: string;
   description: string;
   horimeter_at_maintenance: number;
+  attachment_url: string | null;
   created_at: string;
 }
 
@@ -157,11 +158,13 @@ export function useTurboStore() {
   });
 
   const addMaintenance = useMutation({
-    mutationFn: async (data: { turbo_id: string; description: string; horimeter_at_maintenance: number; maintenance_date?: string }) => {
+    mutationFn: async (data: { turbo_id: string; description: string; horimeter_at_maintenance: number; maintenance_date?: string; attachment_url?: string | null }) => {
       const mDate = data.maintenance_date || formatLocalDate();
-      const { data: m, error } = await (supabase as any).from('turbo_maintenances').insert({
+      const insertData: Record<string, any> = {
         turbo_id: data.turbo_id, description: data.description, horimeter_at_maintenance: data.horimeter_at_maintenance, maintenance_date: mDate,
-      }).select().single();
+      };
+      if (data.attachment_url) insertData.attachment_url = data.attachment_url;
+      const { data: m, error } = await (supabase as any).from('turbo_maintenances').insert(insertData).select().single();
       if (error) throw error;
       await (supabase as any).from('turbos').update({ last_maintenance_date: mDate }).eq('id', data.turbo_id);
       return m as TurboMaintenance;
@@ -184,12 +187,14 @@ export function useTurboStore() {
   });
 
   const updateMaintenance = useMutation({
-    mutationFn: async (data: { id: string; description: string; horimeter_at_maintenance: number; maintenance_date: string }) => {
-      const { error } = await (supabase as any).from('turbo_maintenances').update({
+    mutationFn: async (data: { id: string; description: string; horimeter_at_maintenance: number; maintenance_date: string; attachment_url?: string | null }) => {
+      const updates: Record<string, any> = {
         description: data.description,
         horimeter_at_maintenance: data.horimeter_at_maintenance,
         maintenance_date: data.maintenance_date,
-      }).eq('id', data.id);
+      };
+      if (data.attachment_url !== undefined) updates.attachment_url = data.attachment_url;
+      const { error } = await (supabase as any).from('turbo_maintenances').update(updates).eq('id', data.id);
       if (error) throw error;
     },
     onSuccess: () => invalidateAll(),
