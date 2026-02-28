@@ -135,6 +135,10 @@ export default function ToolsPage() {
               items={filteredItems}
               onEdit={handleEdit}
               onDelete={id => setDeleteId(id)}
+              onQuantityChange={(id, delta) => {
+                const item = store.items.find(i => i.id === id);
+                if (item) store.updateItem.mutate({ id, quantity: Math.max(0, item.quantity + delta) });
+              }}
               showTipo={false}
               emptyMessage={search ? 'Nenhuma ferramenta encontrada.' : 'Nenhuma ferramenta cadastrada. Clique em "Nova Ferramenta" para começar.'}
             />

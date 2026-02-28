@@ -134,6 +134,10 @@ export default function InventoryPage() {
               items={filteredItems}
               onEdit={handleEdit}
               onDelete={id => setDeleteId(id)}
+              onQuantityChange={(id, delta) => {
+                const item = store.items.find(i => i.id === id);
+                if (item) store.updateItem.mutate({ id, quantity: Math.max(0, item.quantity + delta) });
+              }}
               emptyMessage={search ? 'Nenhum item encontrado.' : 'Nenhum item cadastrado. Clique em "Novo Item" para começar.'}
             />
           </CardContent>
