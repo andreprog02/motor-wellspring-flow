@@ -501,6 +501,24 @@ export type Database = {
         }
         Relationships: []
       }
+      maintenance_descriptions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       maintenance_log_items: {
         Row: {
           created_at: string
