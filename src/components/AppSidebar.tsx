@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, Circle, ClipboardList, Cog, Wind, FileText, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, Circle, ClipboardList, Cog, Wind, FileText, PanelLeftClose, PanelLeft, ChevronDown } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 const navItems = [
@@ -12,7 +13,10 @@ const navItems = [
   { to: '/cylinder-heads', label: 'Cabeçotes', icon: Cog },
   { to: '/turbos', label: 'Turbos', icon: Wind },
   { to: '/reports', label: 'Relatórios', icon: FileText },
-  { to: '/maintenance', label: 'Manutenção', icon: Wrench },
+];
+
+const maintenanceSubItems = [
+  { to: '/maintenance', label: 'Visão Geral', icon: Wrench },
   { to: '/maintenance/oil', label: 'Óleo', icon: Droplets },
   { to: '/maintenance/pistons', label: 'Pistões', icon: Cylinder },
   { to: '/maintenance/liners', label: 'Camisas', icon: CircleDot },
@@ -31,6 +35,32 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
   const isMobile = useIsMobile();
+  const isMaintenanceActive = location.pathname.startsWith('/maintenance');
+  const [maintenanceOpen, setMaintenanceOpen] = useState(isMaintenanceActive);
+  const showLabels = !collapsed || isMobile;
+
+  const renderNavLink = (item: { to: string; label: string; icon: React.ElementType }, indent = false) => {
+    const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
+    return (
+      <Link
+        key={item.to}
+        to={item.to}
+        onClick={isMobile ? onMobileClose : undefined}
+        title={!showLabels ? item.label : undefined}
+        className={cn(
+          'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors',
+          !showLabels ? 'justify-center px-2' : '',
+          indent && showLabels ? 'pl-9' : '',
+          isActive
+            ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+            : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+        )}
+      >
+        <item.icon className="h-4 w-4 shrink-0" />
+        {showLabels && item.label}
+      </Link>
+    );
+  };
 
   const sidebarContent = (
     <>
@@ -39,7 +69,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           <div className="h-8 w-8 rounded-lg bg-sidebar-primary flex items-center justify-center shrink-0">
             <Settings className="h-4 w-4 text-sidebar-primary-foreground" />
           </div>
-          {(!collapsed || isMobile) && (
+          {showLabels && (
             <div>
               <h1 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">MotorGuard</h1>
               <p className="text-[10px] text-sidebar-foreground">Asset Management</p>
@@ -54,30 +84,36 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(item => {
-          const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              onClick={isMobile ? onMobileClose : undefined}
-              title={collapsed && !isMobile ? item.label : undefined}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                collapsed && !isMobile ? 'justify-center px-2' : '',
-                isActive
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              {(!collapsed || isMobile) && item.label}
-            </Link>
-          );
-        })}
+        {navItems.map(item => renderNavLink(item))}
+
+        {/* Manutenção group */}
+        <button
+          onClick={() => setMaintenanceOpen(o => !o)}
+          title={!showLabels ? 'Manutenção' : undefined}
+          className={cn(
+            'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
+            !showLabels ? 'justify-center px-2' : '',
+            isMaintenanceActive
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+              : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+          )}
+        >
+          <Wrench className="h-4 w-4 shrink-0" />
+          {showLabels && (
+            <>
+              <span className="flex-1 text-left">Manutenção</span>
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", maintenanceOpen && "rotate-180")} />
+            </>
+          )}
+        </button>
+        {maintenanceOpen && showLabels && (
+          <div className="space-y-0.5">
+            {maintenanceSubItems.map(item => renderNavLink(item, true))}
+          </div>
+        )}
       </nav>
 
-      <div className={cn("px-5 py-4 border-t border-sidebar-border", collapsed && !isMobile && "px-2 text-center")}>
+      <div className={cn("px-5 py-4 border-t border-sidebar-border", !showLabels && "px-2 text-center")}>
         <p className="text-[10px] text-sidebar-foreground">v1.0 · Multi-tenant SaaS</p>
       </div>
     </>
