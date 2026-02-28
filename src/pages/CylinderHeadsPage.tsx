@@ -88,7 +88,7 @@ export default function CylinderHeadsPage() {
 
   // Batch maintenance states
   const [batchSelected, setBatchSelected] = useState<string[]>([]);
-  const [batchDesc, setBatchDesc] = useState('');
+  const [batchDescs, setBatchDescs] = useState<string[]>([]);
   const [batchHorimeter, setBatchHorimeter] = useState('');
   const [batchDate, setBatchDate] = useState('');
 
@@ -261,18 +261,19 @@ export default function CylinderHeadsPage() {
   };
 
   const handleBatchMaintenance = async () => {
-    if (batchSelected.length === 0 || !batchDesc.trim()) return;
+    if (batchSelected.length === 0 || batchDescs.length === 0) return;
     try {
+      const descJoined = batchDescs.join(', ');
       for (const id of batchSelected) {
         await store.addMaintenance.mutateAsync({
           cylinder_head_id: id,
-          description: batchDesc.trim(),
+          description: descJoined,
           horimeter_at_maintenance: Number(batchHorimeter) || 0,
           maintenance_date: batchDate || undefined,
         });
       }
       toast.success(`Manutenção registrada em ${batchSelected.length} cabeçote(s)!`);
-      setBatchDesc('');
+      setBatchDescs([]);
       setBatchHorimeter('');
       setBatchDate('');
       setBatchSelected([]);
@@ -597,7 +598,7 @@ export default function CylinderHeadsPage() {
               <ArrowRightLeft className="h-4 w-4 mr-2" />
               Instalações em Lote
             </Button>
-            <Button variant="outline" onClick={() => { setBatchSelected([]); setBatchMaintOpen(true); }}>
+            <Button variant="outline" onClick={() => { setBatchSelected([]); setBatchDescs([]); setBatchMaintOpen(true); }}>
               <Calendar className="h-4 w-4 mr-2" />
               Manutenção em Lote
             </Button>
@@ -1225,7 +1226,11 @@ export default function CylinderHeadsPage() {
               <div className="border rounded-md max-h-48 overflow-y-auto divide-y">
                 {headsRaw.length === 0 ? (
                   <p className="text-sm text-muted-foreground p-3 text-center">Nenhum cabeçote cadastrado.</p>
-                ) : headsRaw.map(head => (
+                ) : [...headsRaw].sort((a, b) => {
+                  const numA = parseInt(a.serial_number.replace(/\D/g, '') || '0');
+                  const numB = parseInt(b.serial_number.replace(/\D/g, '') || '0');
+                  return numA - numB || a.serial_number.localeCompare(b.serial_number);
+                }).map(head => (
                   <label key={head.id} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
                     <Checkbox
                       checked={batchSelected.includes(head.id)}
@@ -1249,13 +1254,21 @@ export default function CylinderHeadsPage() {
               <p className="text-xs text-muted-foreground mt-1">Deixe em branco para usar a data de hoje.</p>
             </div>
             <div>
-              <label className="text-sm font-medium">Descrição</label>
-              <Select value={batchDesc} onValueChange={setBatchDesc}>
-                <SelectTrigger><SelectValue placeholder="Selecione a descrição" /></SelectTrigger>
-                <SelectContent>
-                  {maintenanceDescriptions.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <label className="text-sm font-medium">Descrições</label>
+              <div className="border rounded-md max-h-48 overflow-y-auto divide-y">
+                {maintenanceDescriptions.map(d => (
+                  <label key={d} className="flex items-center gap-3 px-3 py-2 hover:bg-muted/50 cursor-pointer">
+                    <Checkbox
+                      checked={batchDescs.includes(d)}
+                      onCheckedChange={() => setBatchDescs(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d])}
+                    />
+                    <span className="text-sm">{d}</span>
+                  </label>
+                ))}
+              </div>
+              {batchDescs.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">{batchDescs.length} descrição(ões) selecionada(s)</p>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium">Horímetro no momento</label>
@@ -1264,7 +1277,7 @@ export default function CylinderHeadsPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBatchMaintOpen(false)}>Cancelar</Button>
-            <Button onClick={handleBatchMaintenance} disabled={store.addMaintenance.isPending || batchSelected.length === 0}>
+            <Button onClick={handleBatchMaintenance} disabled={store.addMaintenance.isPending || batchSelected.length === 0 || batchDescs.length === 0}>
               Registrar em {batchSelected.length} Cabeçote(s)
             </Button>
           </DialogFooter>
