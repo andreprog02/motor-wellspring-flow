@@ -67,53 +67,63 @@ export default function ManufacturersPage() {
           </Button>
         </div>
 
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {store.manufacturers.map(mfr => {
             const mfrModels = store.models.filter(m => m.manufacturer_id === mfr.id);
-            const isExpanded = expanded.has(mfr.id);
             return (
-              <Card key={mfr.id}>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <button className="flex items-center gap-3 text-left flex-1" onClick={() => toggleExpand(mfr.id)}>
-                      {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-                      <Factory className="h-5 w-5 text-primary" />
-                      <span className="font-semibold">{mfr.name}</span>
-                      <Badge variant="secondary" className="ml-2">{mfrModels.length} modelo(s)</Badge>
-                    </button>
-                    <div className="flex gap-1">
-                      <Button size="icon" variant="ghost" onClick={() => openEditMfr(mfr)}><Pencil className="h-4 w-4" /></Button>
-                      <Button size="icon" variant="ghost" onClick={() => setDeleteId(mfr.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+              <Card key={mfr.id} className="group hover:shadow-md transition-shadow">
+                <CardContent className="p-5 space-y-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Factory className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold leading-tight">{mfr.name}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">{mfrModels.length} modelo(s)</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => openEditMfr(mfr)}><Pencil className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setDeleteId(mfr.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
                     </div>
                   </div>
-                  {isExpanded && (
-                    <div className="mt-4 ml-8 space-y-2">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-muted-foreground">Modelos</span>
-                        <Button size="sm" variant="outline" onClick={() => openNewModel(mfr.id)}>
-                          <Plus className="h-3 w-3 mr-1" /> Modelo
-                        </Button>
-                      </div>
-                      {mfrModels.length === 0 && <p className="text-sm text-muted-foreground italic">Nenhum modelo cadastrado.</p>}
-                      {mfrModels.map(model => (
-                        <div key={model.id} className="flex items-center justify-between rounded-md border px-3 py-2">
-                          <span className="text-sm">{model.name}</span>
-                          <div className="flex gap-1">
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEditModel(model)}><Pencil className="h-3 w-3" /></Button>
-                            <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setDeleteModelId(model.id)}><Trash2 className="h-3 w-3 text-destructive" /></Button>
-                          </div>
-                        </div>
-                      ))}
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Modelos</span>
+                      <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => openNewModel(mfr.id)}>
+                        <Plus className="h-3 w-3 mr-1" />Adicionar
+                      </Button>
                     </div>
-                  )}
+                    {mfrModels.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic py-2">Nenhum modelo cadastrado.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        {mfrModels.map(model => (
+                          <Badge
+                            key={model.id}
+                            variant="secondary"
+                            className="group/model cursor-default pl-2.5 pr-1 py-1 gap-1"
+                          >
+                            <span className="text-xs">{model.name}</span>
+                            <span className="inline-flex gap-0.5 opacity-0 group-hover/model:opacity-100 transition-opacity">
+                              <button className="hover:text-primary" onClick={() => openEditModel(model)}><Pencil className="h-2.5 w-2.5" /></button>
+                              <button className="hover:text-destructive" onClick={() => setDeleteModelId(model.id)}><Trash2 className="h-2.5 w-2.5" /></button>
+                            </span>
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
           })}
-          {store.manufacturers.length === 0 && (
-            <Card><CardContent className="py-8 text-center text-muted-foreground">Nenhum fabricante cadastrado.</CardContent></Card>
-          )}
         </div>
+        {store.manufacturers.length === 0 && (
+          <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhum fabricante cadastrado.</CardContent></Card>
+        )}
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
