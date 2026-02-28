@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatLocalDate } from '@/lib/utils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useCylinderHeadStore, cylinderHeadStatusLabels, cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
@@ -17,7 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package, Search, ArrowUpDown, Download } from 'lucide-react';
+import { PlusCircle, Clock, Wrench, Gauge, ArrowRightLeft, Pencil, Trash2, Calendar, Package, Search, ArrowUpDown, Download, Settings } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
@@ -43,23 +43,50 @@ const statusColors: Record<string, string> = {
   maintenance: 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]',
 };
 
-const maintenanceDescriptions = [
-  'Revisão Geral',
-  'Retífica Completa',
-  'Troca de Válvulas',
-  'Troca de Sedes de Válvulas',
-  'Troca de Guias de Válvulas',
-  'Retífica de Sedes',
-  'Lapidação de Válvulas',
-  'Teste de Estanqueidade',
-  'Troca de Juntas',
-  'Inspeção Visual',
-];
+// maintenanceDescriptions now fetched from DB
 
 export default function CylinderHeadsPage() {
   const store = useCylinderHeadStore();
   const { equipments } = useEquipmentStore();
   const inventoryStore = useInventoryStore();
+  const qc = useQueryClient();
+
+  // Fetch maintenance descriptions from DB
+  const descriptionsQuery = useQuery({
+    queryKey: ['maintenance_descriptions'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('maintenance_descriptions')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      return data as Array<{ id: string; name: string }>;
+    },
+  });
+  const maintenanceDescriptions = (descriptionsQuery.data || []).map(d => d.name);
+
+  // Description CRUD mutations
+  const addDescription = useMutation({
+    mutationFn: async (name: string) => {
+      const { error } = await (supabase as any).from('maintenance_descriptions').insert({ name });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['maintenance_descriptions'] }),
+  });
+  const updateDescription = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await (supabase as any).from('maintenance_descriptions').update({ name }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['maintenance_descriptions'] }),
+  });
+  const deleteDescription = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from('maintenance_descriptions').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['maintenance_descriptions'] }),
+  });
 
   // Dialog states
   const [addOpen, setAddOpen] = useState(false);
@@ -74,6 +101,10 @@ export default function CylinderHeadsPage() {
   const [editInstOpen, setEditInstOpen] = useState(false);
   const [editMaintOpen, setEditMaintOpen] = useState(false);
   const [deleteMaintOpen, setDeleteMaintOpen] = useState(false);
+  const [descMgmtOpen, setDescMgmtOpen] = useState(false);
+  const [newDescName, setNewDescName] = useState('');
+  const [editDescId, setEditDescId] = useState<string | null>(null);
+  const [editDescName, setEditDescName] = useState('');
 
   // Form states
   const [serialNumber, setSerialNumber] = useState('');
@@ -601,6 +632,9 @@ export default function CylinderHeadsPage() {
             <Button variant="outline" onClick={() => { setBatchSelected([]); setBatchDescs([]); setBatchMaintOpen(true); }}>
               <Calendar className="h-4 w-4 mr-2" />
               Manutenção em Lote
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setDescMgmtOpen(true)} title="Gerenciar descrições">
+              <Settings className="h-4 w-4" />
             </Button>
             <Button onClick={() => setAddOpen(true)}>
               <PlusCircle className="h-4 w-4 mr-2" />
@@ -1514,6 +1548,87 @@ export default function CylinderHeadsPage() {
             >
               Registrar em {batchHistSelected.length} Cabeçote(s)
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Descriptions Dialog */}
+      <Dialog open={descMgmtOpen} onOpenChange={setDescMgmtOpen}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Descrições de Manutenção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {/* Add new */}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Nova descrição..."
+                value={newDescName}
+                onChange={e => setNewDescName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && newDescName.trim()) {
+                    addDescription.mutate(newDescName.trim());
+                    setNewDescName('');
+                  }
+                }}
+              />
+              <Button
+                size="sm"
+                disabled={!newDescName.trim() || addDescription.isPending}
+                onClick={() => { addDescription.mutate(newDescName.trim()); setNewDescName(''); }}
+              >
+                <PlusCircle className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* List */}
+            <div className="border rounded-md divide-y max-h-64 overflow-y-auto">
+              {(descriptionsQuery.data || []).map(desc => (
+                <div key={desc.id} className="flex items-center gap-2 px-3 py-2">
+                  {editDescId === desc.id ? (
+                    <>
+                      <Input
+                        className="flex-1 h-8"
+                        value={editDescName}
+                        onChange={e => setEditDescName(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' && editDescName.trim()) {
+                            updateDescription.mutate({ id: desc.id, name: editDescName.trim() });
+                            setEditDescId(null);
+                          }
+                          if (e.key === 'Escape') setEditDescId(null);
+                        }}
+                        autoFocus
+                      />
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                        if (editDescName.trim()) {
+                          updateDescription.mutate({ id: desc.id, name: editDescName.trim() });
+                        }
+                        setEditDescId(null);
+                      }}>
+                        <Wrench className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex-1 text-sm">{desc.name}</span>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => { setEditDescId(desc.id); setEditDescName(desc.name); }}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => deleteDescription.mutate(desc.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              ))}
+              {(descriptionsQuery.data || []).length === 0 && (
+                <p className="text-sm text-muted-foreground p-3 text-center">Nenhuma descrição cadastrada.</p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDescMgmtOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
