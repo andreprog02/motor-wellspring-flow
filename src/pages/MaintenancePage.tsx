@@ -25,7 +25,7 @@ export default function MaintenancePage() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Planos de Manutenção</h1>
-          <p className="text-sm text-muted-foreground mt-1">Todas as preventivas da frota, ordenadas por urgência</p>
+          <p className="text-sm text-muted-foreground mt-1">Todas as preventivas do ativo, ordenadas por urgência</p>
         </div>
 
         <Card>

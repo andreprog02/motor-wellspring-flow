@@ -19,7 +19,7 @@ const Dashboard = () => {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Dashboard da Frota</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Dashboard do Ativo</h1>
           <p className="text-sm text-muted-foreground mt-1">Visão geral dos equipamentos e alertas de manutenção</p>
         </div>
 
