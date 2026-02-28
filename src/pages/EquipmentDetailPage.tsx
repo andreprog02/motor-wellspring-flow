@@ -5,6 +5,8 @@ import { AppLayout } from '@/components/AppLayout';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
 import { useCylinderHeadStore, cylinderHeadStatusLabels } from '@/hooks/useCylinderHeadStore';
+import { useTurboStore, turboStatusLabels } from '@/hooks/useTurboStore';
+import type { TurboMetrics } from '@/hooks/useTurboStore';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,12 +18,14 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind } from 'lucide-react';
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 import { OilTab } from '@/components/equipment/OilTab';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
+
+// Removed duplicate TurboMetrics import (already imported above)
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
@@ -98,6 +102,8 @@ export default function EquipmentDetailPage() {
   const { equipments, oilTypes } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
 
+  const turboStore = useTurboStore();
+
   const chStore = useCylinderHeadStore();
 
   const [maintDialog, setMaintDialog] = useState<{
@@ -109,6 +115,8 @@ export default function EquipmentDetailPage() {
   const [installChOpen, setInstallChOpen] = useState(false);
   const [selectedChId, setSelectedChId] = useState('');
   const [removeChId, setRemoveChId] = useState<string | null>(null);
+  const [installTurboOpen, setInstallTurboOpen] = useState(false);
+  const [selectedTurboId, setSelectedTurboId] = useState('');
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -166,6 +174,14 @@ export default function EquipmentDetailPage() {
   const activeHeadIds = activeInstallations.map(i => i.cylinder_head_id);
   const activeHeads = allCylinderHeads.filter(h => activeHeadIds.includes(h.id));
 
+  // Turbo data for this equipment
+  const allTurbos = turboStore.turbos.data || [];
+  const allTurboInstallations = turboStore.installations.data || [];
+  const inStockTurbos = allTurbos.filter(t => t.status === 'in_stock');
+  const activeTurboInstallations = allTurboInstallations.filter(i => i.equipment_id === id && !i.remove_date);
+  const activeTurboIds = activeTurboInstallations.map(i => i.turbo_id);
+  const activeTurbos = allTurbos.filter(t => activeTurboIds.includes(t.id));
+
   const handleInstallHead = async () => {
     if (!selectedChId || !id) return;
     try {
@@ -193,6 +209,35 @@ export default function EquipmentDetailPage() {
       setRemoveChId(null);
     } catch {
       toast.error('Erro ao remover cabeçote.');
+    }
+  };
+
+  const handleInstallTurbo = async () => {
+    if (!selectedTurboId || !id) return;
+    try {
+      await turboStore.installTurbo.mutateAsync({
+        turbo_id: selectedTurboId,
+        equipment_id: id,
+        install_equipment_horimeter: equipment.total_horimeter,
+      });
+      toast.success('Turbo montado com sucesso!');
+      setSelectedTurboId('');
+      setInstallTurboOpen(false);
+    } catch {
+      toast.error('Erro ao montar turbo.');
+    }
+  };
+
+  const handleRemoveTurbo = async (installationId: string, turboId: string) => {
+    try {
+      await turboStore.removeTurbo.mutateAsync({
+        installation_id: installationId,
+        turbo_id: turboId,
+        remove_equipment_horimeter: equipment.total_horimeter,
+      });
+      toast.success('Turbo removido!');
+    } catch {
+      toast.error('Erro ao remover turbo.');
     }
   };
 
@@ -363,6 +408,10 @@ export default function EquipmentDetailPage() {
             <TabsTrigger value="cylinder_heads">
               <Cog className="h-3.5 w-3.5 mr-1" />
               Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
+            </TabsTrigger>
+            <TabsTrigger value="turbos">
+              <Wind className="h-3.5 w-3.5 mr-1" />
+              Turbos {activeTurbos.length > 0 && `(${activeTurbos.length})`}
             </TabsTrigger>
             <TabsTrigger value="plans">Planos Gerais</TabsTrigger>
             <TabsTrigger value="history">Histórico</TabsTrigger>
@@ -565,6 +614,41 @@ export default function EquipmentDetailPage() {
             )}
           </TabsContent>
 
+          {/* Turbos Tab */}
+          <TabsContent value="turbos" className="mt-4">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm text-muted-foreground">Turbos montados neste equipamento</p>
+              <Button size="sm" onClick={() => setInstallTurboOpen(true)} disabled={inStockTurbos.length === 0}>
+                <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                Montar Turbo
+              </Button>
+            </div>
+            {activeTurbos.length === 0 ? (
+              <Card>
+                <CardContent className="p-8 text-center text-muted-foreground">
+                  Nenhum turbo montado. Clique em "Montar Turbo" para associar um do estoque.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {activeTurbos.map(turbo => {
+                  const inst = activeTurboInstallations.find(i => i.turbo_id === turbo.id)!;
+                  const hoursOnThisEquip = equipment.total_horimeter - inst.install_equipment_horimeter;
+                  return (
+                    <TurboCard
+                      key={turbo.id}
+                      turbo={turbo}
+                      installation={inst}
+                      hoursOnEquipment={hoursOnThisEquip}
+                      onRemove={() => handleRemoveTurbo(inst.id, turbo.id)}
+                      getMetrics={turboStore.getMetrics}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
           {/* General Plans Tab */}
           <TabsContent value="plans" className="mt-4">
             {uniqueNonCylPlans.length === 0 ? (
@@ -705,6 +789,39 @@ export default function EquipmentDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Install Turbo Dialog */}
+      <Dialog open={installTurboOpen} onOpenChange={setInstallTurboOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Montar Turbo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">Selecione um turbo disponível em estoque:</p>
+            <Select value={selectedTurboId} onValueChange={setSelectedTurboId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar turbo..." />
+              </SelectTrigger>
+              <SelectContent>
+                {inStockTurbos.map(t => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.serial_number || t.id.slice(0, 8)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Horímetro atual do equipamento: <span className="font-mono font-medium">{fmtNum(equipment.total_horimeter)}h</span>
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInstallTurboOpen(false)}>Cancelar</Button>
+            <Button onClick={handleInstallTurbo} disabled={!selectedTurboId || turboStore.installTurbo.isPending}>
+              Montar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
@@ -783,6 +900,84 @@ function CylinderHeadCard({
 
         <Button size="sm" variant="outline" className="w-full text-xs" onClick={onRemove}>
           Desmontar Cabeçote
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Sub-component for turbo card with async metrics
+function TurboCard({
+  turbo,
+  installation,
+  hoursOnEquipment,
+  onRemove,
+  getMetrics,
+}: {
+  turbo: { id: string; serial_number: string; status: string; last_maintenance_date: string | null };
+  installation: { id: string; install_date: string; install_equipment_horimeter: number };
+  hoursOnEquipment: number;
+  onRemove: () => void;
+  getMetrics: (id: string) => Promise<TurboMetrics>;
+}) {
+  const metrics = useQuery({
+    queryKey: ['turbo_metrics', turbo.id],
+    queryFn: () => getMetrics(turbo.id),
+  });
+
+  const m = metrics.data;
+
+  return (
+    <Card className="border-[hsl(var(--industrial))]/20">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wind className="h-4 w-4 text-[hsl(var(--industrial))]" />
+            <span className="font-semibold text-sm">{turbo.serial_number || turbo.id.slice(0, 8)}</span>
+          </div>
+          <Badge className="bg-[hsl(var(--industrial))] text-[hsl(var(--industrial-foreground))]">
+            Montado
+          </Badge>
+        </div>
+
+        <div className="text-xs text-muted-foreground space-y-1">
+          <div className="flex justify-between">
+            <span>Instalado em:</span>
+            <span className="font-mono">{format(new Date(installation.install_date), 'dd/MM/yyyy')} ({fmtNum(installation.install_equipment_horimeter)}h)</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Horas neste motor:</span>
+            <span className="font-mono font-medium">{fmtNum(Math.round(hoursOnEquipment))}h</span>
+          </div>
+        </div>
+
+        {m && (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="p-2 rounded-md bg-[hsl(var(--industrial))]/5 border border-[hsl(var(--industrial))]/10">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Clock className="h-3 w-3 text-[hsl(var(--industrial))]" />
+                <span className="text-[10px] text-muted-foreground">Horas Totais</span>
+              </div>
+              <p className="text-sm font-bold font-mono">{fmtNum(Math.round(m.total_hours))}h</p>
+            </div>
+            <div className="p-2 rounded-md bg-[hsl(var(--status-warning))]/5 border border-[hsl(var(--status-warning))]/10">
+              <div className="flex items-center gap-1 mb-0.5">
+                <Gauge className="h-3 w-3 text-[hsl(var(--status-warning))]" />
+                <span className="text-[10px] text-muted-foreground">Pós-Revisão</span>
+              </div>
+              <p className="text-sm font-bold font-mono">{fmtNum(Math.round(m.hours_since_maintenance))}h</p>
+            </div>
+          </div>
+        )}
+
+        {turbo.last_maintenance_date && (
+          <p className="text-xs text-muted-foreground">
+            Última revisão: <span className="font-mono">{format(new Date(turbo.last_maintenance_date), 'dd/MM/yyyy')}</span>
+          </p>
+        )}
+
+        <Button size="sm" variant="outline" className="w-full text-xs" onClick={onRemove}>
+          Desmontar Turbo
         </Button>
       </CardContent>
     </Card>
