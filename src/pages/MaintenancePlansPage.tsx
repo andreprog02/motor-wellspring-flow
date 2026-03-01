@@ -314,14 +314,13 @@ export default function MaintenancePlansPage() {
                 <TableHead>Tarefa</TableHead>
                 <TableHead>Periodicidade</TableHead>
                 <TableHead>Intervalo</TableHead>
-                <TableHead>Última Exec.</TableHead>
                 <TableHead className="w-20">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPlans.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                     Nenhum plano encontrado.
                   </TableCell>
                 </TableRow>
@@ -335,7 +334,6 @@ export default function MaintenancePlansPage() {
                     <TableCell>{plan.task}</TableCell>
                     <TableCell>{triggerLabel(plan.trigger_type)}</TableCell>
                     <TableCell>{plan.interval_value}</TableCell>
-                    <TableCell>{plan.last_execution_value}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="icon" onClick={() => openEdit(plan)}>
