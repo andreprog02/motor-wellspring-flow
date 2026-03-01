@@ -444,11 +444,13 @@ export default function EquipmentDetailPage() {
                   {group.components.map(comp => {
                     const usage = equipment.total_horimeter - comp.horimeter_at_install;
 
-                    // Per-task status for this cylinder
+                    // Per-plan status for this cylinder (using plan's last_execution_value)
                     const taskStatuses = uniquePlans.map(plan => {
-                      const st = getStatus(equipment.total_horimeter, comp.horimeter_at_install, plan.interval_value);
-                      const pct = getPercent(equipment.total_horimeter, comp.horimeter_at_install, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value };
+                      const lastExec = plan.last_execution_value;
+                      const st = getStatus(equipment.total_horimeter, lastExec, plan.interval_value);
+                      const pct = getPercent(equipment.total_horimeter, lastExec, plan.interval_value);
+                      const usageHours = equipment.total_horimeter - lastExec;
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage: usageHours };
                     });
 
                     // Overall status = worst of all tasks
@@ -492,13 +494,12 @@ export default function EquipmentDetailPage() {
                             </div>
                           </div>
 
-                          {/* Per-task plan status */}
+                          {/* Per-plan status (service type based) */}
                           {taskStatuses.length > 0 && (
                             <div className="space-y-1.5 mb-2">
                               {taskStatuses.map((ts, i) => (
                                 <div key={i} className="space-y-0.5">
                                   <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground truncate mr-2">{ts.task}</span>
                                     <span className={
                                       ts.status === 'critical' ? 'text-[hsl(var(--status-critical))] font-semibold' :
                                       ts.status === 'warning' ? 'text-[hsl(var(--status-warning))] font-semibold' :
@@ -509,7 +510,7 @@ export default function EquipmentDetailPage() {
                                   </div>
                                   <Progress value={ts.percent} className="h-1" />
                                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                                    <span className="font-mono">{fmtNum(usage)}h / {fmtNum(ts.interval)}h</span>
+                                    <span className="font-mono">{fmtNum(ts.usage)}h / {fmtNum(ts.interval)}h</span>
                                     <span className="font-mono">{ts.percent}%</span>
                                   </div>
                                 </div>
