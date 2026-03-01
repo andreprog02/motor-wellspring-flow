@@ -362,6 +362,7 @@ export type Database = {
           fuel_type: string
           id: string
           installation_date: string | null
+          maintenance_plan_template_id: string | null
           name: string
           oil_type_id: string | null
           serial_number: string
@@ -375,6 +376,7 @@ export type Database = {
           fuel_type?: string
           id?: string
           installation_date?: string | null
+          maintenance_plan_template_id?: string | null
           name: string
           oil_type_id?: string | null
           serial_number?: string
@@ -388,6 +390,7 @@ export type Database = {
           fuel_type?: string
           id?: string
           installation_date?: string | null
+          maintenance_plan_template_id?: string | null
           name?: string
           oil_type_id?: string | null
           serial_number?: string
@@ -395,6 +398,13 @@ export type Database = {
           total_starts?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "equipments_maintenance_plan_template_id_fkey"
+            columns: ["maintenance_plan_template_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plan_templates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "equipments_oil_type_id_fkey"
             columns: ["oil_type_id"]
@@ -605,6 +615,65 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      maintenance_plan_template_tasks: {
+        Row: {
+          component_type: string
+          created_at: string
+          id: string
+          interval_value: number
+          task: string
+          template_id: string
+          trigger_type: string
+        }
+        Insert: {
+          component_type: string
+          created_at?: string
+          id?: string
+          interval_value?: number
+          task: string
+          template_id: string
+          trigger_type?: string
+        }
+        Update: {
+          component_type?: string
+          created_at?: string
+          id?: string
+          interval_value?: number
+          task?: string
+          template_id?: string
+          trigger_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plan_template_tasks_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_plan_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_plan_templates: {
+        Row: {
+          created_at: string
+          description: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
       manufacturer_models: {
         Row: {

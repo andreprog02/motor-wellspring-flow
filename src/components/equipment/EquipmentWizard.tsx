@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
+import { useMaintenancePlanTemplates } from '@/hooks/useMaintenancePlanTemplates';
 import { toast } from 'sonner';
 import { ChevronLeft, ChevronRight, Plus, Loader2, CalendarIcon, Check, Fuel, Settings, Wind, Thermometer, Droplets, ClipboardCheck } from 'lucide-react';
 import { format } from 'date-fns';
@@ -27,6 +28,7 @@ interface BasicData {
   fuel_type: string;
   installation_date: Date | undefined;
   oil_type_id: string;
+  maintenance_plan_template_id: string;
 }
 
 interface SubComponentData {
@@ -48,10 +50,11 @@ const STEPS = [
 
 export function EquipmentWizard({ open, onOpenChange }: Props) {
   const { addEquipment, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel, oilTypes, addOilType } = useEquipmentStore();
+  const { templates: planTemplates, applyTemplateToEquipment } = useMaintenancePlanTemplates();
 
   const [step, setStep] = useState(0);
   const [basic, setBasic] = useState<BasicData>({
-    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '',
+    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', maintenance_plan_template_id: '',
   });
 
   const emptySubComp = (): SubComponentData => ({
@@ -75,7 +78,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
 
   const reset = () => {
     setStep(0);
-    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '' });
+    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', maintenance_plan_template_id: '' });
     setTurbine(emptySubComp()); setIntercooler(emptySubComp()); setOilExchanger(emptySubComp());
   };
 
@@ -142,7 +145,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
     }
 
     try {
-      await addEquipment.mutateAsync({
+      const eq = await addEquipment.mutateAsync({
         equipment: {
           name: basic.name, equipment_type: 'gerador', serial_number: basic.serial_number,
           total_horimeter: basic.total_horimeter, total_starts: basic.total_starts,
@@ -152,6 +155,16 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
         },
         subComponents,
       });
+
+      // Apply maintenance plan template if selected
+      if (basic.maintenance_plan_template_id && eq?.id) {
+        try {
+          await applyTemplateToEquipment(basic.maintenance_plan_template_id, eq.id, basic.total_horimeter);
+        } catch {
+          toast.error('Equipamento criado, mas erro ao aplicar plano de manutenção');
+        }
+      }
+
       toast.success(`Equipamento "${basic.name}" cadastrado com sucesso!`);
       handleClose();
     } catch {
@@ -161,6 +174,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
 
   const filteredModels = models.filter(m => m.manufacturer_id === turbine.manufacturer_id);
   const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
+  const allPlanTemplates = planTemplates.data ?? [];
 
   // ── Stepper ──
   const renderStepper = () => (
@@ -265,10 +279,21 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Número de Cilindros *</Label>
           <Input className="mt-1" type="number" value={basic.cylinders} onChange={e => setBasic(p => ({ ...p, cylinders: Number(e.target.value) }))} />
         </div>
+        <div className="col-span-2">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Plano de Manutenção</Label>
+          <Select value={basic.maintenance_plan_template_id} onValueChange={v => setBasic(p => ({ ...p, maintenance_plan_template_id: v === '_none' ? '' : v }))}>
+            <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione um plano..." /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="_none">Nenhum</SelectItem>
+              {allPlanTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-1">Vincule um modelo de plano de manutenção preventiva</p>
+        </div>
       </div>
       {basic.cylinders > 0 && (
         <div className="rounded-lg bg-muted/50 p-3 text-xs text-muted-foreground border border-dashed">
-          ⚙️ Serão criados automaticamente: <strong>{basic.cylinders}</strong> velas, <strong>{basic.cylinders}</strong> camisas e <strong>{basic.cylinders}</strong> pistões com planos de manutenção padrão.
+          ⚙️ Serão criados automaticamente: <strong>{basic.cylinders}</strong> velas, <strong>{basic.cylinders}</strong> camisas e <strong>{basic.cylinders}</strong> pistões.
         </div>
       )}
     </div>
@@ -353,6 +378,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
   // ── Step: Review ──
   const renderReviewStep = () => {
     const oilName = oils.find(o => o.id === basic.oil_type_id)?.name || '—';
+    const planName = allPlanTemplates.find(t => t.id === basic.maintenance_plan_template_id)?.name || '—';
     return (
       <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
         <div className="border rounded-lg p-4 space-y-3">
@@ -366,6 +392,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
             <span>Arranques: <span className="text-foreground font-medium">{basic.total_starts}</span></span>
             <span>Cilindros: <span className="text-foreground font-medium">{basic.cylinders}</span></span>
             <span>Combustível: <span className="text-foreground font-medium">{fuelLabels[basic.fuel_type]}</span></span>
+            <span className="col-span-2">Plano de Manutenção: <span className="text-foreground font-medium">{planName}</span></span>
           </div>
         </div>
         <div className="border rounded-lg p-4 space-y-2">
