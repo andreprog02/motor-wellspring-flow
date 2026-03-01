@@ -400,19 +400,31 @@ export default function EquipmentDetailPage() {
         <Tabs defaultValue={cylByType.length > 0 ? cylByType[0].type : 'plans'}>
           <TabsList className="flex-wrap h-auto gap-1">
             {cylByType.map(group => {
-              const groupCritical = group.plans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical').length;
-              const groupWarning = group.plans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning').length;
+              // Get unique plans (tasks) for this component type
+              const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
+                if (!acc.find(a => a.task === p.task)) acc.push(p);
+                return acc;
+              }, []);
+              // Count cylinders by their worst status across all tasks
+              let cylCritical = 0;
+              let cylWarning = 0;
+              group.components.forEach(() => {
+                const worst = uniquePlans.some(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical') ? 'critical'
+                  : uniquePlans.some(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning') ? 'warning' : 'ok';
+                if (worst === 'critical') cylCritical++;
+                else if (worst === 'warning') cylWarning++;
+              });
               return (
                 <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
                   {group.label}s
-                  {groupCritical > 0 && (
+                  {cylCritical > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
-                      {groupCritical}
+                      {cylCritical}
                     </span>
                   )}
-                  {groupCritical === 0 && groupWarning > 0 && (
+                  {cylCritical === 0 && cylWarning > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
-                      {groupWarning}
+                      {cylWarning}
                     </span>
                   )}
                 </TabsTrigger>
