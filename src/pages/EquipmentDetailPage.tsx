@@ -399,22 +399,73 @@ export default function EquipmentDetailPage() {
         {/* Tabs */}
         <Tabs defaultValue={cylByType.length > 0 ? cylByType[0].type : 'plans'}>
           <TabsList className="flex-wrap h-auto gap-1">
-            {cylByType.map(group => (
-              <TabsTrigger key={group.type} value={group.type}>{group.label}s</TabsTrigger>
-            ))}
-            <TabsTrigger value="oil">
-              <Droplets className="h-3.5 w-3.5 mr-1" />
-              Óleo
-            </TabsTrigger>
-            <TabsTrigger value="cylinder_heads">
-              <Cog className="h-3.5 w-3.5 mr-1" />
+            {cylByType.map(group => {
+              const groupCritical = group.plans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical').length;
+              const groupWarning = group.plans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning').length;
+              return (
+                <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
+                  {group.label}s
+                  {groupCritical > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
+                      {groupCritical}
+                    </span>
+                  )}
+                  {groupCritical === 0 && groupWarning > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
+                      {groupWarning}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })}
+            {(() => {
+              const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
+              const oilCritical = oilPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical').length;
+              const oilWarning = oilPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning').length;
+              return (
+                <TabsTrigger value="oil" className="relative gap-1.5">
+                  <Droplets className="h-3.5 w-3.5" />
+                  Óleo
+                  {oilCritical > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
+                      {oilCritical}
+                    </span>
+                  )}
+                  {oilCritical === 0 && oilWarning > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
+                      {oilWarning}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })()}
+            <TabsTrigger value="cylinder_heads" className="gap-1.5">
+              <Cog className="h-3.5 w-3.5" />
               Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
             </TabsTrigger>
-            <TabsTrigger value="turbos">
-              <Wind className="h-3.5 w-3.5 mr-1" />
+            <TabsTrigger value="turbos" className="gap-1.5">
+              <Wind className="h-3.5 w-3.5" />
               Turbos {activeTurbos.length > 0 && `(${activeTurbos.length})`}
             </TabsTrigger>
-            <TabsTrigger value="plans">Planos Gerais</TabsTrigger>
+            {(() => {
+              const genCritical = uniqueNonCylPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical').length;
+              const genWarning = uniqueNonCylPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning').length;
+              return (
+                <TabsTrigger value="plans" className="relative gap-1.5">
+                  Planos Gerais
+                  {genCritical > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
+                      {genCritical}
+                    </span>
+                  )}
+                  {genCritical === 0 && genWarning > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
+                      {genWarning}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })()}
             <TabsTrigger value="history">Histórico</TabsTrigger>
           </TabsList>
 
