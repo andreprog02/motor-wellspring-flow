@@ -146,37 +146,7 @@ export function useEquipmentStore() {
         }
         const { error: cylErr } = await supabase.from('cylinder_components').insert(cylinderRows);
         if (cylErr) throw cylErr;
-
-        const defaultPlans: Record<string, { task: string; interval: number }> = {
-          spark_plug: { task: 'Substituição da vela', interval: 2000 },
-          liner: { task: 'Inspeção da camisa', interval: 8000 },
-          piston: { task: 'Inspeção do pistão', interval: 12000 },
-          connecting_rod: { task: 'Inspeção da biela', interval: 15000 },
-          bearing: { task: 'Inspeção da bronzina', interval: 15000 },
-        };
-        const planRows = cylinderRows.map(cr => ({
-          equipment_id: equipmentId, component_type: cr.component_type,
-          task: defaultPlans[cr.component_type].task, trigger_type: 'hours',
-          interval_value: defaultPlans[cr.component_type].interval, last_execution_value: data.equipment.total_horimeter,
-        }));
-        const { error: planErr } = await supabase.from('component_maintenance_plans').insert(planRows);
-        if (planErr) throw planErr;
-      }
-
-      const subPlanDefaults: Record<string, { task: string; interval: number }> = {
-        turbine: { task: 'Inspeção da turbina', interval: 4000 },
-        intercooler: { task: 'Inspeção do intercooler', interval: 6000 },
-        oil_exchanger: { task: 'Inspeção do trocador de óleo', interval: 5000 },
-      };
-      if (data.subComponents.length > 0) {
-        const subPlans = data.subComponents.map(sc => ({
-          equipment_id: equipmentId, component_type: sc.component_type,
-          task: subPlanDefaults[sc.component_type]?.task || 'Inspeção', trigger_type: 'hours',
-          interval_value: subPlanDefaults[sc.component_type]?.interval || 5000,
-          last_execution_value: sc.use_equipment_hours ? data.equipment.total_horimeter : sc.horimeter,
-        }));
-        const { error: spErr } = await supabase.from('component_maintenance_plans').insert(subPlans);
-        if (spErr) throw spErr;
+        // Plans are now created via maintenance plan templates, not auto-generated
       }
 
       return eq;
