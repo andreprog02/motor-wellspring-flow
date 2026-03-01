@@ -22,6 +22,7 @@ import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCir
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 import { OilTab } from '@/components/equipment/OilTab';
+import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
 
@@ -530,37 +531,15 @@ export default function EquipmentDetailPage() {
                             </Button>
                           </div>
 
-                          {/* History section */}
-                          {compLogs.length > 0 && (
-                            <Collapsible>
-                              <CollapsibleTrigger asChild>
-                                <Button variant="ghost" size="sm" className="w-full text-xs mt-2 text-muted-foreground">
-                                  <History className="h-3 w-3 mr-1" />
-                                  Histórico ({compLogs.length})
-                                  <ChevronDown className="h-3 w-3 ml-auto" />
-                                </Button>
-                              </CollapsibleTrigger>
-                              <CollapsibleContent>
-                                <Separator className="my-2" />
-                                <div className="space-y-1.5 max-h-40 overflow-y-auto">
-                                  {compLogs.map((log: any) => (
-                                    <div key={log.id} className="text-xs flex items-start gap-2 py-1">
-                                      <span className="font-mono text-muted-foreground whitespace-nowrap">
-                                        {format(new Date(log.service_date), 'dd/MM/yy')}
-                                      </span>
-                                      <span className="font-mono whitespace-nowrap">{fmtNum(log.horimeter_at_service)}h</span>
-                                      <span className="text-muted-foreground truncate flex-1">
-                                        {log.notes?.includes('Substituição') ? '🔄 Substituição' :
-                                         log.notes?.includes('Limpeza') ? '🧹 Limpeza' :
-                                         log.notes?.includes('Lubrificação') ? '🛢️ Lubrificação' : '🔍 Inspeção'}
-                                        {log.notes?.split(' - ').slice(2).join(' - ') ? ` — ${log.notes.split(' - ').slice(2).join(' - ')}` : ''}
-                                      </span>
-                                    </div>
-                                  ))}
-                                </div>
-                              </CollapsibleContent>
-                            </Collapsible>
-                          )}
+                          {/* History section with CRUD */}
+                          <CylinderLogHistory
+                            logs={compLogs}
+                            cylinderNumber={comp.cylinder_number}
+                            componentType={comp.component_type}
+                            componentLabel={group.label}
+                            equipmentId={id!}
+                            equipmentHorimeter={equipment.total_horimeter}
+                          />
                         </CardContent>
                       </Card>
                     );
