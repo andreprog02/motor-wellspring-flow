@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
 import { useMaintenancePlanTemplates } from '@/hooks/useMaintenancePlanTemplates';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Plus, Loader2, CalendarIcon, Check, Fuel, Settings, Wind, Thermometer, Droplets, ClipboardCheck } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Loader2, CalendarIcon, Check, Settings, Wind, Thermometer, Droplets, ClipboardCheck, Fan, Disc, Zap, Battery } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -40,11 +40,24 @@ interface SubComponentData {
   use_equipment_hours: boolean;
 }
 
+interface MultiComponentData {
+  enabled: boolean;
+  quantity: number;
+  manufacturer_id: string;
+  model_id: string;
+  horimeter: number;
+  use_equipment_hours: boolean;
+}
+
 const STEPS = [
   { label: 'Dados Básicos', icon: Settings },
   { label: 'Turbina', icon: Wind },
   { label: 'Intercooler', icon: Thermometer },
   { label: 'Trocador de Óleo', icon: Droplets },
+  { label: 'Blowby', icon: Fan },
+  { label: 'Damper', icon: Disc },
+  { label: 'Motor Arranque', icon: Zap },
+  { label: 'Baterias', icon: Battery },
   { label: 'Revisão', icon: ClipboardCheck },
 ];
 
@@ -61,9 +74,17 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
     enabled: false, serial_number: '', manufacturer_id: '', model_id: '', horimeter: 0, use_equipment_hours: true,
   });
 
+  const emptyMultiComp = (): MultiComponentData => ({
+    enabled: false, quantity: 1, manufacturer_id: '', model_id: '', horimeter: 0, use_equipment_hours: true,
+  });
+
   const [turbine, setTurbine] = useState<SubComponentData>(emptySubComp());
   const [intercooler, setIntercooler] = useState<SubComponentData>(emptySubComp());
   const [oilExchanger, setOilExchanger] = useState<SubComponentData>(emptySubComp());
+  const [blowby, setBlowby] = useState<MultiComponentData>(emptyMultiComp());
+  const [damper, setDamper] = useState<MultiComponentData>(emptyMultiComp());
+  const [starterMotor, setStarterMotor] = useState<MultiComponentData>(emptyMultiComp());
+  const [battery, setBattery] = useState<MultiComponentData>(emptyMultiComp());
 
   const [newManufName, setNewManufName] = useState('');
   const [newModelName, setNewModelName] = useState('');
@@ -71,6 +92,8 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
   const [addingManuf, setAddingManuf] = useState(false);
   const [addingModel, setAddingModel] = useState(false);
   const [addingOil, setAddingOil] = useState(false);
+  // Track which component's manufacturer context we're adding for
+  const [manufContext, setManufContext] = useState<string>('turbine');
 
   const manufacturers = componentManufacturers.data || [];
   const models = componentModels.data || [];
@@ -80,6 +103,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
     setStep(0);
     setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', maintenance_plan_template_id: '' });
     setTurbine(emptySubComp()); setIntercooler(emptySubComp()); setOilExchanger(emptySubComp());
+    setBlowby(emptyMultiComp()); setDamper(emptyMultiComp()); setStarterMotor(emptyMultiComp()); setBattery(emptyMultiComp());
   };
 
   const handleClose = () => { reset(); onOpenChange(false); };
@@ -95,23 +119,31 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
     setAddingOil(false);
   };
 
-  const handleAddManufacturer = async () => {
+  const handleAddManufacturer = async (targetSetter?: (id: string) => void) => {
     if (!newManufName.trim()) return;
     setAddingManuf(true);
     try {
       const m = await addComponentManufacturer.mutateAsync(newManufName.trim());
-      setTurbine(prev => ({ ...prev, manufacturer_id: m.id }));
+      if (targetSetter) {
+        targetSetter(m.id);
+      } else {
+        setTurbine(prev => ({ ...prev, manufacturer_id: m.id }));
+      }
       setNewManufName('');
     } catch { toast.error('Erro ao adicionar fabricante'); }
     setAddingManuf(false);
   };
 
-  const handleAddModel = async () => {
-    if (!newModelName.trim() || !turbine.manufacturer_id) return;
+  const handleAddModel = async (manufacturerId: string, targetSetter?: (id: string) => void) => {
+    if (!newModelName.trim() || !manufacturerId) return;
     setAddingModel(true);
     try {
-      const m = await addComponentModel.mutateAsync({ manufacturer_id: turbine.manufacturer_id, name: newModelName.trim() });
-      setTurbine(prev => ({ ...prev, model_id: m.id }));
+      const m = await addComponentModel.mutateAsync({ manufacturer_id: manufacturerId, name: newModelName.trim() });
+      if (targetSetter) {
+        targetSetter(m.id);
+      } else {
+        setTurbine(prev => ({ ...prev, model_id: m.id }));
+      }
       setNewModelName('');
     } catch { toast.error('Erro ao adicionar modelo'); }
     setAddingModel(false);
@@ -143,6 +175,46 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
         horimeter: oilExchanger.use_equipment_hours ? basic.total_horimeter : oilExchanger.horimeter, use_equipment_hours: oilExchanger.use_equipment_hours,
       });
     }
+    // Blowby
+    if (blowby.enabled && blowby.quantity > 0) {
+      for (let i = 0; i < blowby.quantity; i++) {
+        subComponents.push({
+          component_type: 'blowby', serial_number: `Blowby ${i + 1}`,
+          manufacturer_id: null, model_id: null,
+          horimeter: blowby.use_equipment_hours ? basic.total_horimeter : blowby.horimeter, use_equipment_hours: blowby.use_equipment_hours,
+        });
+      }
+    }
+    // Damper
+    if (damper.enabled && damper.quantity > 0) {
+      for (let i = 0; i < damper.quantity; i++) {
+        subComponents.push({
+          component_type: 'damper', serial_number: `Damper ${i + 1}`,
+          manufacturer_id: null, model_id: null,
+          horimeter: damper.use_equipment_hours ? basic.total_horimeter : damper.horimeter, use_equipment_hours: damper.use_equipment_hours,
+        });
+      }
+    }
+    // Motor de Arranque
+    if (starterMotor.enabled && starterMotor.quantity > 0) {
+      for (let i = 0; i < starterMotor.quantity; i++) {
+        subComponents.push({
+          component_type: 'starter_motor', serial_number: `Motor Arranque ${i + 1}`,
+          manufacturer_id: starterMotor.manufacturer_id || null, model_id: starterMotor.model_id || null,
+          horimeter: basic.total_starts, use_equipment_hours: false,
+        });
+      }
+    }
+    // Baterias
+    if (battery.enabled && battery.quantity > 0) {
+      for (let i = 0; i < battery.quantity; i++) {
+        subComponents.push({
+          component_type: 'battery', serial_number: `Bateria ${i + 1}`,
+          manufacturer_id: battery.manufacturer_id || null, model_id: battery.model_id || null,
+          horimeter: basic.total_starts, use_equipment_hours: false,
+        });
+      }
+    }
 
     try {
       const eq = await addEquipment.mutateAsync({
@@ -156,7 +228,6 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
         subComponents,
       });
 
-      // Apply maintenance plan template if selected
       if (basic.maintenance_plan_template_id && eq?.id) {
         try {
           await applyTemplateToEquipment(basic.maintenance_plan_template_id, eq.id, basic.total_horimeter);
@@ -172,30 +243,31 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
     }
   };
 
-  const filteredModels = models.filter(m => m.manufacturer_id === turbine.manufacturer_id);
+  const getFilteredModels = (manufacturerId: string) => models.filter(m => m.manufacturer_id === manufacturerId);
+  const filteredModels = getFilteredModels(turbine.manufacturer_id);
   const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
   const allPlanTemplates = planTemplates.data ?? [];
 
   // ── Stepper ──
   const renderStepper = () => (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center justify-between mb-6 overflow-x-auto pb-2">
       {STEPS.map((s, i) => {
         const Icon = s.icon;
         const isActive = i === step;
         const isDone = i < step;
         return (
-          <div key={s.label} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center gap-1.5">
+          <div key={s.label} className="flex items-center flex-1 last:flex-none min-w-0">
+            <div className="flex flex-col items-center gap-1">
               <div className={cn(
-                'h-10 w-10 rounded-full flex items-center justify-center border-2 transition-all duration-300',
+                'h-8 w-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 shrink-0',
                 isActive && 'border-primary bg-primary text-primary-foreground scale-110 shadow-lg',
                 isDone && 'border-primary bg-primary/10 text-primary',
                 !isActive && !isDone && 'border-muted-foreground/30 text-muted-foreground/50',
               )}>
-                {isDone ? <Check className="h-5 w-5" /> : <Icon className="h-4 w-4" />}
+                {isDone ? <Check className="h-4 w-4" /> : <Icon className="h-3.5 w-3.5" />}
               </div>
               <span className={cn(
-                'text-[10px] font-medium text-center leading-tight max-w-[70px]',
+                'text-[9px] font-medium text-center leading-tight max-w-[55px] truncate',
                 isActive && 'text-primary font-semibold',
                 isDone && 'text-primary/70',
                 !isActive && !isDone && 'text-muted-foreground/50',
@@ -203,7 +275,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
             </div>
             {i < STEPS.length - 1 && (
               <div className={cn(
-                'h-0.5 flex-1 mx-2 mt-[-18px] rounded-full transition-colors duration-300',
+                'h-0.5 flex-1 mx-1 mt-[-14px] rounded-full transition-colors duration-300 min-w-[8px]',
                 i < step ? 'bg-primary' : 'bg-muted',
               )} />
             )}
@@ -299,7 +371,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
     </div>
   );
 
-  // ── Step: SubComponent ──
+  // ── Step: SubComponent (single, e.g. Turbine/Intercooler/OilExchanger) ──
   const renderSubComponentStep = (
     label: string, data: SubComponentData,
     setData: React.Dispatch<React.SetStateAction<SubComponentData>>,
@@ -330,7 +402,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
                   </Select>
                   <div className="flex gap-1">
                     <Input className="w-28" placeholder="Novo..." value={newManufName} onChange={e => setNewManufName(e.target.value)} />
-                    <Button size="icon" variant="outline" onClick={handleAddManufacturer} disabled={addingManuf}>
+                    <Button size="icon" variant="outline" onClick={() => handleAddManufacturer(id => setData(p => ({ ...p, manufacturer_id: id })))} disabled={addingManuf}>
                       {addingManuf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                     </Button>
                   </div>
@@ -342,11 +414,11 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
                   <div className="flex gap-2 mt-1">
                     <Select value={data.model_id} onValueChange={v => setData(p => ({ ...p, model_id: v }))}>
                       <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent>{filteredModels.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                      <SelectContent>{getFilteredModels(data.manufacturer_id).map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
                     </Select>
                     <div className="flex gap-1">
                       <Input className="w-28" placeholder="Novo..." value={newModelName} onChange={e => setNewModelName(e.target.value)} />
-                      <Button size="icon" variant="outline" onClick={handleAddModel} disabled={addingModel}>
+                      <Button size="icon" variant="outline" onClick={() => handleAddModel(data.manufacturer_id, id => setData(p => ({ ...p, model_id: id })))} disabled={addingModel}>
                         {addingModel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                       </Button>
                     </div>
@@ -375,10 +447,112 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
     </div>
   );
 
+  // ── Step: Multi-quantity component (Blowby, Damper) – tracks hours ──
+  const renderMultiHoursStep = (
+    label: string, data: MultiComponentData,
+    setData: React.Dispatch<React.SetStateAction<MultiComponentData>>,
+  ) => (
+    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border">
+        <div>
+          <Label className="text-base font-semibold">Possui {label}?</Label>
+          <p className="text-xs text-muted-foreground">Ative para registrar dados deste componente</p>
+        </div>
+        <Switch checked={data.enabled} onCheckedChange={v => setData(p => ({ ...p, enabled: v }))} />
+      </div>
+      {data.enabled && (
+        <div className="space-y-4 border rounded-lg p-4 animate-in fade-in duration-200">
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quantidade de {label}</Label>
+            <Input className="mt-1" type="number" min={1} value={data.quantity} onChange={e => setData(p => ({ ...p, quantity: Math.max(1, Number(e.target.value)) }))} />
+          </div>
+          <div className="space-y-3 p-3 rounded-lg bg-muted/30">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label className="text-sm">Utilizar horas do motor</Label>
+                <p className="text-xs text-muted-foreground">Espelhar horímetro do equipamento principal</p>
+              </div>
+              <Switch checked={data.use_equipment_hours} onCheckedChange={v => setData(p => ({ ...p, use_equipment_hours: v }))} />
+            </div>
+            {!data.use_equipment_hours && (
+              <div>
+                <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Horímetro atual do {label}</Label>
+                <Input className="mt-1" type="number" value={data.horimeter} onChange={e => setData(p => ({ ...p, horimeter: Number(e.target.value) }))} />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  // ── Step: Multi-quantity component (Starter Motor, Battery) – tracks starts, with manufacturer/model ──
+  const renderMultiStartsStep = (
+    label: string, data: MultiComponentData,
+    setData: React.Dispatch<React.SetStateAction<MultiComponentData>>,
+  ) => (
+    <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30 border">
+        <div>
+          <Label className="text-base font-semibold">Possui {label}?</Label>
+          <p className="text-xs text-muted-foreground">Ative para registrar dados deste componente</p>
+        </div>
+        <Switch checked={data.enabled} onCheckedChange={v => setData(p => ({ ...p, enabled: v }))} />
+      </div>
+      {data.enabled && (
+        <div className="space-y-4 border rounded-lg p-4 animate-in fade-in duration-200">
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Quantidade de {label}</Label>
+            <Input className="mt-1" type="number" min={1} value={data.quantity} onChange={e => setData(p => ({ ...p, quantity: Math.max(1, Number(e.target.value)) }))} />
+          </div>
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fabricante</Label>
+            <div className="flex gap-2 mt-1">
+              <Select value={data.manufacturer_id} onValueChange={v => setData(p => ({ ...p, manufacturer_id: v, model_id: '' }))}>
+                <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectContent>{manufacturers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+              </Select>
+              <div className="flex gap-1">
+                <Input className="w-28" placeholder="Novo..." value={newManufName} onChange={e => setNewManufName(e.target.value)} />
+                <Button size="icon" variant="outline" onClick={() => handleAddManufacturer(id => setData(p => ({ ...p, manufacturer_id: id })))} disabled={addingManuf}>
+                  {addingManuf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                </Button>
+              </div>
+            </div>
+          </div>
+          {data.manufacturer_id && (
+            <div>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modelo</Label>
+              <div className="flex gap-2 mt-1">
+                <Select value={data.model_id} onValueChange={v => setData(p => ({ ...p, model_id: v }))}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>{getFilteredModels(data.manufacturer_id).map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}</SelectContent>
+                </Select>
+                <div className="flex gap-1">
+                  <Input className="w-28" placeholder="Novo..." value={newModelName} onChange={e => setNewModelName(e.target.value)} />
+                  <Button size="icon" variant="outline" onClick={() => handleAddModel(data.manufacturer_id, id => setData(p => ({ ...p, model_id: id })))} disabled={addingModel}>
+                    {addingModel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="rounded-lg bg-muted/30 p-3">
+            <p className="text-xs text-muted-foreground">
+              📊 O controle deste componente é baseado na <strong>quantidade de arranques</strong> do equipamento ({basic.total_starts} arranques atuais).
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   // ── Step: Review ──
   const renderReviewStep = () => {
     const oilName = oils.find(o => o.id === basic.oil_type_id)?.name || '—';
     const planName = allPlanTemplates.find(t => t.id === basic.maintenance_plan_template_id)?.name || '—';
+    const manufName = (id: string) => manufacturers.find(m => m.id === id)?.name || '—';
+    const modelName = (id: string) => models.find(m => m.id === id)?.name || '—';
     return (
       <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
         <div className="border rounded-lg p-4 space-y-3">
@@ -400,6 +574,10 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
           <p className="text-sm text-muted-foreground">Turbina: {turbine.enabled ? `✅ S/N: ${turbine.serial_number || '—'}` : '❌ Não'}</p>
           <p className="text-sm text-muted-foreground">Intercooler: {intercooler.enabled ? `✅ S/N: ${intercooler.serial_number || '—'}` : '❌ Não'}</p>
           <p className="text-sm text-muted-foreground">Trocador de Óleo: {oilExchanger.enabled ? `✅ S/N: ${oilExchanger.serial_number || '—'}` : '❌ Não'}</p>
+          <p className="text-sm text-muted-foreground">Blowby: {blowby.enabled ? `✅ Qtd: ${blowby.quantity}` : '❌ Não'}</p>
+          <p className="text-sm text-muted-foreground">Damper: {damper.enabled ? `✅ Qtd: ${damper.quantity}` : '❌ Não'}</p>
+          <p className="text-sm text-muted-foreground">Motor de Arranque: {starterMotor.enabled ? `✅ Qtd: ${starterMotor.quantity} | ${manufName(starterMotor.manufacturer_id)} / ${modelName(starterMotor.model_id)}` : '❌ Não'}</p>
+          <p className="text-sm text-muted-foreground">Baterias: {battery.enabled ? `✅ Qtd: ${battery.quantity} | ${manufName(battery.manufacturer_id)} / ${modelName(battery.model_id)}` : '❌ Não'}</p>
         </div>
         <div className="border rounded-lg p-4 bg-muted/30">
           <h4 className="font-semibold text-sm mb-1">⚙️ Auto-criação</h4>
@@ -415,7 +593,11 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
       case 1: return renderSubComponentStep('Turbina', turbine, setTurbine, true);
       case 2: return renderSubComponentStep('Intercooler', intercooler, setIntercooler, false);
       case 3: return renderSubComponentStep('Trocador de Óleo', oilExchanger, setOilExchanger, false);
-      case 4: return renderReviewStep();
+      case 4: return renderMultiHoursStep('Blowby', blowby, setBlowby);
+      case 5: return renderMultiHoursStep('Damper', damper, setDamper);
+      case 6: return renderMultiStartsStep('Motor de Arranque', starterMotor, setStarterMotor);
+      case 7: return renderMultiStartsStep('Baterias', battery, setBattery);
+      case 8: return renderReviewStep();
     }
   };
 
