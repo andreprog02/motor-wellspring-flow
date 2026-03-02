@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, Circle, ClipboardList, Cog, Wind, FileText, PanelLeftClose, PanelLeft, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, Circle, ClipboardList, Cog, Wind, FileText, PanelLeftClose, PanelLeft, ChevronDown, DatabaseBackup } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { BackupDialog } from '@/components/BackupDialog';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,6 +38,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   const isMobile = useIsMobile();
   const isMaintenanceActive = location.pathname.startsWith('/maintenance');
   const [maintenanceOpen, setMaintenanceOpen] = useState(isMaintenanceActive);
+  const [backupOpen, setBackupOpen] = useState(false);
   const showLabels = !collapsed || isMobile;
 
   const renderNavLink = (item: { to: string; label: string; icon: React.ElementType }, indent = false) => {
@@ -113,9 +115,24 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         )}
       </nav>
 
-      <div className={cn("px-5 py-4 border-t border-sidebar-border", !showLabels && "px-2 text-center")}>
-        <p className="text-[10px] text-sidebar-foreground">v1.0 · Multi-tenant SaaS</p>
+      <div className={cn("px-3 py-3 border-t border-sidebar-border space-y-1")}>
+        <button
+          onClick={() => setBackupOpen(true)}
+          title={!showLabels ? 'Backup' : undefined}
+          className={cn(
+            'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
+            !showLabels ? 'justify-center px-2' : '',
+            'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+          )}
+        >
+          <DatabaseBackup className="h-4 w-4 shrink-0" />
+          {showLabels && 'Backup'}
+        </button>
+        <div className={cn("px-2 pt-1", !showLabels && "text-center")}>
+          <p className="text-[10px] text-sidebar-foreground">v1.0 · Multi-tenant SaaS</p>
+        </div>
       </div>
+      <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} />
     </>
   );
 
