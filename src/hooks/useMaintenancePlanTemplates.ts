@@ -5,6 +5,8 @@ export interface MaintenancePlanTemplate {
   id: string;
   name: string;
   description: string;
+  manufacturer_id: string | null;
+  model_id: string | null;
   created_at: string;
 }
 
@@ -51,7 +53,7 @@ export function useMaintenancePlanTemplates() {
   };
 
   const addTemplate = useMutation({
-    mutationFn: async (params: { name: string; description: string }) => {
+    mutationFn: async (params: { name: string; description: string; manufacturer_id?: string | null; model_id?: string | null }) => {
       const { data, error } = await (supabase as any)
         .from('maintenance_plan_templates')
         .insert(params)
@@ -64,10 +66,10 @@ export function useMaintenancePlanTemplates() {
   });
 
   const updateTemplate = useMutation({
-    mutationFn: async (params: { id: string; name: string; description: string }) => {
+    mutationFn: async (params: { id: string; name: string; description: string; manufacturer_id?: string | null; model_id?: string | null }) => {
       const { error } = await (supabase as any)
         .from('maintenance_plan_templates')
-        .update({ name: params.name, description: params.description })
+        .update({ name: params.name, description: params.description, manufacturer_id: params.manufacturer_id ?? null, model_id: params.model_id ?? null })
         .eq('id', params.id);
       if (error) throw error;
     },
