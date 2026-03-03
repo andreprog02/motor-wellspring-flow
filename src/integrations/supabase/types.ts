@@ -659,21 +659,42 @@ export type Database = {
           created_at: string
           description: string
           id: string
+          manufacturer_id: string | null
+          model_id: string | null
           name: string
         }
         Insert: {
           created_at?: string
           description?: string
           id?: string
+          manufacturer_id?: string | null
+          model_id?: string | null
           name: string
         }
         Update: {
           created_at?: string
           description?: string
           id?: string
+          manufacturer_id?: string | null
+          model_id?: string | null
           name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_plan_templates_manufacturer_id_fkey"
+            columns: ["manufacturer_id"]
+            isOneToOne: false
+            referencedRelation: "component_manufacturers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_templates_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "component_models"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       manufacturer_models: {
         Row: {

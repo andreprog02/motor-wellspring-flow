@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AppLayout } from '@/components/AppLayout';
 import { useMaintenancePlanTemplates, MaintenancePlanTemplate, MaintenancePlanTemplateTask } from '@/hooks/useMaintenancePlanTemplates';
+import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FileText } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FileText, Factory, Box, FolderOpen, Folder } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const COMPONENT_TYPES = [
@@ -22,14 +23,22 @@ const COMPONENT_TYPES = [
   { value: 'turbine', label: 'Turbina' },
   { value: 'intercooler', label: 'Intercooler' },
   { value: 'oil_exchanger', label: 'Trocador de Óleo' },
+  { value: 'blowby', label: 'Blowby' },
+  { value: 'damper', label: 'Damper' },
+  { value: 'starter_motor', label: 'Motor de Arranque' },
+  { value: 'battery', label: 'Bateria' },
   { value: 'custom', label: 'Personalizado' },
 ];
 
 const SERVICE_TYPES = [
   { value: 'Substituição', label: 'Substituição' },
-  { value: 'Limpeza', label: 'Limpeza' },
   { value: 'Inspeção', label: 'Inspeção' },
+  { value: 'Limpeza', label: 'Limpeza' },
   { value: 'Lubrificação', label: 'Lubrificação' },
+  { value: 'Análise', label: 'Análise' },
+  { value: 'Coleta', label: 'Coleta' },
+  { value: 'Calibração', label: 'Calibração' },
+  { value: 'Regulagem', label: 'Regulagem' },
 ];
 
 const TRIGGER_TYPES = [
@@ -40,13 +49,21 @@ const TRIGGER_TYPES = [
 
 export default function MaintenancePlansPage() {
   const { templates, templateTasks, addTemplate, updateTemplate, deleteTemplate, addTask, deleteTask } = useMaintenancePlanTemplates();
+  const { componentManufacturers, componentModels } = useEquipmentStore();
   const { toast } = useToast();
+
+  const manufacturers = componentManufacturers.data ?? [];
+  const models = componentModels.data ?? [];
+  const allTemplates = templates.data ?? [];
+  const allTasks = templateTasks.data ?? [];
 
   // Template dialog
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<MaintenancePlanTemplate | null>(null);
   const [templateName, setTemplateName] = useState('');
   const [templateDesc, setTemplateDesc] = useState('');
+  const [templateManufId, setTemplateManufId] = useState('');
+  const [templateModelId, setTemplateModelId] = useState('');
 
   // Task dialog
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
@@ -57,11 +74,13 @@ export default function MaintenancePlansPage() {
   const [taskTrigger, setTaskTrigger] = useState('hours');
   const [taskInterval, setTaskInterval] = useState('');
 
-  // Expanded templates
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  // Expanded states: manufacturer, model, plan
+  const [expandedManufs, setExpandedManufs] = useState<Set<string>>(new Set());
+  const [expandedModels, setExpandedModels] = useState<Set<string>>(new Set());
+  const [expandedPlans, setExpandedPlans] = useState<Set<string>>(new Set());
 
-  const toggleExpand = (id: string) => {
-    setExpanded(prev => {
+  const toggle = (set: Set<string>, id: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
+    setter(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
       return next;
@@ -71,10 +90,29 @@ export default function MaintenancePlansPage() {
   const componentLabel = (t: string) => COMPONENT_TYPES.find(x => x.value === t)?.label ?? t;
   const triggerLabel = (t: string) => TRIGGER_TYPES.find(x => x.value === t)?.label ?? t;
 
+  // Group templates by manufacturer > model
+  const tree = useMemo(() => {
+    const grouped: Record<string, Record<string, MaintenancePlanTemplate[]>> = {};
+    const unlinked: MaintenancePlanTemplate[] = [];
+
+    for (const t of allTemplates) {
+      if (t.manufacturer_id && t.model_id) {
+        if (!grouped[t.manufacturer_id]) grouped[t.manufacturer_id] = {};
+        if (!grouped[t.manufacturer_id][t.model_id]) grouped[t.manufacturer_id][t.model_id] = [];
+        grouped[t.manufacturer_id][t.model_id].push(t);
+      } else {
+        unlinked.push(t);
+      }
+    }
+    return { grouped, unlinked };
+  }, [allTemplates]);
+
   const openCreateTemplate = () => {
     setEditingTemplate(null);
     setTemplateName('');
     setTemplateDesc('');
+    setTemplateManufId('');
+    setTemplateModelId('');
     setTemplateDialogOpen(true);
   };
 
@@ -82,20 +120,21 @@ export default function MaintenancePlansPage() {
     setEditingTemplate(t);
     setTemplateName(t.name);
     setTemplateDesc(t.description);
+    setTemplateManufId(t.manufacturer_id ?? '');
+    setTemplateModelId(t.model_id ?? '');
     setTemplateDialogOpen(true);
   };
 
   const handleSaveTemplate = async () => {
-    if (!templateName.trim()) {
-      toast({ title: 'Nome é obrigatório', variant: 'destructive' });
-      return;
-    }
+    if (!templateName.trim()) { toast({ title: 'Nome é obrigatório', variant: 'destructive' }); return; }
+    if (!templateManufId) { toast({ title: 'Selecione um fabricante', variant: 'destructive' }); return; }
+    if (!templateModelId) { toast({ title: 'Selecione um modelo', variant: 'destructive' }); return; }
     try {
       if (editingTemplate) {
-        await updateTemplate.mutateAsync({ id: editingTemplate.id, name: templateName.trim(), description: templateDesc.trim() });
+        await updateTemplate.mutateAsync({ id: editingTemplate.id, name: templateName.trim(), description: templateDesc.trim(), manufacturer_id: templateManufId, model_id: templateModelId });
         toast({ title: 'Plano atualizado' });
       } else {
-        await addTemplate.mutateAsync({ name: templateName.trim(), description: templateDesc.trim() });
+        await addTemplate.mutateAsync({ name: templateName.trim(), description: templateDesc.trim(), manufacturer_id: templateManufId, model_id: templateModelId });
         toast({ title: 'Plano criado' });
       }
       setTemplateDialogOpen(false);
@@ -105,12 +144,7 @@ export default function MaintenancePlansPage() {
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    try {
-      await deleteTemplate.mutateAsync(id);
-      toast({ title: 'Plano excluído' });
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
-    }
+    try { await deleteTemplate.mutateAsync(id); toast({ title: 'Plano excluído' }); } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
   };
 
   const openAddTask = (templateId: string) => {
@@ -125,36 +159,78 @@ export default function MaintenancePlansPage() {
 
   const handleSaveTask = async () => {
     const finalType = taskComponentType === 'custom' ? taskCustomType : taskComponentType;
-    if (!finalType || !taskService || !taskInterval) {
-      toast({ title: 'Preencha todos os campos', variant: 'destructive' });
-      return;
-    }
+    if (!finalType || !taskService || !taskInterval) { toast({ title: 'Preencha todos os campos', variant: 'destructive' }); return; }
     try {
-      await addTask.mutateAsync({
-        template_id: taskTemplateId,
-        component_type: finalType,
-        task: taskService,
-        trigger_type: taskTrigger,
-        interval_value: Number(taskInterval),
-      });
+      await addTask.mutateAsync({ template_id: taskTemplateId, component_type: finalType, task: taskService, trigger_type: taskTrigger, interval_value: Number(taskInterval) });
       toast({ title: 'Tarefa adicionada' });
       setTaskDialogOpen(false);
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
-    }
+    } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
   };
 
   const handleDeleteTask = async (id: string) => {
-    try {
-      await deleteTask.mutateAsync(id);
-      toast({ title: 'Tarefa removida' });
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
-    }
+    try { await deleteTask.mutateAsync(id); toast({ title: 'Tarefa removida' }); } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
   };
 
-  const allTemplates = templates.data ?? [];
-  const allTasks = templateTasks.data ?? [];
+  const filteredDialogModels = models.filter(m => m.manufacturer_id === templateManufId);
+
+  const renderPlanCard = (template: MaintenancePlanTemplate) => {
+    const tasks = allTasks.filter(t => t.template_id === template.id);
+    const isExpanded = expandedPlans.has(template.id);
+    return (
+      <div key={template.id} className="border rounded-lg bg-card ml-8">
+        <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => toggle(expandedPlans, template.id, setExpandedPlans)}>
+          <div className="flex items-center gap-2">
+            {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            <FileText className="h-4 w-4 text-primary" />
+            <span className="font-medium text-sm">{template.name}</span>
+            {template.description && <span className="text-xs text-muted-foreground ml-2">— {template.description}</span>}
+          </div>
+          <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            <Badge variant="secondary">{tasks.length} {tasks.length === 1 ? 'tarefa' : 'tarefas'}</Badge>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditTemplate(template)}><Pencil className="h-3.5 w-3.5" /></Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTemplate(template.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+          </div>
+        </div>
+        {isExpanded && (
+          <div className="px-3 pb-3">
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Componente</TableHead>
+                    <TableHead>Serviço</TableHead>
+                    <TableHead>Periodicidade</TableHead>
+                    <TableHead>Intervalo</TableHead>
+                    <TableHead className="w-12">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tasks.length === 0 ? (
+                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">Nenhuma tarefa adicionada.</TableCell></TableRow>
+                  ) : tasks.map(task => (
+                    <TableRow key={task.id}>
+                      <TableCell><Badge variant="outline">{componentLabel(task.component_type)}</Badge></TableCell>
+                      <TableCell>{task.task}</TableCell>
+                      <TableCell>{triggerLabel(task.trigger_type)}</TableCell>
+                      <TableCell>{task.interval_value}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTask(task.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <Button variant="outline" size="sm" className="mt-2" onClick={() => openAddTask(template.id)}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar Tarefa
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const manufIds = Object.keys(tree.grouped);
 
   return (
     <AppLayout>
@@ -162,7 +238,7 @@ export default function MaintenancePlansPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Planos de Manutenção</h1>
-            <p className="text-sm text-muted-foreground">Crie modelos de planos e vincule aos equipamentos</p>
+            <p className="text-sm text-muted-foreground">Organizados por Fabricante / Modelo</p>
           </div>
           <Button onClick={openCreateTemplate}><Plus className="h-4 w-4 mr-2" /> Novo Plano</Button>
         </div>
@@ -176,78 +252,66 @@ export default function MaintenancePlansPage() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-3">
-            {allTemplates.map(template => {
-              const tasks = allTasks.filter(t => t.template_id === template.id);
-              const isExpanded = expanded.has(template.id);
+          <div className="space-y-2">
+            {/* Grouped by Manufacturer > Model */}
+            {manufIds.map(manufId => {
+              const manuf = manufacturers.find(m => m.id === manufId);
+              const manufName = manuf?.name ?? 'Fabricante desconhecido';
+              const isManufExpanded = expandedManufs.has(manufId);
+              const modelIds = Object.keys(tree.grouped[manufId]);
+
               return (
-                <Card key={template.id}>
-                  <CardHeader className="pb-3 cursor-pointer" onClick={() => toggleExpand(template.id)}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        {isExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
-                        <div>
-                          <CardTitle className="text-base">{template.name}</CardTitle>
-                          {template.description && <CardDescription className="text-xs mt-0.5">{template.description}</CardDescription>}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                        <Badge variant="secondary">{tasks.length} {tasks.length === 1 ? 'tarefa' : 'tarefas'}</Badge>
-                        <Button variant="ghost" size="icon" onClick={() => openEditTemplate(template)}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteTemplate(template.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                <Card key={manufId}>
+                  <div className="p-3 cursor-pointer" onClick={() => toggle(expandedManufs, manufId, setExpandedManufs)}>
+                    <div className="flex items-center gap-2">
+                      {isManufExpanded ? <ChevronDown className="h-5 w-5 text-muted-foreground" /> : <ChevronRight className="h-5 w-5 text-muted-foreground" />}
+                      <Factory className="h-5 w-5 text-primary" />
+                      <span className="font-semibold text-base">{manufName}</span>
+                      <Badge variant="outline" className="ml-2">{modelIds.length} {modelIds.length === 1 ? 'modelo' : 'modelos'}</Badge>
                     </div>
-                  </CardHeader>
-                  {isExpanded && (
-                    <CardContent className="pt-0">
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Componente</TableHead>
-                              <TableHead>Tarefa</TableHead>
-                              <TableHead>Periodicidade</TableHead>
-                              <TableHead>Intervalo</TableHead>
-                              <TableHead className="w-16">Ações</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {tasks.length === 0 ? (
-                              <TableRow>
-                                <TableCell colSpan={5} className="text-center text-muted-foreground py-6">
-                                  Nenhuma tarefa. Adicione tarefas a este plano.
-                                </TableCell>
-                              </TableRow>
-                            ) : (
-                              tasks.map(task => (
-                                <TableRow key={task.id}>
-                                  <TableCell><Badge variant="outline">{componentLabel(task.component_type)}</Badge></TableCell>
-                                  <TableCell>{task.task}</TableCell>
-                                  <TableCell>{triggerLabel(task.trigger_type)}</TableCell>
-                                  <TableCell>{task.interval_value}</TableCell>
-                                  <TableCell>
-                                    <Button variant="ghost" size="icon" onClick={() => handleDeleteTask(task.id)}>
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
-                                  </TableCell>
-                                </TableRow>
-                              ))
+                  </div>
+                  {isManufExpanded && (
+                    <div className="px-3 pb-3 space-y-2">
+                      {modelIds.map(modelId => {
+                        const model = models.find(m => m.id === modelId);
+                        const modelName = model?.name ?? 'Modelo desconhecido';
+                        const isModelExpanded = expandedModels.has(modelId);
+                        const plansForModel = tree.grouped[manufId][modelId];
+
+                        return (
+                          <div key={modelId} className="border rounded-lg ml-4">
+                            <div className="p-2.5 cursor-pointer" onClick={() => toggle(expandedModels, modelId, setExpandedModels)}>
+                              <div className="flex items-center gap-2">
+                                {isModelExpanded ? <FolderOpen className="h-4 w-4 text-primary" /> : <Folder className="h-4 w-4 text-primary" />}
+                                <span className="font-medium text-sm">{modelName}</span>
+                                <Badge variant="secondary" className="ml-2">{plansForModel.length} {plansForModel.length === 1 ? 'plano' : 'planos'}</Badge>
+                              </div>
+                            </div>
+                            {isModelExpanded && (
+                              <div className="px-2 pb-2 space-y-2">
+                                {plansForModel.map(renderPlanCard)}
+                              </div>
                             )}
-                          </TableBody>
-                        </Table>
-                      </div>
-                      <Button variant="outline" size="sm" className="mt-3" onClick={() => openAddTask(template.id)}>
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Adicionar Tarefa
-                      </Button>
-                    </CardContent>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </Card>
               );
             })}
+
+            {/* Unlinked plans */}
+            {tree.unlinked.length > 0 && (
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">Planos sem fabricante/modelo vinculado</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {tree.unlinked.map(renderPlanCard)}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
@@ -259,8 +323,28 @@ export default function MaintenancePlansPage() {
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
+                <Label>Fabricante *</Label>
+                <Select value={templateManufId} onValueChange={v => { setTemplateManufId(v); setTemplateModelId(''); }}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o fabricante..." /></SelectTrigger>
+                  <SelectContent>
+                    {manufacturers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {templateManufId && (
+                <div className="space-y-2">
+                  <Label>Modelo *</Label>
+                  <Select value={templateModelId} onValueChange={setTemplateModelId}>
+                    <SelectTrigger><SelectValue placeholder="Selecione o modelo..." /></SelectTrigger>
+                    <SelectContent>
+                      {filteredDialogModels.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="space-y-2">
                 <Label>Nome do Plano *</Label>
-                <Input placeholder="Ex: Plano Jenbacher Serie 03" value={templateName} onChange={e => setTemplateName(e.target.value)} />
+                <Input placeholder="Ex: Plano 2000h" value={templateName} onChange={e => setTemplateName(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Descrição</Label>
@@ -286,9 +370,7 @@ export default function MaintenancePlansPage() {
                 <Select value={taskComponentType} onValueChange={setTaskComponentType}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {COMPONENT_TYPES.map(c => (
-                      <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
-                    ))}
+                    {COMPONENT_TYPES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 {taskComponentType === 'custom' && (
@@ -300,9 +382,7 @@ export default function MaintenancePlansPage() {
                 <Select value={taskService} onValueChange={setTaskService}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {SERVICE_TYPES.map(s => (
-                      <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                    ))}
+                    {SERVICE_TYPES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -312,9 +392,7 @@ export default function MaintenancePlansPage() {
                   <Select value={taskTrigger} onValueChange={setTaskTrigger}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {TRIGGER_TYPES.map(t => (
-                        <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                      ))}
+                      {TRIGGER_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
