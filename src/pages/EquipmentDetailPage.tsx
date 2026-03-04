@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
-import { useEquipmentStore } from '@/hooks/useEquipmentStore';
+import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
 import { useCylinderHeadStore, cylinderHeadStatusLabels } from '@/hooks/useCylinderHeadStore';
 import { useTurboStore, turboStatusLabels } from '@/hooks/useTurboStore';
@@ -18,15 +18,13 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind, Thermometer, Fan, Disc, Battery } from 'lucide-react';
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 import { OilTab } from '@/components/equipment/OilTab';
 import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
-
-// Removed duplicate TurboMetrics import (already imported above)
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
@@ -62,18 +60,16 @@ function fmtNum(n: number): string {
   return n.toLocaleString('pt-BR');
 }
 
-function getStatus(current: number, lastExec: number, interval: number) {
+function getStatus(usage: number, interval: number) {
   if (interval <= 0) return 'ok';
-  const usage = current - lastExec;
   const ratio = usage / interval;
   if (ratio >= 1) return 'critical';
   if (ratio >= 0.9) return 'warning';
   return 'ok';
 }
 
-function getPercent(current: number, lastExec: number, interval: number) {
+function getPercent(usage: number, interval: number) {
   if (interval <= 0) return 0;
-  const usage = current - lastExec;
   return Math.min(Math.round((usage / interval) * 100), 100);
 }
 
@@ -87,6 +83,20 @@ const componentTypeLabels: Record<string, string> = {
   intercooler: 'Intercooler',
   oil_exchanger: 'Trocador de Óleo',
   oil_change: 'Troca de Óleo',
+  blowby: 'Blowby',
+  damper: 'Damper',
+  starter_motor: 'Motor de Arranque',
+  battery: 'Bateria',
+};
+
+const subComponentIcons: Record<string, typeof Cog> = {
+  turbine: Wind,
+  intercooler: Thermometer,
+  oil_exchanger: Droplets,
+  blowby: Fan,
+  damper: Disc,
+  starter_motor: Zap,
+  battery: Battery,
 };
 
 const cylinderComponentTypes = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
@@ -104,7 +114,6 @@ export default function EquipmentDetailPage() {
   const { logs, logItems } = useMaintenanceStore();
 
   const turboStore = useTurboStore();
-
   const chStore = useCylinderHeadStore();
 
   const [maintDialog, setMaintDialog] = useState<{
@@ -150,6 +159,20 @@ export default function EquipmentDetailPage() {
     enabled: !!id,
   });
 
+  const subComponents = useQuery({
+    queryKey: ['equipment_sub_components', id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('equipment_sub_components')
+        .select('*')
+        .eq('equipment_id', id!)
+        .order('component_type');
+      if (error) throw error;
+      return data as EquipmentSubComponent[];
+    },
+    enabled: !!id,
+  });
+
   if (!equipment) {
     return (
       <AppLayout>
@@ -164,6 +187,7 @@ export default function EquipmentDetailPage() {
   const oilName = oils.find(o => o.id === equipment.oil_type_id)?.name;
   const allPlans = plans.data || [];
   const allCylComps = cylinderComponents.data || [];
+  const allSubComps = subComponents.data || [];
   const equipmentLogs = (logs.data || []).filter((l: any) => l.equipment_id === id);
   const allLogItems = logItems.data || [];
 
@@ -242,25 +266,12 @@ export default function EquipmentDetailPage() {
     }
   };
 
-  const okPlans = allPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'ok');
-  const warningPlans = allPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning');
-  const criticalPlans = allPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical');
-
-  // Group plans by unique component_type + task (for non-cylinder plans)
-  const nonCylinderPlans = allPlans.filter(p => !cylinderComponentTypes.includes(p.component_type));
-  const uniqueNonCylPlans = nonCylinderPlans.reduce<MaintenancePlan[]>((acc, plan) => {
-    const exists = acc.find(p => p.component_type === plan.component_type && p.task === plan.task);
-    if (!exists) acc.push(plan);
-    return acc;
-  }, []);
-
   // Get ALL plans for a specific component type
   const getPlansForType = (type: string) => allPlans.filter(p => p.component_type === type);
 
   // Helper to check if a log mentions a specific cylinder number
   const logMatchesCylinder = (log: any, cylNumber: number) => {
     if (!log.notes) return false;
-    // Match "Cil. X" patterns - handles "Cil. 1, 2, 3" and "Cil. 1"
     const match = log.notes.match(/Cil\.\s*([\d,\s]+)/);
     if (!match) return false;
     const nums = match[1].split(',').map((s: string) => parseInt(s.trim(), 10));
@@ -275,6 +286,75 @@ export default function EquipmentDetailPage() {
     plans: getPlansForType(type),
   })).filter(g => g.components.length > 0);
 
+  // Group sub-components by type (excluding cylinder types and oil)
+  const subCompByType = Object.entries(
+    allSubComps.reduce<Record<string, EquipmentSubComponent[]>>((acc, sc) => {
+      if (!acc[sc.component_type]) acc[sc.component_type] = [];
+      acc[sc.component_type].push(sc);
+      return acc;
+    }, {})
+  ).map(([type, comps]) => ({
+    type,
+    label: componentTypeLabels[type] || type,
+    components: comps,
+    plans: getPlansForType(type),
+  }));
+
+  // Calculate status counts across ALL component types
+  const getAllComponentStatuses = () => {
+    let ok = 0, warning = 0, critical = 0;
+
+    // Cylinder components
+    cylByType.forEach(group => {
+      const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
+        if (!acc.find(a => a.task === p.task)) acc.push(p);
+        return acc;
+      }, []);
+      group.components.forEach(comp => {
+        const compUsage = equipment.total_horimeter - comp.horimeter_at_install;
+        const worst = uniquePlans.reduce((w, plan) => {
+          const s = getStatus(compUsage, plan.interval_value);
+          return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
+        }, 'ok' as string);
+        if (worst === 'critical') critical++;
+        else if (worst === 'warning') warning++;
+        else ok++;
+      });
+    });
+
+    // Sub-components
+    subCompByType.forEach(group => {
+      const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
+        if (!acc.find(a => a.task === p.task)) acc.push(p);
+        return acc;
+      }, []);
+      group.components.forEach(comp => {
+        const compUsage = equipment.total_horimeter - comp.horimeter;
+        const worst = uniquePlans.reduce((w, plan) => {
+          const s = getStatus(compUsage, plan.interval_value);
+          return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
+        }, 'ok' as string);
+        if (worst === 'critical') critical++;
+        else if (worst === 'warning') warning++;
+        else ok++;
+      });
+    });
+
+    // Oil plans
+    const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
+    oilPlans.forEach(p => {
+      const usage = equipment.total_horimeter - p.last_execution_value;
+      const s = getStatus(usage, p.interval_value);
+      if (s === 'critical') critical++;
+      else if (s === 'warning') warning++;
+      else ok++;
+    });
+
+    return { ok, warning, critical };
+  };
+
+  const statusCounts = getAllComponentStatuses();
+
   const openMaintDialog = (componentType: string, preSelectedCylinders?: number[]) => {
     setMaintDialog({
       open: true,
@@ -282,6 +362,9 @@ export default function EquipmentDetailPage() {
       preSelectedCylinders: preSelectedCylinders || [],
     });
   };
+
+  // Determine default tab
+  const defaultTab = cylByType.length > 0 ? cylByType[0].type : subCompByType.length > 0 ? subCompByType[0].type : 'oil';
 
   return (
     <AppLayout>
@@ -368,49 +451,51 @@ export default function EquipmentDetailPage() {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Em dia</p>
-                <p className="text-2xl font-bold">{okPlans.length}</p>
+                <p className="text-2xl font-bold">{statusCounts.ok}</p>
               </div>
             </CardContent>
           </Card>
-          <Card className={warningPlans.length > 0 ? 'border-[hsl(var(--status-warning))]/30 bg-[hsl(var(--status-warning-muted))]' : ''}>
+          <Card className={statusCounts.warning > 0 ? 'border-[hsl(var(--status-warning))]/30 bg-[hsl(var(--status-warning-muted))]' : ''}>
             <CardContent className="p-5 flex items-center gap-4">
               <div className="h-10 w-10 rounded-lg bg-[hsl(var(--status-warning))]/10 flex items-center justify-center">
                 <AlertTriangle className="h-5 w-5 text-[hsl(var(--status-warning))]" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Atenção</p>
-                <p className="text-2xl font-bold">{warningPlans.length}</p>
+                <p className="text-2xl font-bold">{statusCounts.warning}</p>
               </div>
             </CardContent>
           </Card>
-          <Card className={criticalPlans.length > 0 ? 'border-[hsl(var(--status-critical))]/30 bg-[hsl(var(--status-critical-muted))]' : ''}>
+          <Card className={statusCounts.critical > 0 ? 'border-[hsl(var(--status-critical))]/30 bg-[hsl(var(--status-critical-muted))]' : ''}>
             <CardContent className="p-5 flex items-center gap-4">
               <div className="h-10 w-10 rounded-lg bg-[hsl(var(--status-critical))]/10 flex items-center justify-center">
                 <XCircle className="h-5 w-5 text-[hsl(var(--status-critical))]" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground font-medium">Vencidas</p>
-                <p className="text-2xl font-bold">{criticalPlans.length}</p>
+                <p className="text-2xl font-bold">{statusCounts.critical}</p>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue={cylByType.length > 0 ? cylByType[0].type : 'plans'}>
+        <Tabs defaultValue={defaultTab}>
           <TabsList className="flex-wrap h-auto gap-1">
+            {/* Cylinder component tabs */}
             {cylByType.map(group => {
-              // Get unique plans (tasks) for this component type
               const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
                 if (!acc.find(a => a.task === p.task)) acc.push(p);
                 return acc;
               }, []);
-              // Count cylinders by their worst status across all tasks
               let cylCritical = 0;
               let cylWarning = 0;
-              group.components.forEach(() => {
-                const worst = uniquePlans.some(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical') ? 'critical'
-                  : uniquePlans.some(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning') ? 'warning' : 'ok';
+              group.components.forEach(comp => {
+                const compUsage = equipment.total_horimeter - comp.horimeter_at_install;
+                const worst = uniquePlans.reduce((w, plan) => {
+                  const s = getStatus(compUsage, plan.interval_value);
+                  return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
+                }, 'ok' as string);
                 if (worst === 'critical') cylCritical++;
                 else if (worst === 'warning') cylWarning++;
               });
@@ -430,10 +515,12 @@ export default function EquipmentDetailPage() {
                 </TabsTrigger>
               );
             })}
+
+            {/* Oil tab */}
             {(() => {
               const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
-              const oilCritical = oilPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical').length;
-              const oilWarning = oilPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning').length;
+              const oilCritical = oilPlans.filter(p => getStatus(equipment.total_horimeter - p.last_execution_value, p.interval_value) === 'critical').length;
+              const oilWarning = oilPlans.filter(p => getStatus(equipment.total_horimeter - p.last_execution_value, p.interval_value) === 'warning').length;
               return (
                 <TabsTrigger value="oil" className="relative gap-1.5">
                   <Droplets className="h-3.5 w-3.5" />
@@ -451,45 +538,64 @@ export default function EquipmentDetailPage() {
                 </TabsTrigger>
               );
             })()}
+
+            {/* Cylinder Heads tab */}
             <TabsTrigger value="cylinder_heads" className="gap-1.5">
               <Cog className="h-3.5 w-3.5" />
               Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
             </TabsTrigger>
+
+            {/* Turbos tab */}
             <TabsTrigger value="turbos" className="gap-1.5">
               <Wind className="h-3.5 w-3.5" />
               Turbos {activeTurbos.length > 0 && `(${activeTurbos.length})`}
             </TabsTrigger>
-            {(() => {
-              const genCritical = uniqueNonCylPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'critical').length;
-              const genWarning = uniqueNonCylPlans.filter(p => getStatus(equipment.total_horimeter, p.last_execution_value, p.interval_value) === 'warning').length;
+
+            {/* Sub-component tabs */}
+            {subCompByType.map(group => {
+              const Icon = subComponentIcons[group.type] || Cog;
+              const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
+                if (!acc.find(a => a.task === p.task)) acc.push(p);
+                return acc;
+              }, []);
+              let scCritical = 0;
+              let scWarning = 0;
+              group.components.forEach(comp => {
+                const compUsage = equipment.total_horimeter - comp.horimeter;
+                const worst = uniquePlans.reduce((w, plan) => {
+                  const s = getStatus(compUsage, plan.interval_value);
+                  return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
+                }, 'ok' as string);
+                if (worst === 'critical') scCritical++;
+                else if (worst === 'warning') scWarning++;
+              });
               return (
-                <TabsTrigger value="plans" className="relative gap-1.5">
-                  Planos Gerais
-                  {genCritical > 0 && (
+                <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
+                  <Icon className="h-3.5 w-3.5" />
+                  {group.label} {group.components.length > 1 && `(${group.components.length})`}
+                  {scCritical > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
-                      {genCritical}
+                      {scCritical}
                     </span>
                   )}
-                  {genCritical === 0 && genWarning > 0 && (
+                  {scCritical === 0 && scWarning > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
-                      {genWarning}
+                      {scWarning}
                     </span>
                   )}
                 </TabsTrigger>
               );
-            })()}
-            <TabsTrigger value="history">Histórico</TabsTrigger>
+            })}
           </TabsList>
 
           {/* One tab per cylinder component type */}
           {cylByType.map(group => {
-            const plans = group.plans;
-            // Get unique tasks from plans
-            const uniquePlans = plans.reduce<MaintenancePlan[]>((acc, p) => {
+            const groupPlans = group.plans;
+            const uniquePlans = groupPlans.reduce<MaintenancePlan[]>((acc, p) => {
               if (!acc.find(a => a.task === p.task)) acc.push(p);
               return acc;
             }, []);
-            const mainPlan = plans[0]; // for interval display
+            const mainPlan = groupPlans[0];
             return (
               <TabsContent key={group.type} value={group.type} className="mt-4">
                 <div className="flex items-center justify-between mb-3">
@@ -506,15 +612,13 @@ export default function EquipmentDetailPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
-                    const usage = equipment.total_horimeter - comp.horimeter_at_install;
+                    const compUsage = equipment.total_horimeter - comp.horimeter_at_install;
 
-                    // Per-plan status for this cylinder (using plan's last_execution_value)
+                    // Per-plan status for this cylinder using component's own horimeter
                     const taskStatuses = uniquePlans.map(plan => {
-                      const lastExec = plan.last_execution_value;
-                      const st = getStatus(equipment.total_horimeter, lastExec, plan.interval_value);
-                      const pct = getPercent(equipment.total_horimeter, lastExec, plan.interval_value);
-                      const usageHours = equipment.total_horimeter - lastExec;
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage: usageHours };
+                      const st = getStatus(compUsage, plan.interval_value);
+                      const pct = getPercent(compUsage, plan.interval_value);
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage: compUsage };
                     });
 
                     // Overall status = worst of all tasks
@@ -554,16 +658,17 @@ export default function EquipmentDetailPage() {
                             </div>
                             <div className="flex justify-between">
                               <span>Uso:</span>
-                              <span className="font-mono">{fmtNum(usage)}h</span>
+                              <span className="font-mono">{fmtNum(compUsage)}h</span>
                             </div>
                           </div>
 
-                          {/* Per-plan status (service type based) */}
+                          {/* Per-plan status */}
                           {taskStatuses.length > 0 && (
                             <div className="space-y-1.5 mb-2">
                               {taskStatuses.map((ts, i) => (
                                 <div key={i} className="space-y-0.5">
                                   <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">{ts.task}</span>
                                     <span className={
                                       ts.status === 'critical' ? 'text-[hsl(var(--status-critical))] font-semibold' :
                                       ts.status === 'warning' ? 'text-[hsl(var(--status-warning))] font-semibold' :
@@ -692,98 +797,98 @@ export default function EquipmentDetailPage() {
             )}
           </TabsContent>
 
-          {/* General Plans Tab */}
-          <TabsContent value="plans" className="mt-4">
-            {uniqueNonCylPlans.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  Nenhum plano de manutenção geral cadastrado.
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-3">
-                {uniqueNonCylPlans.map(plan => {
-                  const status = getStatus(equipment.total_horimeter, plan.last_execution_value, plan.interval_value);
-                  const percent = getPercent(equipment.total_horimeter, plan.last_execution_value, plan.interval_value);
-                  const usage = equipment.total_horimeter - plan.last_execution_value;
-                  return (
-                    <Card key={plan.id} className={
-                      status === 'critical' ? 'border-[hsl(var(--status-critical))]/30' :
-                      status === 'warning' ? 'border-[hsl(var(--status-warning))]/30' : ''
-                    }>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <Wrench className="h-4 w-4 text-muted-foreground" />
-                            <span className="font-semibold text-sm">{componentTypeLabels[plan.component_type] || plan.component_type}</span>
-                            <span className="text-xs text-muted-foreground">— {plan.task}</span>
-                          </div>
-                          <Badge
-                            variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
-                            className={
-                              status === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
-                              status === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
-                            }
-                          >
-                            {status === 'ok' ? 'Em dia' : status === 'warning' ? 'Atenção' : 'Vencida'}
-                          </Badge>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Progress value={percent} className="flex-1 h-2" />
-                          <span className="text-xs font-mono text-muted-foreground w-32 text-right">
-                            {fmtNum(usage)}/{fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase() || plan.trigger_type}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
+          {/* Sub-component tabs */}
+          {subCompByType.map(group => {
+            const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
+              if (!acc.find(a => a.task === p.task)) acc.push(p);
+              return acc;
+            }, []);
+            const Icon = subComponentIcons[group.type] || Cog;
+            return (
+              <TabsContent key={group.type} value={group.type} className="mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                  {group.components.map(comp => {
+                    const compUsage = equipment.total_horimeter - comp.horimeter;
 
-          {/* History Tab */}
-          <TabsContent value="history" className="mt-4">
-            {equipmentLogs.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  Nenhuma manutenção registrada.
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Horímetro</TableHead>
-                      <TableHead>Itens Usados</TableHead>
-                      <TableHead>Notas</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {equipmentLogs.map((log: any) => {
-                      const items = allLogItems.filter((i: any) => i.maintenance_log_id === log.id);
-                      return (
-                        <TableRow key={log.id}>
-                          <TableCell className="font-mono text-xs">{format(new Date(log.service_date), 'dd/MM/yyyy')}</TableCell>
-                          <TableCell>{maintenanceTypeLabels[log.maintenance_type] || log.maintenance_type}</TableCell>
-                          <TableCell className="font-mono">{fmtNum(log.horimeter_at_service)}h</TableCell>
-                          <TableCell className="text-xs">
-                            {items.length > 0
-                              ? items.map((i: any) => `${i.inventory_item_name} (${i.quantity})`).join(', ')
-                              : '—'}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">{log.notes || '—'}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </Card>
-            )}
-          </TabsContent>
+                    const taskStatuses = uniquePlans.map(plan => {
+                      const st = getStatus(compUsage, plan.interval_value);
+                      const pct = getPercent(compUsage, plan.interval_value);
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage: compUsage };
+                    });
+
+                    const overallStatus = taskStatuses.some(t => t.status === 'critical') ? 'critical'
+                      : taskStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
+
+                    return (
+                      <Card
+                        key={comp.id}
+                        className={
+                          overallStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+                          overallStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+                        }
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Icon className="h-4 w-4 text-muted-foreground" />
+                              <span className="font-semibold text-sm">{comp.serial_number || group.label}</span>
+                            </div>
+                            <Badge
+                              variant={overallStatus === 'critical' ? 'destructive' : overallStatus === 'warning' ? 'secondary' : 'default'}
+                              className={
+                                overallStatus === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
+                                overallStatus === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
+                              }
+                            >
+                              {overallStatus === 'ok' ? 'Em dia' : overallStatus === 'warning' ? 'Atenção' : 'Vencida'}
+                            </Badge>
+                          </div>
+                          <div className="text-xs text-muted-foreground space-y-1 mb-2">
+                            <div className="flex justify-between">
+                              <span>Horímetro instalação:</span>
+                              <span className="font-mono">{fmtNum(comp.horimeter)}h</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Uso:</span>
+                              <span className="font-mono">{fmtNum(compUsage)}h</span>
+                            </div>
+                          </div>
+
+                          {taskStatuses.length > 0 && (
+                            <div className="space-y-1.5">
+                              {taskStatuses.map((ts, i) => (
+                                <div key={i} className="space-y-0.5">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-muted-foreground">{ts.task}</span>
+                                    <span className={
+                                      ts.status === 'critical' ? 'text-[hsl(var(--status-critical))] font-semibold' :
+                                      ts.status === 'warning' ? 'text-[hsl(var(--status-warning))] font-semibold' :
+                                      'text-[hsl(var(--status-ok))]'
+                                    }>
+                                      {ts.status === 'ok' ? 'Em dia' : ts.status === 'warning' ? 'Atenção' : 'Vencida'}
+                                    </span>
+                                  </div>
+                                  <Progress value={ts.percent} className="h-1" />
+                                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                                    <span className="font-mono">{fmtNum(ts.usage)}h / {fmtNum(ts.interval)}h</span>
+                                    <span className="font-mono">{ts.percent}%</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {taskStatuses.length === 0 && (
+                            <p className="text-xs text-muted-foreground italic">Sem plano de manutenção vinculado</p>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              </TabsContent>
+            );
+          })}
         </Tabs>
       </div>
 
