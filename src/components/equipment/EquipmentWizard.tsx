@@ -28,6 +28,8 @@ interface BasicData {
   fuel_type: string;
   installation_date: Date | undefined;
   oil_type_id: string;
+  manufacturer_id: string;
+  model_id: string;
   maintenance_plan_template_id: string;
 }
 
@@ -67,7 +69,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
 
   const [step, setStep] = useState(0);
   const [basic, setBasic] = useState<BasicData>({
-    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', maintenance_plan_template_id: '',
+    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '',
   });
 
   const emptySubComp = (): SubComponentData => ({
@@ -101,7 +103,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
 
   const reset = () => {
     setStep(0);
-    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', maintenance_plan_template_id: '' });
+    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '' });
     setTurbine(emptySubComp()); setIntercooler(emptySubComp()); setOilExchanger(emptySubComp());
     setBlowby(emptyMultiComp()); setDamper(emptyMultiComp()); setStarterMotor(emptyMultiComp()); setBattery(emptyMultiComp());
   };
@@ -224,6 +226,8 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
           cylinders: basic.cylinders, fuel_type: basic.fuel_type,
           installation_date: basic.installation_date ? format(basic.installation_date, 'yyyy-MM-dd') : null,
           oil_type_id: basic.oil_type_id || null,
+          manufacturer_id: basic.manufacturer_id || null,
+          model_id: basic.model_id || null,
         },
         subComponents,
       });
@@ -245,6 +249,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
 
   const getFilteredModels = (manufacturerId: string) => models.filter(m => m.manufacturer_id === manufacturerId);
   const filteredModels = getFilteredModels(turbine.manufacturer_id);
+  const filteredEquipModels = getFilteredModels(basic.manufacturer_id);
   const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
   const allPlanTemplates = planTemplates.data ?? [];
 
@@ -292,6 +297,40 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
         <div className="col-span-2">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Nome do Gerador *</Label>
           <Input className="mt-1" value={basic.name} onChange={e => setBasic(p => ({ ...p, name: e.target.value }))} placeholder="Ex: Gerador A1" />
+        </div>
+        <div>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fabricante</Label>
+          <div className="flex gap-2 mt-1">
+            <Select value={basic.manufacturer_id} onValueChange={v => setBasic(p => ({ ...p, manufacturer_id: v, model_id: '' }))}>
+              <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+              <SelectContent>
+                {manufacturers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-1">
+              <Input className="w-24" placeholder="Novo..." value={newManufName} onChange={e => setNewManufName(e.target.value)} />
+              <Button size="icon" variant="outline" onClick={() => handleAddManufacturer((id) => setBasic(p => ({ ...p, manufacturer_id: id })))} disabled={addingManuf}>
+                {addingManuf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Modelo</Label>
+          <div className="flex gap-2 mt-1">
+            <Select value={basic.model_id} onValueChange={v => setBasic(p => ({ ...p, model_id: v }))} disabled={!basic.manufacturer_id}>
+              <SelectTrigger className="flex-1"><SelectValue placeholder={basic.manufacturer_id ? 'Selecione...' : 'Selecione o fabricante primeiro'} /></SelectTrigger>
+              <SelectContent>
+                {filteredEquipModels.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-1">
+              <Input className="w-24" placeholder="Novo..." value={newModelName} onChange={e => setNewModelName(e.target.value)} disabled={!basic.manufacturer_id} />
+              <Button size="icon" variant="outline" onClick={() => handleAddModel(basic.manufacturer_id, (id) => setBasic(p => ({ ...p, model_id: id })))} disabled={addingModel || !basic.manufacturer_id}>
+                {addingModel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
         </div>
         <div>
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Número de Série</Label>
@@ -357,7 +396,9 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
             <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione um plano..." /></SelectTrigger>
             <SelectContent>
               <SelectItem value="_none">Nenhum</SelectItem>
-              {allPlanTemplates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+              {allPlanTemplates
+                .filter(t => !basic.manufacturer_id || !basic.model_id || (t.manufacturer_id === basic.manufacturer_id && t.model_id === basic.model_id))
+                .map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-1">Vincule um modelo de plano de manutenção preventiva</p>

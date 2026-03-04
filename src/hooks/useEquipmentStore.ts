@@ -12,6 +12,8 @@ export interface Equipment {
   fuel_type: string;
   installation_date: string | null;
   oil_type_id: string | null;
+  manufacturer_id: string | null;
+  model_id: string | null;
   created_at: string;
 }
 
@@ -113,6 +115,8 @@ export function useEquipmentStore() {
           fuel_type: data.equipment.fuel_type,
           installation_date: data.equipment.installation_date,
           oil_type_id: data.equipment.oil_type_id,
+          manufacturer_id: data.equipment.manufacturer_id,
+          model_id: data.equipment.model_id,
         })
         .select()
         .single();
