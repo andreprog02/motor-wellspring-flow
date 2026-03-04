@@ -363,6 +363,8 @@ export type Database = {
           id: string
           installation_date: string | null
           maintenance_plan_template_id: string | null
+          manufacturer_id: string | null
+          model_id: string | null
           name: string
           oil_type_id: string | null
           serial_number: string
@@ -377,6 +379,8 @@ export type Database = {
           id?: string
           installation_date?: string | null
           maintenance_plan_template_id?: string | null
+          manufacturer_id?: string | null
+          model_id?: string | null
           name: string
           oil_type_id?: string | null
           serial_number?: string
@@ -391,6 +395,8 @@ export type Database = {
           id?: string
           installation_date?: string | null
           maintenance_plan_template_id?: string | null
+          manufacturer_id?: string | null
+          model_id?: string | null
           name?: string
           oil_type_id?: string | null
           serial_number?: string
@@ -403,6 +409,20 @@ export type Database = {
             columns: ["maintenance_plan_template_id"]
             isOneToOne: false
             referencedRelation: "maintenance_plan_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipments_manufacturer_id_fkey"
+            columns: ["manufacturer_id"]
+            isOneToOne: false
+            referencedRelation: "component_manufacturers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipments_model_id_fkey"
+            columns: ["model_id"]
+            isOneToOne: false
+            referencedRelation: "component_models"
             referencedColumns: ["id"]
           },
           {
