@@ -228,6 +228,7 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
           oil_type_id: basic.oil_type_id || null,
           manufacturer_id: basic.manufacturer_id || null,
           model_id: basic.model_id || null,
+          maintenance_plan_template_id: null,
         },
         subComponents,
       });

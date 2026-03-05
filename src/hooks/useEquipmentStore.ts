@@ -14,6 +14,7 @@ export interface Equipment {
   oil_type_id: string | null;
   manufacturer_id: string | null;
   model_id: string | null;
+  maintenance_plan_template_id: string | null;
   created_at: string;
 }
 
