@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useMaintenancePlanTemplates, MaintenancePlanTemplate, MaintenancePlanTemplateTask } from '@/hooks/useMaintenancePlanTemplates';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FileText, Factory, Box, FolderOpen, Folder } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FileText, Factory, Box, FolderOpen, Folder, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const COMPONENT_TYPES = [
@@ -49,13 +52,88 @@ const TRIGGER_TYPES = [
 
 export default function MaintenancePlansPage() {
   const { templates, templateTasks, addTemplate, updateTemplate, deleteTemplate, addTask, deleteTask } = useMaintenancePlanTemplates();
-  const { componentManufacturers, componentModels } = useEquipmentStore();
+  const { componentManufacturers, componentModels, equipments } = useEquipmentStore();
   const { toast } = useToast();
 
   const manufacturers = componentManufacturers.data ?? [];
   const models = componentModels.data ?? [];
   const allTemplates = templates.data ?? [];
   const allTasks = templateTasks.data ?? [];
+  const allEquipments = equipments.data ?? [];
+
+  // Fetch active component_maintenance_plans
+  const activePlans = useQuery({
+    queryKey: ['component_maintenance_plans_all'],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('component_maintenance_plans')
+        .select('*');
+      if (error) throw error;
+      return data as Array<{
+        id: string;
+        equipment_id: string;
+        component_type: string;
+        task: string;
+        trigger_type: string;
+        interval_value: number;
+        last_execution_value: number;
+      }>;
+    },
+  });
+
+  const allActivePlans = activePlans.data ?? [];
+
+  // Helper: get status for a plan on an equipment
+  const getStatus = (equipmentHorimeter: number, lastExecution: number, interval: number) => {
+    if (interval <= 0) return 'ok';
+    const usage = equipmentHorimeter - lastExecution;
+    const ratio = usage / interval;
+    if (ratio >= 1) return 'critical';
+    if (ratio >= 0.9) return 'warning';
+    return 'ok';
+  };
+
+  const getPercent = (equipmentHorimeter: number, lastExecution: number, interval: number) => {
+    if (interval <= 0) return 0;
+    const usage = equipmentHorimeter - lastExecution;
+    return Math.min(Math.round((usage / interval) * 100), 100);
+  };
+
+  // For a template, get status summary across all linked equipments
+  const getTemplateStatus = (templateId: string) => {
+    const linkedEquipments = allEquipments.filter(e => e.maintenance_plan_template_id === templateId);
+    let ok = 0, warning = 0, critical = 0;
+    for (const eq of linkedEquipments) {
+      const eqPlans = allActivePlans.filter(p => p.equipment_id === eq.id);
+      for (const p of eqPlans) {
+        const s = getStatus(eq.total_horimeter, p.last_execution_value, p.interval_value);
+        if (s === 'critical') critical++;
+        else if (s === 'warning') warning++;
+        else ok++;
+      }
+    }
+    return { ok, warning, critical, total: ok + warning + critical, equipmentCount: linkedEquipments.length };
+  };
+
+  // For a specific task across all linked equipments
+  const getTaskStatus = (templateId: string, componentType: string, task: string) => {
+    const linkedEquipments = allEquipments.filter(e => e.maintenance_plan_template_id === templateId);
+    const results: Array<{ equipmentName: string; status: string; percent: number; usage: number; interval: number }> = [];
+    for (const eq of linkedEquipments) {
+      const matchingPlan = allActivePlans.find(p =>
+        p.equipment_id === eq.id && p.component_type === componentType && p.task === task
+      );
+      if (matchingPlan) {
+        const s = getStatus(eq.total_horimeter, matchingPlan.last_execution_value, matchingPlan.interval_value);
+        const pct = getPercent(eq.total_horimeter, matchingPlan.last_execution_value, matchingPlan.interval_value);
+        const usage = eq.total_horimeter - matchingPlan.last_execution_value;
+        results.push({ equipmentName: eq.name, status: s, percent: pct, usage, interval: matchingPlan.interval_value });
+      }
+    }
+    return results;
+  };
+
+  const fmtNum = (n: number) => n.toLocaleString('pt-BR');
 
   // Template dialog
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
@@ -176,8 +254,14 @@ export default function MaintenancePlansPage() {
   const renderPlanCard = (template: MaintenancePlanTemplate) => {
     const tasks = allTasks.filter(t => t.template_id === template.id);
     const isExpanded = expandedPlans.has(template.id);
+    const templateStatus = getTemplateStatus(template.id);
+    const worstStatus = templateStatus.critical > 0 ? 'critical' : templateStatus.warning > 0 ? 'warning' : 'ok';
+
     return (
-      <div key={template.id} className="border rounded-lg bg-card ml-8">
+      <div key={template.id} className={`border rounded-lg bg-card ml-8 ${
+        worstStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+        worstStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+      }`}>
         <div className="flex items-center justify-between p-3 cursor-pointer" onClick={() => toggle(expandedPlans, template.id, setExpandedPlans)}>
           <div className="flex items-center gap-2">
             {isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
@@ -186,7 +270,27 @@ export default function MaintenancePlansPage() {
             {template.description && <span className="text-xs text-muted-foreground ml-2">— {template.description}</span>}
           </div>
           <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+            {templateStatus.equipmentCount > 0 && (
+              <div className="flex items-center gap-1.5 mr-2">
+                {templateStatus.ok > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[hsl(var(--status-ok))]">
+                    <CheckCircle2 className="h-3 w-3" />{templateStatus.ok}
+                  </span>
+                )}
+                {templateStatus.warning > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[hsl(var(--status-warning))]">
+                    <AlertTriangle className="h-3 w-3" />{templateStatus.warning}
+                  </span>
+                )}
+                {templateStatus.critical > 0 && (
+                  <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-[hsl(var(--status-critical))]">
+                    <XCircle className="h-3 w-3" />{templateStatus.critical}
+                  </span>
+                )}
+              </div>
+            )}
             <Badge variant="secondary">{tasks.length} {tasks.length === 1 ? 'tarefa' : 'tarefas'}</Badge>
+            <Badge variant="outline">{templateStatus.equipmentCount} {templateStatus.equipmentCount === 1 ? 'equip.' : 'equips.'}</Badge>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditTemplate(template)}><Pencil className="h-3.5 w-3.5" /></Button>
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTemplate(template.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
           </div>
@@ -201,23 +305,50 @@ export default function MaintenancePlansPage() {
                     <TableHead>Serviço</TableHead>
                     <TableHead>Periodicidade</TableHead>
                     <TableHead>Intervalo</TableHead>
+                    <TableHead>Status por Equipamento</TableHead>
                     <TableHead className="w-12">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tasks.length === 0 ? (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">Nenhuma tarefa adicionada.</TableCell></TableRow>
-                  ) : tasks.map(task => (
-                    <TableRow key={task.id}>
-                      <TableCell><Badge variant="outline">{componentLabel(task.component_type)}</Badge></TableCell>
-                      <TableCell>{task.task}</TableCell>
-                      <TableCell>{triggerLabel(task.trigger_type)}</TableCell>
-                      <TableCell>{task.interval_value}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTask(task.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-4">Nenhuma tarefa adicionada.</TableCell></TableRow>
+                  ) : tasks.map(task => {
+                    const taskResults = getTaskStatus(template.id, task.component_type, task.task);
+                    return (
+                      <TableRow key={task.id}>
+                        <TableCell><Badge variant="outline">{componentLabel(task.component_type)}</Badge></TableCell>
+                        <TableCell>{task.task}</TableCell>
+                        <TableCell>{triggerLabel(task.trigger_type)}</TableCell>
+                        <TableCell>{fmtNum(task.interval_value)}</TableCell>
+                        <TableCell>
+                          {taskResults.length === 0 ? (
+                            <span className="text-xs text-muted-foreground">Nenhum equip. vinculado</span>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {taskResults.map((r, i) => (
+                                <div key={i} className="space-y-0.5">
+                                  <div className="flex items-center justify-between text-xs gap-2">
+                                    <span className="truncate max-w-[120px]">{r.equipmentName}</span>
+                                    <span className={
+                                      r.status === 'critical' ? 'text-[hsl(var(--status-critical))] font-semibold whitespace-nowrap' :
+                                      r.status === 'warning' ? 'text-[hsl(var(--status-warning))] font-semibold whitespace-nowrap' :
+                                      'text-[hsl(var(--status-ok))] whitespace-nowrap'
+                                    }>
+                                      {fmtNum(r.usage)}h / {fmtNum(r.interval)}h ({r.percent}%)
+                                    </span>
+                                  </div>
+                                  <Progress value={r.percent} className="h-1" />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTask(task.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
