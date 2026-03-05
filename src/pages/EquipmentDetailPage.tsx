@@ -301,21 +301,26 @@ export default function EquipmentDetailPage() {
   }));
 
   // Calculate status counts across ALL component types
+  // Helper: get worst status for a component across its plans
+  const getWorstStatusFromPlans = (plans: MaintenancePlan[]) => {
+    const uniquePlans = plans.reduce<MaintenancePlan[]>((acc, p) => {
+      if (!acc.find(a => a.task === p.task)) acc.push(p);
+      return acc;
+    }, []);
+    return uniquePlans.reduce((w, plan) => {
+      const usage = equipment.total_horimeter - plan.last_execution_value;
+      const s = getStatus(usage, plan.interval_value);
+      return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
+    }, 'ok' as string);
+  };
+
   const getAllComponentStatuses = () => {
     let ok = 0, warning = 0, critical = 0;
 
     // Cylinder components
     cylByType.forEach(group => {
-      const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
-        if (!acc.find(a => a.task === p.task)) acc.push(p);
-        return acc;
-      }, []);
-      group.components.forEach(comp => {
-        const compUsage = equipment.total_horimeter - comp.horimeter_at_install;
-        const worst = uniquePlans.reduce((w, plan) => {
-          const s = getStatus(compUsage, plan.interval_value);
-          return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
-        }, 'ok' as string);
+      group.components.forEach(() => {
+        const worst = getWorstStatusFromPlans(group.plans);
         if (worst === 'critical') critical++;
         else if (worst === 'warning') warning++;
         else ok++;
@@ -324,16 +329,8 @@ export default function EquipmentDetailPage() {
 
     // Sub-components
     subCompByType.forEach(group => {
-      const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
-        if (!acc.find(a => a.task === p.task)) acc.push(p);
-        return acc;
-      }, []);
-      group.components.forEach(comp => {
-        const compUsage = equipment.total_horimeter - comp.horimeter;
-        const worst = uniquePlans.reduce((w, plan) => {
-          const s = getStatus(compUsage, plan.interval_value);
-          return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
-        }, 'ok' as string);
+      group.components.forEach(() => {
+        const worst = getWorstStatusFromPlans(group.plans);
         if (worst === 'critical') critical++;
         else if (worst === 'warning') warning++;
         else ok++;
@@ -484,18 +481,10 @@ export default function EquipmentDetailPage() {
           <TabsList className="flex-wrap h-auto gap-1">
             {/* Cylinder component tabs */}
             {cylByType.map(group => {
-              const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
-                if (!acc.find(a => a.task === p.task)) acc.push(p);
-                return acc;
-              }, []);
               let cylCritical = 0;
               let cylWarning = 0;
-              group.components.forEach(comp => {
-                const compUsage = equipment.total_horimeter - comp.horimeter_at_install;
-                const worst = uniquePlans.reduce((w, plan) => {
-                  const s = getStatus(compUsage, plan.interval_value);
-                  return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
-                }, 'ok' as string);
+              group.components.forEach(() => {
+                const worst = getWorstStatusFromPlans(group.plans);
                 if (worst === 'critical') cylCritical++;
                 else if (worst === 'warning') cylWarning++;
               });
@@ -554,18 +543,10 @@ export default function EquipmentDetailPage() {
             {/* Sub-component tabs */}
             {subCompByType.map(group => {
               const Icon = subComponentIcons[group.type] || Cog;
-              const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
-                if (!acc.find(a => a.task === p.task)) acc.push(p);
-                return acc;
-              }, []);
               let scCritical = 0;
               let scWarning = 0;
-              group.components.forEach(comp => {
-                const compUsage = equipment.total_horimeter - comp.horimeter;
-                const worst = uniquePlans.reduce((w, plan) => {
-                  const s = getStatus(compUsage, plan.interval_value);
-                  return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
-                }, 'ok' as string);
+              group.components.forEach(() => {
+                const worst = getWorstStatusFromPlans(group.plans);
                 if (worst === 'critical') scCritical++;
                 else if (worst === 'warning') scWarning++;
               });
@@ -612,13 +593,12 @@ export default function EquipmentDetailPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
-                    const compUsage = equipment.total_horimeter - comp.horimeter_at_install;
-
-                    // Per-plan status for this cylinder using component's own horimeter
+                    // Per-plan status using plan's last_execution_value
                     const taskStatuses = uniquePlans.map(plan => {
-                      const st = getStatus(compUsage, plan.interval_value);
-                      const pct = getPercent(compUsage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage: compUsage };
+                      const usage = equipment.total_horimeter - plan.last_execution_value;
+                      const st = getStatus(usage, plan.interval_value);
+                      const pct = getPercent(usage, plan.interval_value);
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage };
                     });
 
                     // Overall status = worst of all tasks
@@ -657,8 +637,8 @@ export default function EquipmentDetailPage() {
                               <span className="font-mono">{fmtNum(comp.horimeter_at_install)}h</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Uso:</span>
-                              <span className="font-mono">{fmtNum(compUsage)}h</span>
+                              <span>Última exec.:</span>
+                              <span className="font-mono">{uniquePlans.length > 0 ? fmtNum(uniquePlans[0].last_execution_value) : fmtNum(comp.horimeter_at_install)}h</span>
                             </div>
                           </div>
 
@@ -808,12 +788,11 @@ export default function EquipmentDetailPage() {
               <TabsContent key={group.type} value={group.type} className="mt-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
-                    const compUsage = equipment.total_horimeter - comp.horimeter;
-
                     const taskStatuses = uniquePlans.map(plan => {
-                      const st = getStatus(compUsage, plan.interval_value);
-                      const pct = getPercent(compUsage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage: compUsage };
+                      const usage = equipment.total_horimeter - plan.last_execution_value;
+                      const st = getStatus(usage, plan.interval_value);
+                      const pct = getPercent(usage, plan.interval_value);
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage };
                     });
 
                     const overallStatus = taskStatuses.some(t => t.status === 'critical') ? 'critical'
@@ -849,8 +828,8 @@ export default function EquipmentDetailPage() {
                               <span className="font-mono">{fmtNum(comp.horimeter)}h</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Uso:</span>
-                              <span className="font-mono">{fmtNum(compUsage)}h</span>
+                              <span>Última exec.:</span>
+                              <span className="font-mono">{uniquePlans.length > 0 ? fmtNum(uniquePlans[0].last_execution_value) : fmtNum(comp.horimeter)}h</span>
                             </div>
                           </div>
 
