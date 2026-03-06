@@ -113,6 +113,7 @@ export default function EquipmentDetailPage() {
   const navigate = useNavigate();
   const { equipments, oilTypes } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
+  const planTemplates = useMaintenancePlanTemplates();
 
   const turboStore = useTurboStore();
   const chStore = useCylinderHeadStore();
