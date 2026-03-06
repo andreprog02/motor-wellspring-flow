@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
+import { useMaintenancePlanTemplates } from '@/hooks/useMaintenancePlanTemplates';
 import { useCylinderHeadStore, cylinderHeadStatusLabels } from '@/hooks/useCylinderHeadStore';
 import { useTurboStore, turboStatusLabels } from '@/hooks/useTurboStore';
 import type { TurboMetrics } from '@/hooks/useTurboStore';
