@@ -270,6 +270,22 @@ export default function EquipmentDetailPage() {
     }
   };
 
+  // Link plan to equipment
+  const allTemplates = planTemplates.templates.data || [];
+  const currentTemplateName = allTemplates.find(t => t.id === equipment.maintenance_plan_template_id)?.name;
+
+  const handleLinkPlan = async () => {
+    if (!selectedTemplateId || !id) return;
+    try {
+      await planTemplates.applyTemplateToEquipment(selectedTemplateId, id, equipment.total_horimeter);
+      toast.success('Plano de manutenção vinculado com sucesso!');
+      setSelectedTemplateId('');
+      setLinkPlanOpen(false);
+    } catch {
+      toast.error('Erro ao vincular plano.');
+    }
+  };
+
   // Get ALL plans for a specific component type
   const getPlansForType = (type: string) => allPlans.filter(p => p.component_type === type);
 
