@@ -986,6 +986,42 @@ export default function EquipmentDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Link Maintenance Plan Dialog */}
+      <Dialog open={linkPlanOpen} onOpenChange={setLinkPlanOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular Plano de Manutenção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione um plano de manutenção para aplicar a este equipamento. 
+              {equipment.maintenance_plan_template_id && ' O plano atual será substituído.'}
+            </p>
+            <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar plano..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allTemplates.map(t => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name} {t.description && `— ${t.description}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O horímetro atual (<span className="font-mono font-medium">{fmtNum(equipment.total_horimeter)}h</span>) será usado como referência inicial para todas as tarefas do plano.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkPlanOpen(false)}>Cancelar</Button>
+            <Button onClick={handleLinkPlan} disabled={!selectedTemplateId}>
+              Vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
