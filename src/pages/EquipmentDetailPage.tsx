@@ -320,20 +320,20 @@ export default function EquipmentDetailPage() {
   const getAllComponentStatuses = () => {
     let ok = 0, warning = 0, critical = 0;
 
-    // Cylinder components
+    // Cylinder components - use each component's horimeter_at_install
     cylByType.forEach(group => {
-      group.components.forEach(() => {
-        const worst = getWorstStatusFromPlans(group.plans);
+      group.components.forEach(comp => {
+        const worst = getWorstStatusFromPlans(group.plans, comp.horimeter_at_install);
         if (worst === 'critical') critical++;
         else if (worst === 'warning') warning++;
         else ok++;
       });
     });
 
-    // Sub-components
+    // Sub-components - use each component's horimeter
     subCompByType.forEach(group => {
-      group.components.forEach(() => {
-        const worst = getWorstStatusFromPlans(group.plans);
+      group.components.forEach(comp => {
+        const worst = getWorstStatusFromPlans(group.plans, comp.horimeter);
         if (worst === 'critical') critical++;
         else if (worst === 'warning') warning++;
         else ok++;
