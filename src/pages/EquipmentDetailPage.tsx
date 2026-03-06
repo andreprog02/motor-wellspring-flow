@@ -301,14 +301,17 @@ export default function EquipmentDetailPage() {
   }));
 
   // Calculate status counts across ALL component types
-  // Helper: get worst status for a component across its plans
-  const getWorstStatusFromPlans = (plans: MaintenancePlan[]) => {
+  // Helper: get worst status for a component across its plans, considering component install horimeter
+  const getWorstStatusFromPlans = (plans: MaintenancePlan[], compInstallHorimeter?: number) => {
     const uniquePlans = plans.reduce<MaintenancePlan[]>((acc, p) => {
       if (!acc.find(a => a.task === p.task)) acc.push(p);
       return acc;
     }, []);
     return uniquePlans.reduce((w, plan) => {
-      const usage = equipment.total_horimeter - plan.last_execution_value;
+      const baseline = compInstallHorimeter !== undefined
+        ? Math.max(compInstallHorimeter, plan.last_execution_value)
+        : plan.last_execution_value;
+      const usage = equipment.total_horimeter - baseline;
       const s = getStatus(usage, plan.interval_value);
       return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
     }, 'ok' as string);
