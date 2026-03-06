@@ -301,14 +301,17 @@ export default function EquipmentDetailPage() {
   }));
 
   // Calculate status counts across ALL component types
-  // Helper: get worst status for a component across its plans
-  const getWorstStatusFromPlans = (plans: MaintenancePlan[]) => {
+  // Helper: get worst status for a component across its plans, considering component install horimeter
+  const getWorstStatusFromPlans = (plans: MaintenancePlan[], compInstallHorimeter?: number) => {
     const uniquePlans = plans.reduce<MaintenancePlan[]>((acc, p) => {
       if (!acc.find(a => a.task === p.task)) acc.push(p);
       return acc;
     }, []);
     return uniquePlans.reduce((w, plan) => {
-      const usage = equipment.total_horimeter - plan.last_execution_value;
+      const baseline = compInstallHorimeter !== undefined
+        ? Math.max(compInstallHorimeter, plan.last_execution_value)
+        : plan.last_execution_value;
+      const usage = equipment.total_horimeter - baseline;
       const s = getStatus(usage, plan.interval_value);
       return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
     }, 'ok' as string);
@@ -317,20 +320,20 @@ export default function EquipmentDetailPage() {
   const getAllComponentStatuses = () => {
     let ok = 0, warning = 0, critical = 0;
 
-    // Cylinder components
+    // Cylinder components - use each component's horimeter_at_install
     cylByType.forEach(group => {
-      group.components.forEach(() => {
-        const worst = getWorstStatusFromPlans(group.plans);
+      group.components.forEach(comp => {
+        const worst = getWorstStatusFromPlans(group.plans, comp.horimeter_at_install);
         if (worst === 'critical') critical++;
         else if (worst === 'warning') warning++;
         else ok++;
       });
     });
 
-    // Sub-components
+    // Sub-components - use each component's horimeter
     subCompByType.forEach(group => {
-      group.components.forEach(() => {
-        const worst = getWorstStatusFromPlans(group.plans);
+      group.components.forEach(comp => {
+        const worst = getWorstStatusFromPlans(group.plans, comp.horimeter);
         if (worst === 'critical') critical++;
         else if (worst === 'warning') warning++;
         else ok++;
@@ -483,8 +486,8 @@ export default function EquipmentDetailPage() {
             {cylByType.map(group => {
               let cylCritical = 0;
               let cylWarning = 0;
-              group.components.forEach(() => {
-                const worst = getWorstStatusFromPlans(group.plans);
+              group.components.forEach(comp => {
+                const worst = getWorstStatusFromPlans(group.plans, comp.horimeter_at_install);
                 if (worst === 'critical') cylCritical++;
                 else if (worst === 'warning') cylWarning++;
               });
@@ -545,8 +548,8 @@ export default function EquipmentDetailPage() {
               const Icon = subComponentIcons[group.type] || Cog;
               let scCritical = 0;
               let scWarning = 0;
-              group.components.forEach(() => {
-                const worst = getWorstStatusFromPlans(group.plans);
+              group.components.forEach(comp => {
+                const worst = getWorstStatusFromPlans(group.plans, comp.horimeter);
                 if (worst === 'critical') scCritical++;
                 else if (worst === 'warning') scWarning++;
               });
@@ -593,12 +596,13 @@ export default function EquipmentDetailPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
-                    // Per-plan status using plan's last_execution_value
+                    // Per-plan status using max(component install, plan last execution) as baseline
                     const taskStatuses = uniquePlans.map(plan => {
-                      const usage = equipment.total_horimeter - plan.last_execution_value;
+                      const baseline = Math.max(comp.horimeter_at_install, plan.last_execution_value);
+                      const usage = equipment.total_horimeter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage };
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline };
                     });
 
                     // Overall status = worst of all tasks
@@ -637,8 +641,8 @@ export default function EquipmentDetailPage() {
                               <span className="font-mono">{fmtNum(comp.horimeter_at_install)}h</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Última exec.:</span>
-                              <span className="font-mono">{uniquePlans.length > 0 ? fmtNum(uniquePlans[0].last_execution_value) : fmtNum(comp.horimeter_at_install)}h</span>
+                              <span>Ref. manutenção:</span>
+                              <span className="font-mono">{uniquePlans.length > 0 ? fmtNum(Math.max(comp.horimeter_at_install, uniquePlans[0].last_execution_value)) : fmtNum(comp.horimeter_at_install)}h</span>
                             </div>
                           </div>
 
@@ -789,7 +793,8 @@ export default function EquipmentDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
                     const taskStatuses = uniquePlans.map(plan => {
-                      const usage = equipment.total_horimeter - plan.last_execution_value;
+                      const baseline = Math.max(comp.horimeter, plan.last_execution_value);
+                      const usage = equipment.total_horimeter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage };
@@ -828,8 +833,8 @@ export default function EquipmentDetailPage() {
                               <span className="font-mono">{fmtNum(comp.horimeter)}h</span>
                             </div>
                             <div className="flex justify-between">
-                              <span>Última exec.:</span>
-                              <span className="font-mono">{uniquePlans.length > 0 ? fmtNum(uniquePlans[0].last_execution_value) : fmtNum(comp.horimeter)}h</span>
+                              <span>Ref. manutenção:</span>
+                              <span className="font-mono">{uniquePlans.length > 0 ? fmtNum(Math.max(comp.horimeter, uniquePlans[0].last_execution_value)) : fmtNum(comp.horimeter)}h</span>
                             </div>
                           </div>
 
