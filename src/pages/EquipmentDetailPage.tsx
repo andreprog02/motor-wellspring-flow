@@ -793,7 +793,8 @@ export default function EquipmentDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
                     const taskStatuses = uniquePlans.map(plan => {
-                      const usage = equipment.total_horimeter - plan.last_execution_value;
+                      const baseline = Math.max(comp.horimeter, plan.last_execution_value);
+                      const usage = equipment.total_horimeter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage };
