@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
+import { useMaintenancePlanTemplates } from '@/hooks/useMaintenancePlanTemplates';
 import { useCylinderHeadStore, cylinderHeadStatusLabels } from '@/hooks/useCylinderHeadStore';
 import { useTurboStore, turboStatusLabels } from '@/hooks/useTurboStore';
 import type { TurboMetrics } from '@/hooks/useTurboStore';
@@ -18,7 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind, Thermometer, Fan, Disc, Battery } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind, Thermometer, Fan, Disc, Battery, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 import { OilTab } from '@/components/equipment/OilTab';
@@ -112,6 +113,7 @@ export default function EquipmentDetailPage() {
   const navigate = useNavigate();
   const { equipments, oilTypes } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
+  const planTemplates = useMaintenancePlanTemplates();
 
   const turboStore = useTurboStore();
   const chStore = useCylinderHeadStore();
@@ -127,6 +129,8 @@ export default function EquipmentDetailPage() {
   const [removeChId, setRemoveChId] = useState<string | null>(null);
   const [installTurboOpen, setInstallTurboOpen] = useState(false);
   const [selectedTurboId, setSelectedTurboId] = useState('');
+  const [linkPlanOpen, setLinkPlanOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState('');
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -266,6 +270,22 @@ export default function EquipmentDetailPage() {
     }
   };
 
+  // Link plan to equipment
+  const allTemplates = planTemplates.templates.data || [];
+  const currentTemplateName = allTemplates.find(t => t.id === equipment.maintenance_plan_template_id)?.name;
+
+  const handleLinkPlan = async () => {
+    if (!selectedTemplateId || !id) return;
+    try {
+      await planTemplates.applyTemplateToEquipment(selectedTemplateId, id, equipment.total_horimeter);
+      toast.success('Plano de manutenção vinculado com sucesso!');
+      setSelectedTemplateId('');
+      setLinkPlanOpen(false);
+    } catch {
+      toast.error('Erro ao vincular plano.');
+    }
+  };
+
   // Get ALL plans for a specific component type
   const getPlansForType = (type: string) => allPlans.filter(p => p.component_type === type);
 
@@ -374,9 +394,21 @@ export default function EquipmentDetailPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold tracking-tight">{equipment.name}</h1>
             <p className="text-sm text-muted-foreground">{equipment.serial_number || 'Sem S/N'}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {currentTemplateName && (
+              <Badge variant="secondary" className="text-xs gap-1">
+                <ClipboardList className="h-3 w-3" />
+                {currentTemplateName}
+              </Badge>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setLinkPlanOpen(true)}>
+              <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+              {equipment.maintenance_plan_template_id ? 'Alterar Plano' : 'Vincular Plano'}
+            </Button>
           </div>
         </div>
 
@@ -950,6 +982,42 @@ export default function EquipmentDetailPage() {
             <Button variant="outline" onClick={() => setInstallTurboOpen(false)}>Cancelar</Button>
             <Button onClick={handleInstallTurbo} disabled={!selectedTurboId || turboStore.installTurbo.isPending}>
               Montar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Link Maintenance Plan Dialog */}
+      <Dialog open={linkPlanOpen} onOpenChange={setLinkPlanOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Vincular Plano de Manutenção</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Selecione um plano de manutenção para aplicar a este equipamento. 
+              {equipment.maintenance_plan_template_id && ' O plano atual será substituído.'}
+            </p>
+            <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecionar plano..." />
+              </SelectTrigger>
+              <SelectContent>
+                {allTemplates.map(t => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.name} {t.description && `— ${t.description}`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O horímetro atual (<span className="font-mono font-medium">{fmtNum(equipment.total_horimeter)}h</span>) será usado como referência inicial para todas as tarefas do plano.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLinkPlanOpen(false)}>Cancelar</Button>
+            <Button onClick={handleLinkPlan} disabled={!selectedTemplateId}>
+              Vincular
             </Button>
           </DialogFooter>
         </DialogContent>
