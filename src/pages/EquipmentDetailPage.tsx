@@ -394,9 +394,21 @@ export default function EquipmentDetailPage() {
           <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold tracking-tight">{equipment.name}</h1>
             <p className="text-sm text-muted-foreground">{equipment.serial_number || 'Sem S/N'}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {currentTemplateName && (
+              <Badge variant="secondary" className="text-xs gap-1">
+                <ClipboardList className="h-3 w-3" />
+                {currentTemplateName}
+              </Badge>
+            )}
+            <Button variant="outline" size="sm" onClick={() => setLinkPlanOpen(true)}>
+              <ClipboardList className="h-3.5 w-3.5 mr-1.5" />
+              {equipment.maintenance_plan_template_id ? 'Alterar Plano' : 'Vincular Plano'}
+            </Button>
           </div>
         </div>
 
