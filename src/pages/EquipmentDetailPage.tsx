@@ -548,8 +548,8 @@ export default function EquipmentDetailPage() {
               const Icon = subComponentIcons[group.type] || Cog;
               let scCritical = 0;
               let scWarning = 0;
-              group.components.forEach(() => {
-                const worst = getWorstStatusFromPlans(group.plans);
+              group.components.forEach(comp => {
+                const worst = getWorstStatusFromPlans(group.plans, comp.horimeter);
                 if (worst === 'critical') scCritical++;
                 else if (worst === 'warning') scWarning++;
               });
