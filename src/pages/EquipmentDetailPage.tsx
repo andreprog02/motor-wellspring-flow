@@ -19,7 +19,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind, Thermometer, Fan, Disc, Battery } from 'lucide-react';
+import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind, Thermometer, Fan, Disc, Battery, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 import { OilTab } from '@/components/equipment/OilTab';
