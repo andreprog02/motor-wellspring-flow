@@ -596,12 +596,13 @@ export default function EquipmentDetailPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
-                    // Per-plan status using plan's last_execution_value
+                    // Per-plan status using max(component install, plan last execution) as baseline
                     const taskStatuses = uniquePlans.map(plan => {
-                      const usage = equipment.total_horimeter - plan.last_execution_value;
+                      const baseline = Math.max(comp.horimeter_at_install, plan.last_execution_value);
+                      const usage = equipment.total_horimeter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage };
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline };
                     });
 
                     // Overall status = worst of all tasks
