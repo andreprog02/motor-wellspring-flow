@@ -486,8 +486,8 @@ export default function EquipmentDetailPage() {
             {cylByType.map(group => {
               let cylCritical = 0;
               let cylWarning = 0;
-              group.components.forEach(() => {
-                const worst = getWorstStatusFromPlans(group.plans);
+              group.components.forEach(comp => {
+                const worst = getWorstStatusFromPlans(group.plans, comp.horimeter_at_install);
                 if (worst === 'critical') cylCritical++;
                 else if (worst === 'warning') cylWarning++;
               });
