@@ -286,7 +286,16 @@ export default function EquipmentDetailPage() {
     }
   };
 
-  // Get ALL plans for a specific component type
+  // Get plans for a specific component (by component_id or fallback to type-level)
+  const getPlansForComponent = (type: string, componentId?: string) => {
+    // First try per-component plans
+    const perComp = allPlans.filter(p => p.component_type === type && p.component_id === componentId);
+    if (perComp.length > 0) return perComp;
+    // Fallback: type-level plans (component_id is null)
+    return allPlans.filter(p => p.component_type === type && !p.component_id);
+  };
+
+  // Get ALL plans for a specific component type (for shared types like oil)
   const getPlansForType = (type: string) => allPlans.filter(p => p.component_type === type);
 
   // Helper to check if a log mentions a specific cylinder number
@@ -303,7 +312,6 @@ export default function EquipmentDetailPage() {
     type,
     label: componentTypeLabels[type] || type,
     components: allCylComps.filter(c => c.component_type === type).sort((a, b) => a.cylinder_number - b.cylinder_number),
-    plans: getPlansForType(type),
   })).filter(g => g.components.length > 0);
 
   // Group sub-components by type (excluding cylinder types and oil)
