@@ -553,7 +553,7 @@ export default function EquipmentDetailPage() {
                       {oilCritical}
                     </span>
                   )}
-                  {oilCritical === 0 && oilWarning > 0 && (
+                  {oilWarning > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
                       {oilWarning}
                     </span>
