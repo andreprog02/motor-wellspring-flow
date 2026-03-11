@@ -127,9 +127,11 @@ export function CylinderMaintenanceDialog({
       if (logErr) throw logErr;
 
       // 2. For each selected cylinder
+      const selectedCompIds: string[] = [];
       for (const cylNum of selectedCylinders) {
         const comp = allComponents.find(c => c.cylinder_number === cylNum);
         if (!comp) continue;
+        selectedCompIds.push(comp.id);
 
         // If replacement, update cylinder component horimeter
         if (serviceType === 'replacement') {
@@ -140,12 +142,20 @@ export function CylinderMaintenanceDialog({
         }
       }
 
-      // 3. Update maintenance plan last_execution_value
-      await (supabase as any)
-        .from('component_maintenance_plans')
-        .update({ last_execution_value: horimeter })
-        .eq('equipment_id', equipmentId)
-        .eq('component_type', componentType);
+      // 3. Update maintenance plan last_execution_value ONLY for selected cylinders' plans
+      // First try per-component plans (component_id matches)
+      if (selectedCompIds.length > 0) {
+        const taskLabel = task || (serviceType === 'replacement' ? 'Substituição' : 'Inspeção');
+        for (const compId of selectedCompIds) {
+          await (supabase as any)
+            .from('component_maintenance_plans')
+            .update({ last_execution_value: horimeter })
+            .eq('equipment_id', equipmentId)
+            .eq('component_type', componentType)
+            .eq('component_id', compId)
+            .eq('task', taskLabel);
+        }
+      }
 
       // 4. Update equipment horimeter if higher
       if (horimeter > equipmentHorimeter) {
