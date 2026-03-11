@@ -577,13 +577,11 @@ export default function EquipmentDetailPage() {
             {/* Sub-component tabs */}
             {subCompByType.map(group => {
               const Icon = subComponentIcons[group.type] || Cog;
-              let scCritical = 0;
-              let scWarning = 0;
-              group.components.forEach(comp => {
-                const worst = getWorstStatusFromPlans(group.plans, comp.horimeter);
-                if (worst === 'critical') scCritical++;
-                else if (worst === 'warning') scWarning++;
-              });
+              const scStatuses = countStatuses(
+                group.components.flatMap(comp => getTaskStatuses(group.plans, comp.horimeter))
+              );
+              const scCritical = scStatuses.critical;
+              const scWarning = scStatuses.warning;
               return (
                 <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
                   <Icon className="h-3.5 w-3.5" />
