@@ -527,7 +527,7 @@ export default function EquipmentDetailPage() {
             {/* Cylinder component tabs */}
             {cylByType.map(group => {
               const groupStatuses = countStatuses(
-                group.components.flatMap(comp => getTaskStatuses(group.plans, comp.horimeter_at_install))
+                group.components.flatMap(comp => getTaskStatuses(getPlansForComponent(group.type, comp.id), comp.horimeter_at_install))
               );
               const cylCritical = groupStatuses.critical;
               const cylWarning = groupStatuses.warning;
