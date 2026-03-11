@@ -139,7 +139,7 @@ export function useMaintenancePlanTemplates() {
       task: t.task,
       trigger_type: t.trigger_type,
       interval_value: t.interval_value,
-      last_execution_value: currentHorimeter,
+      last_execution_value: 0,
     }));
 
     const { error } = await (supabase as any)
