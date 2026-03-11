@@ -361,7 +361,8 @@ export default function EquipmentDetailPage() {
     // Cylinder components - each task for each component counted independently
     cylByType.forEach(group => {
       group.components.forEach(comp => {
-        allStatuses.push(...getTaskStatuses(group.plans, comp.horimeter_at_install));
+        const compPlans = getPlansForComponent(group.type, comp.id);
+        allStatuses.push(...getTaskStatuses(compPlans, comp.horimeter_at_install));
       });
     });
 
