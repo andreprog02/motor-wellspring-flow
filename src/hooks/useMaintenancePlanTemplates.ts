@@ -122,6 +122,8 @@ export function useMaintenancePlanTemplates() {
     onSuccess: invalidate,
   });
 
+  const CYLINDER_COMPONENT_TYPES = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
+
   /** Apply a template to an equipment: generates component_maintenance_plans rows */
   const applyTemplateToEquipment = async (templateId: string, equipmentId: string, currentHorimeter: number) => {
     const tasks = (templateTasks.data ?? []).filter(t => t.template_id === templateId);
@@ -133,19 +135,48 @@ export function useMaintenancePlanTemplates() {
       .delete()
       .eq('equipment_id', equipmentId);
 
-    const rows = tasks.map(t => ({
-      equipment_id: equipmentId,
-      component_type: t.component_type,
-      task: t.task,
-      trigger_type: t.trigger_type,
-      interval_value: t.interval_value,
-      last_execution_value: 0,
-    }));
+    // Fetch cylinder components for this equipment
+    const { data: cylComps } = await (supabase as any)
+      .from('cylinder_components')
+      .select('id, component_type, cylinder_number')
+      .eq('equipment_id', equipmentId);
 
-    const { error } = await (supabase as any)
-      .from('component_maintenance_plans')
-      .insert(rows);
-    if (error) throw error;
+    const rows: Array<Record<string, any>> = [];
+
+    for (const t of tasks) {
+      if (CYLINDER_COMPONENT_TYPES.includes(t.component_type) && cylComps && cylComps.length > 0) {
+        // Create one plan row per cylinder component of this type
+        const matchingComps = cylComps.filter((c: any) => c.component_type === t.component_type);
+        for (const comp of matchingComps) {
+          rows.push({
+            equipment_id: equipmentId,
+            component_type: t.component_type,
+            component_id: comp.id,
+            task: t.task,
+            trigger_type: t.trigger_type,
+            interval_value: t.interval_value,
+            last_execution_value: 0,
+          });
+        }
+      } else {
+        // Non-cylinder types: one plan row shared
+        rows.push({
+          equipment_id: equipmentId,
+          component_type: t.component_type,
+          task: t.task,
+          trigger_type: t.trigger_type,
+          interval_value: t.interval_value,
+          last_execution_value: 0,
+        });
+      }
+    }
+
+    if (rows.length > 0) {
+      const { error } = await (supabase as any)
+        .from('component_maintenance_plans')
+        .insert(rows);
+      if (error) throw error;
+    }
 
     // Link template to equipment
     await (supabase as any)

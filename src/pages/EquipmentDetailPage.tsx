@@ -286,7 +286,16 @@ export default function EquipmentDetailPage() {
     }
   };
 
-  // Get ALL plans for a specific component type
+  // Get plans for a specific component (by component_id or fallback to type-level)
+  const getPlansForComponent = (type: string, componentId?: string) => {
+    // First try per-component plans
+    const perComp = allPlans.filter(p => p.component_type === type && p.component_id === componentId);
+    if (perComp.length > 0) return perComp;
+    // Fallback: type-level plans (component_id is null)
+    return allPlans.filter(p => p.component_type === type && !p.component_id);
+  };
+
+  // Get ALL plans for a specific component type (for shared types like oil)
   const getPlansForType = (type: string) => allPlans.filter(p => p.component_type === type);
 
   // Helper to check if a log mentions a specific cylinder number
@@ -303,7 +312,6 @@ export default function EquipmentDetailPage() {
     type,
     label: componentTypeLabels[type] || type,
     components: allCylComps.filter(c => c.component_type === type).sort((a, b) => a.cylinder_number - b.cylinder_number),
-    plans: getPlansForType(type),
   })).filter(g => g.components.length > 0);
 
   // Group sub-components by type (excluding cylinder types and oil)
@@ -353,7 +361,8 @@ export default function EquipmentDetailPage() {
     // Cylinder components - each task for each component counted independently
     cylByType.forEach(group => {
       group.components.forEach(comp => {
-        allStatuses.push(...getTaskStatuses(group.plans, comp.horimeter_at_install));
+        const compPlans = getPlansForComponent(group.type, comp.id);
+        allStatuses.push(...getTaskStatuses(compPlans, comp.horimeter_at_install));
       });
     });
 
@@ -518,7 +527,7 @@ export default function EquipmentDetailPage() {
             {/* Cylinder component tabs */}
             {cylByType.map(group => {
               const groupStatuses = countStatuses(
-                group.components.flatMap(comp => getTaskStatuses(group.plans, comp.horimeter_at_install))
+                group.components.flatMap(comp => getTaskStatuses(getPlansForComponent(group.type, comp.id), comp.horimeter_at_install))
               );
               const cylCritical = groupStatuses.critical;
               const cylWarning = groupStatuses.warning;
@@ -603,19 +612,16 @@ export default function EquipmentDetailPage() {
 
           {/* One tab per cylinder component type */}
           {cylByType.map(group => {
-            const groupPlans = group.plans;
-            const uniquePlans = groupPlans.reduce<MaintenancePlan[]>((acc, p) => {
-              if (!acc.find(a => a.task === p.task)) acc.push(p);
-              return acc;
-            }, []);
-            const mainPlan = groupPlans[0];
+            // Get unique task names across all plans of this type for the header
+            const allTypePlans = getPlansForType(group.type);
+            const firstPlan = allTypePlans[0];
             return (
               <TabsContent key={group.type} value={group.type} className="mt-4">
                 <div className="flex items-center justify-between mb-3">
-                  {mainPlan ? (
+                  {firstPlan ? (
                     <div className="text-xs text-muted-foreground flex items-center gap-2">
                       <Wrench className="h-3.5 w-3.5" />
-                      Intervalo: <span className="font-mono font-medium">{fmtNum(mainPlan.interval_value)} {triggerLabels[mainPlan.trigger_type]?.toLowerCase() || mainPlan.trigger_type}</span>
+                      Intervalo: <span className="font-mono font-medium">{fmtNum(firstPlan.interval_value)} {triggerLabels[firstPlan.trigger_type]?.toLowerCase() || firstPlan.trigger_type}</span>
                     </div>
                   ) : <div />}
                   <Button size="sm" onClick={() => openMaintDialog(group.type)}>
@@ -625,7 +631,13 @@ export default function EquipmentDetailPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
-                    // Per-plan status using max(component install, plan last execution) as baseline
+                    // Get plans specific to THIS component
+                    const compPlans = getPlansForComponent(group.type, comp.id);
+                    const uniquePlans = compPlans.reduce<MaintenancePlan[]>((acc, p) => {
+                      if (!acc.find(a => a.task === p.task)) acc.push(p);
+                      return acc;
+                    }, []);
+
                     const taskStatuses = uniquePlans.map(plan => {
                       const baseline = Math.max(comp.horimeter_at_install, plan.last_execution_value);
                       const usage = equipment.total_horimeter - baseline;
