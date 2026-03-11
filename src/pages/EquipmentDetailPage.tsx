@@ -517,13 +517,11 @@ export default function EquipmentDetailPage() {
           <TabsList className="flex-wrap h-auto gap-1">
             {/* Cylinder component tabs */}
             {cylByType.map(group => {
-              let cylCritical = 0;
-              let cylWarning = 0;
-              group.components.forEach(comp => {
-                const worst = getWorstStatusFromPlans(group.plans, comp.horimeter_at_install);
-                if (worst === 'critical') cylCritical++;
-                else if (worst === 'warning') cylWarning++;
-              });
+              const groupStatuses = countStatuses(
+                group.components.flatMap(comp => getTaskStatuses(group.plans, comp.horimeter_at_install))
+              );
+              const cylCritical = groupStatuses.critical;
+              const cylWarning = groupStatuses.warning;
               return (
                 <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
                   {group.label}s
