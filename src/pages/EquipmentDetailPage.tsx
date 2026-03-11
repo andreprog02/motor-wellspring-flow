@@ -322,55 +322,56 @@ export default function EquipmentDetailPage() {
 
   // Calculate status counts across ALL component types
   // Helper: get worst status for a component across its plans, considering component install horimeter
-  const getWorstStatusFromPlans = (plans: MaintenancePlan[], compInstallHorimeter?: number) => {
+  // Count each task independently per component (not worst-per-component)
+  const getTaskStatuses = (plans: MaintenancePlan[], compInstallHorimeter?: number) => {
     const uniquePlans = plans.reduce<MaintenancePlan[]>((acc, p) => {
       if (!acc.find(a => a.task === p.task)) acc.push(p);
       return acc;
     }, []);
-    return uniquePlans.reduce((w, plan) => {
+    return uniquePlans.map(plan => {
       const baseline = compInstallHorimeter !== undefined
         ? Math.max(compInstallHorimeter, plan.last_execution_value)
         : plan.last_execution_value;
       const usage = equipment.total_horimeter - baseline;
-      const s = getStatus(usage, plan.interval_value);
-      return s === 'critical' ? 'critical' : s === 'warning' && w !== 'critical' ? 'warning' : w;
-    }, 'ok' as string);
+      return getStatus(usage, plan.interval_value);
+    });
   };
 
-  const getAllComponentStatuses = () => {
+  const countStatuses = (statuses: string[]) => {
     let ok = 0, warning = 0, critical = 0;
-
-    // Cylinder components - use each component's horimeter_at_install
-    cylByType.forEach(group => {
-      group.components.forEach(comp => {
-        const worst = getWorstStatusFromPlans(group.plans, comp.horimeter_at_install);
-        if (worst === 'critical') critical++;
-        else if (worst === 'warning') warning++;
-        else ok++;
-      });
-    });
-
-    // Sub-components - use each component's horimeter
-    subCompByType.forEach(group => {
-      group.components.forEach(comp => {
-        const worst = getWorstStatusFromPlans(group.plans, comp.horimeter);
-        if (worst === 'critical') critical++;
-        else if (worst === 'warning') warning++;
-        else ok++;
-      });
-    });
-
-    // Oil plans
-    const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
-    oilPlans.forEach(p => {
-      const usage = equipment.total_horimeter - p.last_execution_value;
-      const s = getStatus(usage, p.interval_value);
+    statuses.forEach(s => {
       if (s === 'critical') critical++;
       else if (s === 'warning') warning++;
       else ok++;
     });
-
     return { ok, warning, critical };
+  };
+
+  const getAllComponentStatuses = () => {
+    const allStatuses: string[] = [];
+
+    // Cylinder components - each task for each component counted independently
+    cylByType.forEach(group => {
+      group.components.forEach(comp => {
+        allStatuses.push(...getTaskStatuses(group.plans, comp.horimeter_at_install));
+      });
+    });
+
+    // Sub-components - each task for each component counted independently
+    subCompByType.forEach(group => {
+      group.components.forEach(comp => {
+        allStatuses.push(...getTaskStatuses(group.plans, comp.horimeter));
+      });
+    });
+
+    // Oil plans - each plan is already independent
+    const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
+    oilPlans.forEach(p => {
+      const usage = equipment.total_horimeter - p.last_execution_value;
+      allStatuses.push(getStatus(usage, p.interval_value));
+    });
+
+    return countStatuses(allStatuses);
   };
 
   const statusCounts = getAllComponentStatuses();
@@ -516,13 +517,11 @@ export default function EquipmentDetailPage() {
           <TabsList className="flex-wrap h-auto gap-1">
             {/* Cylinder component tabs */}
             {cylByType.map(group => {
-              let cylCritical = 0;
-              let cylWarning = 0;
-              group.components.forEach(comp => {
-                const worst = getWorstStatusFromPlans(group.plans, comp.horimeter_at_install);
-                if (worst === 'critical') cylCritical++;
-                else if (worst === 'warning') cylWarning++;
-              });
+              const groupStatuses = countStatuses(
+                group.components.flatMap(comp => getTaskStatuses(group.plans, comp.horimeter_at_install))
+              );
+              const cylCritical = groupStatuses.critical;
+              const cylWarning = groupStatuses.warning;
               return (
                 <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
                   {group.label}s
@@ -531,7 +530,7 @@ export default function EquipmentDetailPage() {
                       {cylCritical}
                     </span>
                   )}
-                  {cylCritical === 0 && cylWarning > 0 && (
+                  {cylWarning > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
                       {cylWarning}
                     </span>
@@ -554,7 +553,7 @@ export default function EquipmentDetailPage() {
                       {oilCritical}
                     </span>
                   )}
-                  {oilCritical === 0 && oilWarning > 0 && (
+                  {oilWarning > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
                       {oilWarning}
                     </span>
@@ -578,13 +577,11 @@ export default function EquipmentDetailPage() {
             {/* Sub-component tabs */}
             {subCompByType.map(group => {
               const Icon = subComponentIcons[group.type] || Cog;
-              let scCritical = 0;
-              let scWarning = 0;
-              group.components.forEach(comp => {
-                const worst = getWorstStatusFromPlans(group.plans, comp.horimeter);
-                if (worst === 'critical') scCritical++;
-                else if (worst === 'warning') scWarning++;
-              });
+              const scStatuses = countStatuses(
+                group.components.flatMap(comp => getTaskStatuses(group.plans, comp.horimeter))
+              );
+              const scCritical = scStatuses.critical;
+              const scWarning = scStatuses.warning;
               return (
                 <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
                   <Icon className="h-3.5 w-3.5" />
@@ -594,7 +591,7 @@ export default function EquipmentDetailPage() {
                       {scCritical}
                     </span>
                   )}
-                  {scCritical === 0 && scWarning > 0 && (
+                  {scWarning > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
                       {scWarning}
                     </span>
