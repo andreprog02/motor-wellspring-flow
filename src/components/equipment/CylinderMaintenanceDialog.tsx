@@ -251,6 +251,10 @@ export function CylinderMaintenanceDialog({
                 <SelectItem value="replacement">Substituição</SelectItem>
                 <SelectItem value="cleaning">Limpeza</SelectItem>
                 <SelectItem value="lubrication">Lubrificação</SelectItem>
+                <SelectItem value="analysis">Análise</SelectItem>
+                <SelectItem value="collection">Coleta</SelectItem>
+                <SelectItem value="calibration">Calibração</SelectItem>
+                <SelectItem value="adjustment">Regulagem</SelectItem>
               </SelectContent>
             </Select>
           </div>
