@@ -131,6 +131,7 @@ export default function EquipmentDetailPage() {
   const [selectedTurboId, setSelectedTurboId] = useState('');
   const [linkPlanOpen, setLinkPlanOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
+  const [taskFilter, setTaskFilter] = useState<Record<string, string>>({});
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
