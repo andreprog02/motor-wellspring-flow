@@ -649,7 +649,7 @@ export default function EquipmentDetailPage() {
                     Registrar Manutenção
                   </Button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {group.components.map(comp => {
                     const compPlans = getPlansForComponent(group.type, comp.id);
                     const uniquePlans = compPlans.reduce<MaintenancePlan[]>((acc, p) => {
@@ -876,7 +876,7 @@ export default function EquipmentDetailPage() {
                     ))}
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {group.components.map(comp => {
                     const taskStatuses = uniquePlans.map(plan => {
                       const baseline = Math.max(comp.horimeter, plan.last_execution_value);
