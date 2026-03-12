@@ -613,18 +613,37 @@ export default function EquipmentDetailPage() {
 
           {/* One tab per cylinder component type */}
           {cylByType.map(group => {
-            // Get unique task names across all plans of this type for the header
             const allTypePlans = getPlansForType(group.type);
-            const firstPlan = allTypePlans[0];
+            const uniqueTaskNames = [...new Set(allTypePlans.map(p => p.task))];
+            const activeFilter = taskFilter[group.type] || '_all';
             return (
               <TabsContent key={group.type} value={group.type} className="mt-4">
-                <div className="flex items-center justify-between mb-3">
-                  {firstPlan ? (
-                    <div className="text-xs text-muted-foreground flex items-center gap-2">
-                      <Wrench className="h-3.5 w-3.5" />
-                      Intervalo: <span className="font-mono font-medium">{fmtNum(firstPlan.interval_value)} {triggerLabels[firstPlan.trigger_type]?.toLowerCase() || firstPlan.trigger_type}</span>
-                    </div>
-                  ) : <div />}
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {uniqueTaskNames.length > 1 && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant={activeFilter === '_all' ? 'default' : 'outline'}
+                          className="text-xs h-7 px-3"
+                          onClick={() => setTaskFilter(prev => ({ ...prev, [group.type]: '_all' }))}
+                        >
+                          Todos
+                        </Button>
+                        {uniqueTaskNames.map(tn => (
+                          <Button
+                            key={tn}
+                            size="sm"
+                            variant={activeFilter === tn ? 'default' : 'outline'}
+                            className="text-xs h-7 px-3"
+                            onClick={() => setTaskFilter(prev => ({ ...prev, [group.type]: tn }))}
+                          >
+                            {tn}
+                          </Button>
+                        ))}
+                      </>
+                    )}
+                  </div>
                   <Button size="sm" onClick={() => openMaintDialog(group.type)}>
                     <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
                     Registrar Manutenção
@@ -632,7 +651,6 @@ export default function EquipmentDetailPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                   {group.components.map(comp => {
-                    // Get plans specific to THIS component
                     const compPlans = getPlansForComponent(group.type, comp.id);
                     const uniquePlans = compPlans.reduce<MaintenancePlan[]>((acc, p) => {
                       if (!acc.find(a => a.task === p.task)) acc.push(p);
@@ -647,11 +665,14 @@ export default function EquipmentDetailPage() {
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline };
                     });
 
-                    // Overall status = worst of all tasks
-                    const overallStatus = taskStatuses.some(t => t.status === 'critical') ? 'critical'
-                      : taskStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
+                    // Apply task filter
+                    const filteredStatuses = activeFilter === '_all'
+                      ? taskStatuses
+                      : taskStatuses.filter(ts => ts.task === activeFilter);
 
-                    // Logs for THIS cylinder
+                    const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
+                      : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
+
                     const compLogs = equipmentLogs.filter((log: any) =>
                       log.maintenance_type === comp.component_type && logMatchesCylinder(log, comp.cylinder_number)
                     );
@@ -688,10 +709,9 @@ export default function EquipmentDetailPage() {
                             </div>
                           </div>
 
-                          {/* Per-plan status */}
-                          {taskStatuses.length > 0 && (
+                          {filteredStatuses.length > 0 && (
                             <div className="space-y-1.5 mb-2">
-                              {taskStatuses.map((ts, i) => (
+                              {filteredStatuses.map((ts, i) => (
                                 <div key={i} className="space-y-0.5">
                                   <div className="flex items-center justify-between text-xs">
                                     <span className="text-muted-foreground">{ts.task}</span>
@@ -725,7 +745,6 @@ export default function EquipmentDetailPage() {
                             </Button>
                           </div>
 
-                          {/* History section with CRUD */}
                           <CylinderLogHistory
                             logs={compLogs}
                             cylinderNumber={comp.cylinder_number}
