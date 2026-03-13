@@ -764,6 +764,7 @@ export default function EquipmentDetailPage() {
               equipmentId={id!}
               equipmentHorimeter={equipment.total_horimeter}
               oilName={oilName}
+              oilTypeId={equipment.oil_type_id}
             />
           </TabsContent>
 
