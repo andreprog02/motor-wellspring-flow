@@ -9,21 +9,23 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  Droplets, Clock, CalendarDays, FileText, PlusCircle, History,
-  ChevronDown, Upload, ExternalLink, Filter, FlaskConical
+  Droplets, CalendarDays, PlusCircle,
+  Filter, FlaskConical, ExternalLink, Check, ChevronsUpDown, Pencil
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface OilTabProps {
   equipmentId: string;
   equipmentHorimeter: number;
   oilName?: string;
+  oilTypeId?: string | null;
 }
 
 interface OilAnalysis {
@@ -56,14 +58,42 @@ function getPercent(current: number, lastExec: number, interval: number) {
   return Math.min(Math.round((usage / interval) * 100), 100);
 }
 
-export function OilTab({ equipmentId, equipmentHorimeter, oilName }: OilTabProps) {
+export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: OilTabProps) {
   const queryClient = useQueryClient();
+
+  // Analysis dialog state
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false);
   const [analysisDate, setAnalysisDate] = useState(formatLocalDate());
   const [analysisHorimeter, setAnalysisHorimeter] = useState(String(equipmentHorimeter));
   const [analysisResult, setAnalysisResult] = useState('');
   const [analysisNotes, setAnalysisNotes] = useState('');
   const [analysisFile, setAnalysisFile] = useState<File | null>(null);
+
+  // Oil change dialog state
+  const [oilChangeDialogOpen, setOilChangeDialogOpen] = useState(false);
+  const [oilChangeDate, setOilChangeDate] = useState(formatLocalDate());
+  const [oilChangeHorimeter, setOilChangeHorimeter] = useState(String(equipmentHorimeter));
+  const [oilChangeNotes, setOilChangeNotes] = useState('');
+  const [oilChangeTypeId, setOilChangeTypeId] = useState(oilTypeId || '');
+  const [oilChangeComboOpen, setOilChangeComboOpen] = useState(false);
+  const [oilChangeSearch, setOilChangeSearch] = useState('');
+
+  // Oil type edit state
+  const [oilTypeDialogOpen, setOilTypeDialogOpen] = useState(false);
+  const [selectedOilTypeId, setSelectedOilTypeId] = useState(oilTypeId || '');
+  const [oilTypeComboOpen, setOilTypeComboOpen] = useState(false);
+  const [oilTypeSearch, setOilTypeSearch] = useState('');
+
+  // Fetch oil types
+  const oilTypesQuery = useQuery({
+    queryKey: ['oil_types'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('oil_types').select('*').order('name');
+      if (error) throw error;
+      return data as { id: string; name: string }[];
+    },
+  });
+  const allOilTypes = oilTypesQuery.data || [];
 
   // Fetch oil change logs for this equipment
   const oilLogs = useQuery({
@@ -139,6 +169,36 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName }: OilTabProps
     enabled: !!(oilLogs.data || filterLogs.data),
   });
 
+  // Add oil type mutation
+  const addOilType = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase.from('oil_types').insert({ name }).select().single();
+      if (error) throw error;
+      return data as { id: string; name: string };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oil_types'] });
+    },
+  });
+
+  // Update equipment oil type
+  const updateEquipmentOilType = useMutation({
+    mutationFn: async (newOilTypeId: string | null) => {
+      const { error } = await supabase
+        .from('equipments')
+        .update({ oil_type_id: newOilTypeId })
+        .eq('id', equipmentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipments'] });
+      toast.success('Tipo de óleo atualizado!');
+      setOilTypeDialogOpen(false);
+    },
+    onError: (err: any) => toast.error('Erro: ' + err.message),
+  });
+
+  // Add analysis mutation
   const addAnalysis = useMutation({
     mutationFn: async () => {
       let attachment_url: string | null = null;
@@ -176,6 +236,60 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName }: OilTabProps
     onError: (err: any) => toast.error('Erro: ' + err.message),
   });
 
+  // Add oil change mutation
+  const addOilChange = useMutation({
+    mutationFn: async () => {
+      const horimeter = Number(oilChangeHorimeter);
+
+      // 1. Insert the maintenance log
+      const { error: logErr } = await supabase.from('maintenance_logs').insert({
+        equipment_id: equipmentId,
+        maintenance_type: 'oil_change',
+        horimeter_at_service: horimeter,
+        oil_type_id: oilChangeTypeId || null,
+        notes: oilChangeNotes,
+        service_date: oilChangeDate,
+      });
+      if (logErr) throw logErr;
+
+      // 2. Update oil plan last_execution_value
+      const oilChangePlan = (oilPlans.data || []).find(p => p.component_type === 'oil_change');
+      if (oilChangePlan) {
+        await supabase
+          .from('component_maintenance_plans')
+          .update({ last_execution_value: horimeter })
+          .eq('id', oilChangePlan.id);
+      }
+
+      // 3. Update equipment horimeter if higher
+      if (horimeter > equipmentHorimeter) {
+        await supabase
+          .from('equipments')
+          .update({ total_horimeter: horimeter })
+          .eq('id', equipmentId);
+      }
+
+      // 4. Update equipment oil type if changed
+      if (oilChangeTypeId && oilChangeTypeId !== oilTypeId) {
+        await supabase
+          .from('equipments')
+          .update({ oil_type_id: oilChangeTypeId })
+          .eq('id', equipmentId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oil_logs', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['oil_plans', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['equipments'] });
+      queryClient.invalidateQueries({ queryKey: ['maintenance_logs'] });
+      queryClient.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
+      toast.success('Troca de óleo registrada!');
+      setOilChangeDialogOpen(false);
+      setOilChangeNotes('');
+    },
+    onError: (err: any) => toast.error('Erro: ' + err.message),
+  });
+
   const lastOilChange = oilLogs.data?.[0];
   const lastFilterChange = filterLogs.data?.[0];
   const lastAnalysis = analyses.data?.[0];
@@ -184,16 +298,96 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName }: OilTabProps
 
   const triggerLabels: Record<string, string> = { hours: 'Horas', months: 'Meses', starts: 'Arranques' };
 
+  const filteredOilTypes = allOilTypes.filter(o =>
+    o.name.toLowerCase().includes(oilTypeSearch.toLowerCase())
+  );
+  const filteredOilTypesChange = allOilTypes.filter(o =>
+    o.name.toLowerCase().includes(oilChangeSearch.toLowerCase())
+  );
+
+  function renderOilCombobox(
+    value: string,
+    setValue: (id: string) => void,
+    open: boolean,
+    setOpen: (o: boolean) => void,
+    search: string,
+    setSearch: (s: string) => void,
+    filtered: typeof allOilTypes
+  ) {
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" role="combobox" className="w-full justify-between">
+            {value ? allOilTypes.find(o => o.id === value)?.name || 'Selecione...' : 'Selecione...'}
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-full p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Buscar ou criar..." value={search} onValueChange={setSearch} />
+            <CommandList>
+              <CommandEmpty>
+                {search.trim() ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full"
+                    onClick={async () => {
+                      try {
+                        const newOil = await addOilType.mutateAsync(search.trim());
+                        setValue(newOil.id);
+                        setSearch('');
+                        setOpen(false);
+                      } catch (e: any) {
+                        toast.error('Erro ao criar: ' + e.message);
+                      }
+                    }}
+                  >
+                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Criar "{search.trim()}"
+                  </Button>
+                ) : (
+                  <span className="text-sm text-muted-foreground">Nenhum resultado.</span>
+                )}
+              </CommandEmpty>
+              <CommandGroup>
+                {filtered.map(o => (
+                  <CommandItem
+                    key={o.id}
+                    value={o.name}
+                    onSelect={() => {
+                      setValue(o.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-4 w-4", value === o.id ? "opacity-100" : "opacity-0")} />
+                    {o.name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
         {/* Oil Type */}
-        <Card>
+        <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => {
+          setSelectedOilTypeId(oilTypeId || '');
+          setOilTypeDialogOpen(true);
+        }}>
           <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Droplets className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Tipo de Óleo</span>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Droplets className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Tipo de Óleo</span>
+              </div>
+              <Pencil className="h-3 w-3 text-muted-foreground" />
             </div>
             <p className="font-bold text-sm">{oilName || 'Não definido'}</p>
           </CardContent>
@@ -330,8 +524,19 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName }: OilTabProps
 
       {/* Actions */}
       <div className="flex gap-2">
+        <Button size="sm" onClick={() => {
+          setOilChangeHorimeter(String(equipmentHorimeter));
+          setOilChangeDate(formatLocalDate());
+          setOilChangeTypeId(oilTypeId || '');
+          setOilChangeNotes('');
+          setOilChangeDialogOpen(true);
+        }}>
+          <Droplets className="h-3.5 w-3.5 mr-1.5" />
+          Registrar Troca de Óleo
+        </Button>
         <Button size="sm" variant="outline" onClick={() => {
           setAnalysisHorimeter(String(equipmentHorimeter));
+          setAnalysisDate(formatLocalDate());
           setAnalysisDialogOpen(true);
         }}>
           <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
@@ -457,6 +662,85 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName }: OilTabProps
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Oil Type Dialog */}
+      <Dialog open={oilTypeDialogOpen} onOpenChange={setOilTypeDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Tipo de Óleo</DialogTitle>
+            <DialogDescription>Selecione ou cadastre um novo tipo de óleo para este equipamento.</DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label>Tipo de Óleo</Label>
+            {renderOilCombobox(
+              selectedOilTypeId,
+              setSelectedOilTypeId,
+              oilTypeComboOpen,
+              setOilTypeComboOpen,
+              oilTypeSearch,
+              setOilTypeSearch,
+              filteredOilTypes
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOilTypeDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => updateEquipmentOilType.mutate(selectedOilTypeId || null)}
+              disabled={updateEquipmentOilType.isPending}
+            >
+              {updateEquipmentOilType.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Oil Change Dialog */}
+      <Dialog open={oilChangeDialogOpen} onOpenChange={setOilChangeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Troca de Óleo</DialogTitle>
+            <DialogDescription>Preencha os dados da troca de óleo.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={oilChangeDate} onChange={e => setOilChangeDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Horímetro</Label>
+                <Input type="number" value={oilChangeHorimeter} onChange={e => setOilChangeHorimeter(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Tipo de Óleo</Label>
+              {renderOilCombobox(
+                oilChangeTypeId,
+                setOilChangeTypeId,
+                oilChangeComboOpen,
+                setOilChangeComboOpen,
+                oilChangeSearch,
+                setOilChangeSearch,
+                filteredOilTypesChange
+              )}
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea
+                value={oilChangeNotes}
+                onChange={e => setOilChangeNotes(e.target.value)}
+                placeholder="Observações adicionais..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOilChangeDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => addOilChange.mutate()} disabled={addOilChange.isPending}>
+              {addOilChange.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Analysis Dialog */}
       <Dialog open={analysisDialogOpen} onOpenChange={setAnalysisDialogOpen}>
