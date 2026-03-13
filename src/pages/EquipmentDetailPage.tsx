@@ -703,10 +703,6 @@ export default function EquipmentDetailPage() {
                               <span>Instalado em:</span>
                               <span className="font-mono">{fmtNum(comp.horimeter_at_install)}h</span>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Ref. manutenção:</span>
-                              <span className="font-mono">{uniquePlans.length > 0 ? fmtNum(Math.max(comp.horimeter_at_install, uniquePlans[0].last_execution_value)) : fmtNum(comp.horimeter_at_install)}h</span>
-                            </div>
                           </div>
 
                           {filteredStatuses.length > 0 && (
