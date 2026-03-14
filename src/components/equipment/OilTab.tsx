@@ -139,7 +139,8 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     },
   });
 
-  // Fetch oil maintenance plans
+  // Fetch ALL oil-related maintenance plans
+  const OIL_COMPONENT_TYPES = ['oil_change', 'oil_filter', 'air_filter', 'fuel_filter'];
   const oilPlans = useQuery({
     queryKey: ['oil_plans', equipmentId],
     queryFn: async () => {
@@ -147,7 +148,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         .from('component_maintenance_plans')
         .select('*')
         .eq('equipment_id', equipmentId)
-        .in('component_type', ['oil_change', 'oil_filter']);
+        .in('component_type', OIL_COMPONENT_TYPES);
       if (error) throw error;
       return data;
     },
