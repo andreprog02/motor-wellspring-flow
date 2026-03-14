@@ -146,6 +146,20 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     },
   });
 
+  // Fetch oil collections
+  const collections = useQuery({
+    queryKey: ['oil_collections', equipmentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('oil_collections')
+        .select('*')
+        .eq('equipment_id', equipmentId)
+        .order('collection_date', { ascending: false });
+      if (error) throw error;
+      return data as { id: string; collection_number: string; collection_date: string; horimeter_at_collection: number; notes: string | null; created_at: string }[];
+    },
+  });
+
   // Fetch ALL oil-related maintenance plans
   const OIL_COMPONENT_TYPES = ['oil_change', 'oil_filter', 'air_filter', 'fuel_filter'];
   const oilPlans = useQuery({
