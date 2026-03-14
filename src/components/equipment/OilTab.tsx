@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Droplets, CalendarDays, PlusCircle,
-  Filter, FlaskConical, ExternalLink, Check, ChevronsUpDown, Pencil
+  Filter, FlaskConical, ExternalLink, Check, ChevronsUpDown, Pencil, TestTubes
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -84,6 +84,13 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   const [oilTypeComboOpen, setOilTypeComboOpen] = useState(false);
   const [oilTypeSearch, setOilTypeSearch] = useState('');
 
+  // Collection dialog state
+  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
+  const [collectionNumber, setCollectionNumber] = useState('');
+  const [collectionDate, setCollectionDate] = useState(formatLocalDate());
+  const [collectionHorimeter, setCollectionHorimeter] = useState(String(equipmentHorimeter));
+  const [collectionNotes, setCollectionNotes] = useState('');
+
   // Fetch oil types
   const oilTypesQuery = useQuery({
     queryKey: ['oil_types'],
@@ -136,6 +143,20 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         .order('analysis_date', { ascending: false });
       if (error) throw error;
       return data as OilAnalysis[];
+    },
+  });
+
+  // Fetch oil collections
+  const collections = useQuery({
+    queryKey: ['oil_collections', equipmentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('oil_collections')
+        .select('*')
+        .eq('equipment_id', equipmentId)
+        .order('collection_date', { ascending: false });
+      if (error) throw error;
+      return data as { id: string; collection_number: string; collection_date: string; horimeter_at_collection: number; notes: string | null; created_at: string }[];
     },
   });
 
@@ -288,6 +309,28 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       toast.success('Manutenção registrada!');
       setOilChangeDialogOpen(false);
       setOilChangeNotes('');
+    },
+    onError: (err: any) => toast.error('Erro: ' + err.message),
+  });
+
+  // Add collection mutation
+  const addCollection = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('oil_collections').insert({
+        equipment_id: equipmentId,
+        collection_number: collectionNumber,
+        collection_date: collectionDate,
+        horimeter_at_collection: Number(collectionHorimeter),
+        notes: collectionNotes || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oil_collections', equipmentId] });
+      toast.success('Coleta registrada!');
+      setCollectionDialogOpen(false);
+      setCollectionNumber('');
+      setCollectionNotes('');
     },
     onError: (err: any) => toast.error('Erro: ' + err.message),
   });
@@ -552,6 +595,16 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
           Registrar Análise
         </Button>
+        <Button size="sm" variant="outline" onClick={() => {
+          setCollectionHorimeter(String(equipmentHorimeter));
+          setCollectionDate(formatLocalDate());
+          setCollectionNumber('');
+          setCollectionNotes('');
+          setCollectionDialogOpen(true);
+        }}>
+          <TestTubes className="h-3.5 w-3.5 mr-1.5" />
+          Registrar Coleta
+        </Button>
       </div>
 
       {/* History Sub-tabs */}
@@ -564,6 +617,10 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           <TabsTrigger value="analyses">
             <FlaskConical className="h-3.5 w-3.5 mr-1" />
             Análises ({analyses.data?.length || 0})
+          </TabsTrigger>
+          <TabsTrigger value="collections">
+            <TestTubes className="h-3.5 w-3.5 mr-1" />
+            Coletas ({collections.data?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="filters">
             <Filter className="h-3.5 w-3.5 mr-1" />
@@ -668,6 +725,33 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
                   </Card>
                 );
               })}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="collections" className="mt-3">
+          {(collections.data || []).length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                Nenhuma coleta registrada.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {(collections.data || []).map((c) => (
+                <Card key={c.id}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono text-xs">{c.collection_number || '—'}</Badge>
+                        <span className="font-mono text-xs">{format(new Date(c.collection_date), 'dd/MM/yyyy')}</span>
+                      </div>
+                      <Badge variant="secondary" className="font-mono text-xs">{fmtNum(c.horimeter_at_collection)}h</Badge>
+                    </div>
+                    {c.notes && <p className="text-xs text-muted-foreground mt-0.5">{c.notes}</p>}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </TabsContent>
@@ -802,6 +886,45 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
             <Button variant="outline" onClick={() => setAnalysisDialogOpen(false)}>Cancelar</Button>
             <Button onClick={() => addAnalysis.mutate()} disabled={addAnalysis.isPending}>
               {addAnalysis.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Collection Dialog */}
+      <Dialog open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Coleta de Óleo</DialogTitle>
+            <DialogDescription>Preencha os dados da coleta.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Nº da Coleta</Label>
+              <Input value={collectionNumber} onChange={e => setCollectionNumber(e.target.value)} placeholder="Ex: COL-001" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={collectionDate} onChange={e => setCollectionDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Horímetro</Label>
+                <Input type="number" value={collectionHorimeter} onChange={e => setCollectionHorimeter(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea value={collectionNotes} onChange={e => setCollectionNotes(e.target.value)} placeholder="Observações adicionais..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCollectionDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => addCollection.mutate()}
+              disabled={addCollection.isPending || !collectionNumber.trim()}
+            >
+              {addCollection.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -804,6 +804,44 @@ export type Database = {
           },
         ]
       }
+      oil_collections: {
+        Row: {
+          collection_date: string
+          collection_number: string
+          created_at: string
+          equipment_id: string
+          horimeter_at_collection: number
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          collection_date?: string
+          collection_number?: string
+          created_at?: string
+          equipment_id: string
+          horimeter_at_collection?: number
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          collection_date?: string
+          collection_number?: string
+          created_at?: string
+          equipment_id?: string
+          horimeter_at_collection?: number
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oil_collections_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       oil_types: {
         Row: {
           created_at: string
