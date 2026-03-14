@@ -595,6 +595,16 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
           Registrar Análise
         </Button>
+        <Button size="sm" variant="outline" onClick={() => {
+          setCollectionHorimeter(String(equipmentHorimeter));
+          setCollectionDate(formatLocalDate());
+          setCollectionNumber('');
+          setCollectionNotes('');
+          setCollectionDialogOpen(true);
+        }}>
+          <TestTubes className="h-3.5 w-3.5 mr-1.5" />
+          Registrar Coleta
+        </Button>
       </div>
 
       {/* History Sub-tabs */}
