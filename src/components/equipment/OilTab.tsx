@@ -711,18 +711,20 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
                 <Input type="number" value={oilChangeHorimeter} onChange={e => setOilChangeHorimeter(e.target.value)} />
               </div>
             </div>
-            <div>
-              <Label>Tipo de Óleo</Label>
-              {renderOilCombobox(
-                oilChangeTypeId,
-                setOilChangeTypeId,
-                oilChangeComboOpen,
-                setOilChangeComboOpen,
-                oilChangeSearch,
-                setOilChangeSearch,
-                filteredOilTypesChange
-              )}
-            </div>
+            {genericMaintenanceType === 'oil_change' && (
+              <div>
+                <Label>Tipo de Óleo</Label>
+                {renderOilCombobox(
+                  oilChangeTypeId,
+                  setOilChangeTypeId,
+                  oilChangeComboOpen,
+                  setOilChangeComboOpen,
+                  oilChangeSearch,
+                  setOilChangeSearch,
+                  filteredOilTypesChange
+                )}
+              </div>
+            )}
             <div>
               <Label>Observações</Label>
               <Textarea
