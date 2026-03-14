@@ -237,29 +237,29 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     onError: (err: any) => toast.error('Erro: ' + err.message),
   });
 
-  // Add oil change mutation
-  const addOilChange = useMutation({
-    mutationFn: async () => {
-      const horimeter = Number(oilChangeHorimeter);
+  // Generic maintenance mutation for any oil-related type
+  const addOilMaintenance = useMutation({
+    mutationFn: async (params: { maintenanceType: string; horimeter: number; date: string; notes: string; oilTypeId?: string }) => {
+      const { maintenanceType, horimeter, date, notes, oilTypeId: mtOilTypeId } = params;
 
       // 1. Insert the maintenance log
       const { error: logErr } = await supabase.from('maintenance_logs').insert({
         equipment_id: equipmentId,
-        maintenance_type: 'oil_change',
+        maintenance_type: maintenanceType,
         horimeter_at_service: horimeter,
-        oil_type_id: oilChangeTypeId || null,
-        notes: oilChangeNotes,
-        service_date: oilChangeDate,
+        oil_type_id: maintenanceType === 'oil_change' ? (mtOilTypeId || null) : null,
+        notes,
+        service_date: date,
       });
       if (logErr) throw logErr;
 
-      // 2. Update oil plan last_execution_value
-      const oilChangePlan = (oilPlans.data || []).find(p => p.component_type === 'oil_change');
-      if (oilChangePlan) {
+      // 2. Update the matching plan's last_execution_value
+      const matchingPlan = (oilPlans.data || []).find(p => p.component_type === maintenanceType);
+      if (matchingPlan) {
         await supabase
           .from('component_maintenance_plans')
           .update({ last_execution_value: horimeter })
-          .eq('id', oilChangePlan.id);
+          .eq('id', matchingPlan.id);
       }
 
       // 3. Update equipment horimeter if higher
@@ -270,21 +270,22 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           .eq('id', equipmentId);
       }
 
-      // 4. Update equipment oil type if changed
-      if (oilChangeTypeId && oilChangeTypeId !== oilTypeId) {
+      // 4. Update equipment oil type if oil_change and changed
+      if (maintenanceType === 'oil_change' && mtOilTypeId && mtOilTypeId !== oilTypeId) {
         await supabase
           .from('equipments')
-          .update({ oil_type_id: oilChangeTypeId })
+          .update({ oil_type_id: mtOilTypeId })
           .eq('id', equipmentId);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['oil_logs', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['filter_logs', equipmentId] });
       queryClient.invalidateQueries({ queryKey: ['oil_plans', equipmentId] });
       queryClient.invalidateQueries({ queryKey: ['equipments'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance_logs'] });
       queryClient.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
-      toast.success('Troca de óleo registrada!');
+      toast.success('Manutenção registrada!');
       setOilChangeDialogOpen(false);
       setOilChangeNotes('');
     },
