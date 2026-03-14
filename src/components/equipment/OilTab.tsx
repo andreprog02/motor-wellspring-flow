@@ -728,6 +728,33 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="collections" className="mt-3">
+          {(collections.data || []).length === 0 ? (
+            <Card>
+              <CardContent className="p-8 text-center text-muted-foreground">
+                Nenhuma coleta registrada.
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {(collections.data || []).map((c) => (
+                <Card key={c.id}>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="font-mono text-xs">{c.collection_number || '—'}</Badge>
+                        <span className="font-mono text-xs">{format(new Date(c.collection_date), 'dd/MM/yyyy')}</span>
+                      </div>
+                      <Badge variant="secondary" className="font-mono text-xs">{fmtNum(c.horimeter_at_collection)}h</Badge>
+                    </div>
+                    {c.notes && <p className="text-xs text-muted-foreground mt-0.5">{c.notes}</p>}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
 
       {/* Oil Type Dialog */}
