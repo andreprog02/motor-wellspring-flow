@@ -890,6 +890,45 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Collection Dialog */}
+      <Dialog open={collectionDialogOpen} onOpenChange={setCollectionDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Coleta de Óleo</DialogTitle>
+            <DialogDescription>Preencha os dados da coleta.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Nº da Coleta</Label>
+              <Input value={collectionNumber} onChange={e => setCollectionNumber(e.target.value)} placeholder="Ex: COL-001" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Data</Label>
+                <Input type="date" value={collectionDate} onChange={e => setCollectionDate(e.target.value)} />
+              </div>
+              <div>
+                <Label>Horímetro</Label>
+                <Input type="number" value={collectionHorimeter} onChange={e => setCollectionHorimeter(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Observações</Label>
+              <Textarea value={collectionNotes} onChange={e => setCollectionNotes(e.target.value)} placeholder="Observações adicionais..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCollectionDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => addCollection.mutate()}
+              disabled={addCollection.isPending || !collectionNumber.trim()}
+            >
+              {addCollection.isPending ? 'Salvando...' : 'Salvar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
