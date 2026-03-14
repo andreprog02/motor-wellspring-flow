@@ -84,6 +84,13 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   const [oilTypeComboOpen, setOilTypeComboOpen] = useState(false);
   const [oilTypeSearch, setOilTypeSearch] = useState('');
 
+  // Collection dialog state
+  const [collectionDialogOpen, setCollectionDialogOpen] = useState(false);
+  const [collectionNumber, setCollectionNumber] = useState('');
+  const [collectionDate, setCollectionDate] = useState(formatLocalDate());
+  const [collectionHorimeter, setCollectionHorimeter] = useState(String(equipmentHorimeter));
+  const [collectionNotes, setCollectionNotes] = useState('');
+
   // Fetch oil types
   const oilTypesQuery = useQuery({
     queryKey: ['oil_types'],
