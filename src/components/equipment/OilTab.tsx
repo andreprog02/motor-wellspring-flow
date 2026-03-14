@@ -618,6 +618,10 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
             <FlaskConical className="h-3.5 w-3.5 mr-1" />
             Análises ({analyses.data?.length || 0})
           </TabsTrigger>
+          <TabsTrigger value="collections">
+            <TestTubes className="h-3.5 w-3.5 mr-1" />
+            Coletas ({collections.data?.length || 0})
+          </TabsTrigger>
           <TabsTrigger value="filters">
             <Filter className="h-3.5 w-3.5 mr-1" />
             Filtros ({filterLogs.data?.length || 0})
