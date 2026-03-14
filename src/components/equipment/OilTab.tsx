@@ -295,8 +295,24 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   const lastOilChange = oilLogs.data?.[0];
   const lastFilterChange = filterLogs.data?.[0];
   const lastAnalysis = analyses.data?.[0];
-  const oilChangePlan = (oilPlans.data || []).find(p => p.component_type === 'oil_change');
-  const filterPlan = (oilPlans.data || []).find(p => p.component_type === 'oil_filter');
+  const allPlans = oilPlans.data || [];
+
+  const componentTypeLabels: Record<string, string> = {
+    oil_change: 'Troca de Óleo',
+    oil_filter: 'Filtro de Óleo',
+    air_filter: 'Filtro de Ar',
+    fuel_filter: 'Filtro de Combustível',
+  };
+
+  const componentTypeIcons: Record<string, typeof Droplets> = {
+    oil_change: Droplets,
+    oil_filter: Filter,
+    air_filter: Filter,
+    fuel_filter: Filter,
+  };
+
+  // State for generic maintenance dialog
+  const [genericMaintenanceType, setGenericMaintenanceType] = useState('');
 
   const triggerLabels: Record<string, string> = { hours: 'Horas', months: 'Meses', starts: 'Arranques' };
 
