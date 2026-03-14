@@ -139,7 +139,8 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     },
   });
 
-  // Fetch oil maintenance plans
+  // Fetch ALL oil-related maintenance plans
+  const OIL_COMPONENT_TYPES = ['oil_change', 'oil_filter', 'air_filter', 'fuel_filter'];
   const oilPlans = useQuery({
     queryKey: ['oil_plans', equipmentId],
     queryFn: async () => {
@@ -147,7 +148,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         .from('component_maintenance_plans')
         .select('*')
         .eq('equipment_id', equipmentId)
-        .in('component_type', ['oil_change', 'oil_filter']);
+        .in('component_type', OIL_COMPONENT_TYPES);
       if (error) throw error;
       return data;
     },
@@ -236,29 +237,29 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     onError: (err: any) => toast.error('Erro: ' + err.message),
   });
 
-  // Add oil change mutation
-  const addOilChange = useMutation({
-    mutationFn: async () => {
-      const horimeter = Number(oilChangeHorimeter);
+  // Generic maintenance mutation for any oil-related type
+  const addOilMaintenance = useMutation({
+    mutationFn: async (params: { maintenanceType: string; horimeter: number; date: string; notes: string; oilTypeId?: string }) => {
+      const { maintenanceType, horimeter, date, notes, oilTypeId: mtOilTypeId } = params;
 
       // 1. Insert the maintenance log
       const { error: logErr } = await supabase.from('maintenance_logs').insert({
         equipment_id: equipmentId,
-        maintenance_type: 'oil_change',
+        maintenance_type: maintenanceType,
         horimeter_at_service: horimeter,
-        oil_type_id: oilChangeTypeId || null,
-        notes: oilChangeNotes,
-        service_date: oilChangeDate,
+        oil_type_id: maintenanceType === 'oil_change' ? (mtOilTypeId || null) : null,
+        notes,
+        service_date: date,
       });
       if (logErr) throw logErr;
 
-      // 2. Update oil plan last_execution_value
-      const oilChangePlan = (oilPlans.data || []).find(p => p.component_type === 'oil_change');
-      if (oilChangePlan) {
+      // 2. Update the matching plan's last_execution_value
+      const matchingPlan = (oilPlans.data || []).find(p => p.component_type === maintenanceType);
+      if (matchingPlan) {
         await supabase
           .from('component_maintenance_plans')
           .update({ last_execution_value: horimeter })
-          .eq('id', oilChangePlan.id);
+          .eq('id', matchingPlan.id);
       }
 
       // 3. Update equipment horimeter if higher
@@ -269,21 +270,22 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           .eq('id', equipmentId);
       }
 
-      // 4. Update equipment oil type if changed
-      if (oilChangeTypeId && oilChangeTypeId !== oilTypeId) {
+      // 4. Update equipment oil type if oil_change and changed
+      if (maintenanceType === 'oil_change' && mtOilTypeId && mtOilTypeId !== oilTypeId) {
         await supabase
           .from('equipments')
-          .update({ oil_type_id: oilChangeTypeId })
+          .update({ oil_type_id: mtOilTypeId })
           .eq('id', equipmentId);
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['oil_logs', equipmentId] });
+      queryClient.invalidateQueries({ queryKey: ['filter_logs', equipmentId] });
       queryClient.invalidateQueries({ queryKey: ['oil_plans', equipmentId] });
       queryClient.invalidateQueries({ queryKey: ['equipments'] });
       queryClient.invalidateQueries({ queryKey: ['maintenance_logs'] });
       queryClient.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
-      toast.success('Troca de óleo registrada!');
+      toast.success('Manutenção registrada!');
       setOilChangeDialogOpen(false);
       setOilChangeNotes('');
     },
@@ -293,8 +295,24 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   const lastOilChange = oilLogs.data?.[0];
   const lastFilterChange = filterLogs.data?.[0];
   const lastAnalysis = analyses.data?.[0];
-  const oilChangePlan = (oilPlans.data || []).find(p => p.component_type === 'oil_change');
-  const filterPlan = (oilPlans.data || []).find(p => p.component_type === 'oil_filter');
+  const allPlans = oilPlans.data || [];
+
+  const componentTypeLabels: Record<string, string> = {
+    oil_change: 'Troca de Óleo',
+    oil_filter: 'Filtro de Óleo',
+    air_filter: 'Filtro de Ar',
+    fuel_filter: 'Filtro de Combustível',
+  };
+
+  const componentTypeIcons: Record<string, typeof Droplets> = {
+    oil_change: Droplets,
+    oil_filter: Filter,
+    air_filter: Filter,
+    fuel_filter: Filter,
+  };
+
+  // State for generic maintenance dialog
+  const [genericMaintenanceType, setGenericMaintenanceType] = useState('');
 
   const triggerLabels: Record<string, string> = { hours: 'Horas', months: 'Meses', starts: 'Arranques' };
 
@@ -449,22 +467,35 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       </div>
 
       {/* Maintenance Plan Status */}
-      {(oilChangePlan || filterPlan) && (
+      {allPlans.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {oilChangePlan && (() => {
-            const status = getStatus(equipmentHorimeter, oilChangePlan.last_execution_value, oilChangePlan.interval_value);
-            const percent = getPercent(equipmentHorimeter, oilChangePlan.last_execution_value, oilChangePlan.interval_value);
-            const usage = equipmentHorimeter - oilChangePlan.last_execution_value;
+          {allPlans.map(plan => {
+            const status = getStatus(equipmentHorimeter, plan.last_execution_value, plan.interval_value);
+            const percent = getPercent(equipmentHorimeter, plan.last_execution_value, plan.interval_value);
+            const usage = equipmentHorimeter - plan.last_execution_value;
+            const Icon = componentTypeIcons[plan.component_type] || Filter;
             return (
-              <Card className={
-                status === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
-                status === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
-              }>
+              <Card
+                key={plan.id}
+                className={cn(
+                  'cursor-pointer hover:border-primary/50 transition-colors',
+                  status === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+                  status === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+                )}
+                onClick={() => {
+                  setGenericMaintenanceType(plan.component_type);
+                  setOilChangeHorimeter(String(equipmentHorimeter));
+                  setOilChangeDate(formatLocalDate());
+                  setOilChangeTypeId(oilTypeId || '');
+                  setOilChangeNotes('');
+                  setOilChangeDialogOpen(true);
+                }}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <Droplets className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold text-sm">Troca de Óleo</span>
+                      <Icon className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-semibold text-sm">{componentTypeLabels[plan.component_type] || plan.component_type}</span>
                     </div>
                     <Badge
                       variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
@@ -478,53 +509,21 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
                   </div>
                   <Progress value={percent} className="h-2 mb-1" />
                   <div className="flex justify-between text-xs text-muted-foreground font-mono">
-                    <span>{fmtNum(usage)} / {fmtNum(oilChangePlan.interval_value)} {triggerLabels[oilChangePlan.trigger_type]?.toLowerCase()}</span>
+                    <span>{fmtNum(usage)} / {fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase()}</span>
                     <span>{percent}%</span>
                   </div>
+                  <p className="text-xs text-muted-foreground mt-1">Tarefa: {plan.task}</p>
                 </CardContent>
               </Card>
             );
-          })()}
-          {filterPlan && (() => {
-            const status = getStatus(equipmentHorimeter, filterPlan.last_execution_value, filterPlan.interval_value);
-            const percent = getPercent(equipmentHorimeter, filterPlan.last_execution_value, filterPlan.interval_value);
-            const usage = equipmentHorimeter - filterPlan.last_execution_value;
-            return (
-              <Card className={
-                status === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
-                status === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
-              }>
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Filter className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold text-sm">Troca de Filtro de Óleo</span>
-                    </div>
-                    <Badge
-                      variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
-                      className={
-                        status === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
-                        status === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
-                      }
-                    >
-                      {status === 'ok' ? 'Em dia' : status === 'warning' ? 'Atenção' : 'Vencida'}
-                    </Badge>
-                  </div>
-                  <Progress value={percent} className="h-2 mb-1" />
-                  <div className="flex justify-between text-xs text-muted-foreground font-mono">
-                    <span>{fmtNum(usage)} / {fmtNum(filterPlan.interval_value)} {triggerLabels[filterPlan.trigger_type]?.toLowerCase()}</span>
-                    <span>{percent}%</span>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })()}
+          })}
         </div>
       )}
 
       {/* Actions */}
       <div className="flex gap-2">
         <Button size="sm" onClick={() => {
+          setGenericMaintenanceType('oil_change');
           setOilChangeHorimeter(String(equipmentHorimeter));
           setOilChangeDate(formatLocalDate());
           setOilChangeTypeId(oilTypeId || '');
@@ -698,8 +697,8 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       <Dialog open={oilChangeDialogOpen} onOpenChange={setOilChangeDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrar Troca de Óleo</DialogTitle>
-            <DialogDescription>Preencha os dados da troca de óleo.</DialogDescription>
+            <DialogTitle>Registrar {componentTypeLabels[genericMaintenanceType] || 'Manutenção'}</DialogTitle>
+            <DialogDescription>Preencha os dados da manutenção.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
@@ -712,18 +711,20 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
                 <Input type="number" value={oilChangeHorimeter} onChange={e => setOilChangeHorimeter(e.target.value)} />
               </div>
             </div>
-            <div>
-              <Label>Tipo de Óleo</Label>
-              {renderOilCombobox(
-                oilChangeTypeId,
-                setOilChangeTypeId,
-                oilChangeComboOpen,
-                setOilChangeComboOpen,
-                oilChangeSearch,
-                setOilChangeSearch,
-                filteredOilTypesChange
-              )}
-            </div>
+            {genericMaintenanceType === 'oil_change' && (
+              <div>
+                <Label>Tipo de Óleo</Label>
+                {renderOilCombobox(
+                  oilChangeTypeId,
+                  setOilChangeTypeId,
+                  oilChangeComboOpen,
+                  setOilChangeComboOpen,
+                  oilChangeSearch,
+                  setOilChangeSearch,
+                  filteredOilTypesChange
+                )}
+              </div>
+            )}
             <div>
               <Label>Observações</Label>
               <Textarea
@@ -735,8 +736,17 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOilChangeDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={() => addOilChange.mutate()} disabled={addOilChange.isPending}>
-              {addOilChange.isPending ? 'Salvando...' : 'Salvar'}
+            <Button
+              onClick={() => addOilMaintenance.mutate({
+                maintenanceType: genericMaintenanceType || 'oil_change',
+                horimeter: Number(oilChangeHorimeter),
+                date: oilChangeDate,
+                notes: oilChangeNotes,
+                oilTypeId: oilChangeTypeId,
+              })}
+              disabled={addOilMaintenance.isPending}
+            >
+              {addOilMaintenance.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
