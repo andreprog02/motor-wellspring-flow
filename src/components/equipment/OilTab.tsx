@@ -734,8 +734,17 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOilChangeDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={() => addOilChange.mutate()} disabled={addOilChange.isPending}>
-              {addOilChange.isPending ? 'Salvando...' : 'Salvar'}
+            <Button
+              onClick={() => addOilMaintenance.mutate({
+                maintenanceType: genericMaintenanceType || 'oil_change',
+                horimeter: Number(oilChangeHorimeter),
+                date: oilChangeDate,
+                notes: oilChangeNotes,
+                oilTypeId: oilChangeTypeId,
+              })}
+              disabled={addOilMaintenance.isPending}
+            >
+              {addOilMaintenance.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
         </DialogContent>
