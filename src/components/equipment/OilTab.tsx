@@ -523,6 +523,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       {/* Actions */}
       <div className="flex gap-2">
         <Button size="sm" onClick={() => {
+          setGenericMaintenanceType('oil_change');
           setOilChangeHorimeter(String(equipmentHorimeter));
           setOilChangeDate(formatLocalDate());
           setOilChangeTypeId(oilTypeId || '');
