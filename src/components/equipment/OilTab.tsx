@@ -313,6 +313,28 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     onError: (err: any) => toast.error('Erro: ' + err.message),
   });
 
+  // Add collection mutation
+  const addCollection = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('oil_collections').insert({
+        equipment_id: equipmentId,
+        collection_number: collectionNumber,
+        collection_date: collectionDate,
+        horimeter_at_collection: Number(collectionHorimeter),
+        notes: collectionNotes || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['oil_collections', equipmentId] });
+      toast.success('Coleta registrada!');
+      setCollectionDialogOpen(false);
+      setCollectionNumber('');
+      setCollectionNotes('');
+    },
+    onError: (err: any) => toast.error('Erro: ' + err.message),
+  });
+
   const lastOilChange = oilLogs.data?.[0];
   const lastFilterChange = filterLogs.data?.[0];
   const lastAnalysis = analyses.data?.[0];
