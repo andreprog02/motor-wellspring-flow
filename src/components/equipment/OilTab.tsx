@@ -697,8 +697,8 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       <Dialog open={oilChangeDialogOpen} onOpenChange={setOilChangeDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrar Troca de Óleo</DialogTitle>
-            <DialogDescription>Preencha os dados da troca de óleo.</DialogDescription>
+            <DialogTitle>Registrar {componentTypeLabels[genericMaintenanceType] || 'Manutenção'}</DialogTitle>
+            <DialogDescription>Preencha os dados da manutenção.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
