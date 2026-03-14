@@ -521,7 +521,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       )}
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button size="sm" onClick={() => {
           setGenericMaintenanceType('oil_change');
           setOilChangeHorimeter(String(equipmentHorimeter));
@@ -532,6 +532,17 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         }}>
           <Droplets className="h-3.5 w-3.5 mr-1.5" />
           Registrar Troca de Óleo
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => {
+          setGenericMaintenanceType('oil_filter');
+          setOilChangeHorimeter(String(equipmentHorimeter));
+          setOilChangeDate(formatLocalDate());
+          setOilChangeTypeId('');
+          setOilChangeNotes('');
+          setOilChangeDialogOpen(true);
+        }}>
+          <Filter className="h-3.5 w-3.5 mr-1.5" />
+          Registrar Troca de Filtro de Óleo
         </Button>
         <Button size="sm" variant="outline" onClick={() => {
           setAnalysisHorimeter(String(equipmentHorimeter));
