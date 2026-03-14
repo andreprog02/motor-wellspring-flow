@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Droplets, CalendarDays, PlusCircle,
-  Filter, FlaskConical, ExternalLink, Check, ChevronsUpDown, Pencil
+  Filter, FlaskConical, ExternalLink, Check, ChevronsUpDown, Pencil, TestTubes
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
