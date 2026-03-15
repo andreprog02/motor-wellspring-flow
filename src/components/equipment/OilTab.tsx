@@ -682,11 +682,14 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
             </Card>
           ) : (
             <div className="space-y-2">
-              {(analyses.data || []).map((a: OilAnalysis) => (
+              {(analyses.data || []).map((a) => (
                 <Card key={a.id}>
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
+                        {a.oil_collections?.collection_number && (
+                          <Badge variant="outline" className="font-mono text-xs">{a.oil_collections.collection_number}</Badge>
+                        )}
                         <span className="font-mono text-xs">{format(new Date(a.analysis_date), 'dd/MM/yyyy')}</span>
                         <Badge variant="secondary" className="font-mono text-xs">{fmtNum(a.horimeter_at_analysis)}h</Badge>
                       </div>
