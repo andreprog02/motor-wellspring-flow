@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Droplets, CalendarDays, PlusCircle,
   Filter, FlaskConical, ExternalLink, Check, ChevronsUpDown, Pencil, TestTubes
@@ -68,6 +69,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   const [analysisResult, setAnalysisResult] = useState('');
   const [analysisNotes, setAnalysisNotes] = useState('');
   const [analysisFile, setAnalysisFile] = useState<File | null>(null);
+  const [analysisCollectionId, setAnalysisCollectionId] = useState<string>('');
 
   // Oil change dialog state
   const [oilChangeDialogOpen, setOilChangeDialogOpen] = useState(false);
@@ -132,17 +134,17 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     },
   });
 
-  // Fetch oil analyses
+  // Fetch oil analyses (with collection info)
   const analyses = useQuery({
     queryKey: ['oil_analyses', equipmentId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('oil_analyses')
-        .select('*')
+        .select('*, oil_collections(collection_number)')
         .eq('equipment_id', equipmentId)
         .order('analysis_date', { ascending: false });
       if (error) throw error;
-      return data as OilAnalysis[];
+      return data as (OilAnalysis & { collection_id?: string | null; oil_collections?: { collection_number: string } | null })[];
     },
   });
 
@@ -244,6 +246,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         result: analysisResult,
         attachment_url,
         notes: analysisNotes,
+        collection_id: analysisCollectionId || null,
       });
       if (error) throw error;
     },
@@ -254,6 +257,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       setAnalysisResult('');
       setAnalysisNotes('');
       setAnalysisFile(null);
+      setAnalysisCollectionId('');
     },
     onError: (err: any) => toast.error('Erro: ' + err.message),
   });
@@ -590,6 +594,10 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         <Button size="sm" variant="outline" onClick={() => {
           setAnalysisHorimeter(String(equipmentHorimeter));
           setAnalysisDate(formatLocalDate());
+          setAnalysisCollectionId('');
+          setAnalysisResult('');
+          setAnalysisNotes('');
+          setAnalysisFile(null);
           setAnalysisDialogOpen(true);
         }}>
           <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
@@ -674,11 +682,14 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
             </Card>
           ) : (
             <div className="space-y-2">
-              {(analyses.data || []).map((a: OilAnalysis) => (
+              {(analyses.data || []).map((a) => (
                 <Card key={a.id}>
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
+                        {a.oil_collections?.collection_number && (
+                          <Badge variant="outline" className="font-mono text-xs">{a.oil_collections.collection_number}</Badge>
+                        )}
                         <span className="font-mono text-xs">{format(new Date(a.analysis_date), 'dd/MM/yyyy')}</span>
                         <Badge variant="secondary" className="font-mono text-xs">{fmtNum(a.horimeter_at_analysis)}h</Badge>
                       </div>
@@ -739,14 +750,25 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           ) : (
             <div className="space-y-2">
               {(collections.data || []).map((c) => (
-                <Card key={c.id}>
+                <Card key={c.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => {
+                  setAnalysisCollectionId(c.id);
+                  setAnalysisHorimeter(String(c.horimeter_at_collection));
+                  setAnalysisDate(formatLocalDate());
+                  setAnalysisResult('');
+                  setAnalysisNotes('');
+                  setAnalysisFile(null);
+                  setAnalysisDialogOpen(true);
+                }}>
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="font-mono text-xs">{c.collection_number || '—'}</Badge>
                         <span className="font-mono text-xs">{format(new Date(c.collection_date), 'dd/MM/yyyy')}</span>
                       </div>
-                      <Badge variant="secondary" className="font-mono text-xs">{fmtNum(c.horimeter_at_collection)}h</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="font-mono text-xs">{fmtNum(c.horimeter_at_collection)}h</Badge>
+                        <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
                     </div>
                     {c.notes && <p className="text-xs text-muted-foreground mt-0.5">{c.notes}</p>}
                   </CardContent>
@@ -855,6 +877,30 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
             <DialogDescription>Preencha os dados da análise laboratorial.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Collection selector */}
+            <div>
+              <Label>Coleta de Referência</Label>
+              <Select value={analysisCollectionId} onValueChange={(val) => {
+                setAnalysisCollectionId(val);
+                // Auto-fill horimeter from selected collection
+                const col = (collections.data || []).find(c => c.id === val);
+                if (col) {
+                  setAnalysisHorimeter(String(col.horimeter_at_collection));
+                  setAnalysisDate(col.collection_date);
+                }
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma coleta..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(collections.data || []).map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.collection_number} — {format(new Date(c.collection_date), 'dd/MM/yyyy')} — {fmtNum(c.horimeter_at_collection)}h
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Data da Análise</Label>
