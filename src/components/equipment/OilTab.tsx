@@ -863,6 +863,30 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
             <DialogDescription>Preencha os dados da análise laboratorial.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Collection selector */}
+            <div>
+              <Label>Coleta de Referência</Label>
+              <Select value={analysisCollectionId} onValueChange={(val) => {
+                setAnalysisCollectionId(val);
+                // Auto-fill horimeter from selected collection
+                const col = (collections.data || []).find(c => c.id === val);
+                if (col) {
+                  setAnalysisHorimeter(String(col.horimeter_at_collection));
+                  setAnalysisDate(col.collection_date);
+                }
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma coleta..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {(collections.data || []).map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.collection_number} — {format(new Date(c.collection_date), 'dd/MM/yyyy')} — {fmtNum(c.horimeter_at_collection)}h
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Data da Análise</Label>
