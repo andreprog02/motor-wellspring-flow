@@ -163,7 +163,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   });
 
   // Fetch ALL oil-related maintenance plans
-  const OIL_COMPONENT_TYPES = ['oil_change', 'oil_filter', 'air_filter', 'fuel_filter'];
+  const OIL_COMPONENT_TYPES = ['oil_change', 'oil_filter', 'air_filter', 'fuel_filter', 'oil'];
   const oilPlans = useQuery({
     queryKey: ['oil_plans', equipmentId],
     queryFn: async () => {
@@ -346,6 +346,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
 
   const componentTypeLabels: Record<string, string> = {
     oil_change: 'Troca de Óleo',
+    oil: 'Substituição de Óleo',
     oil_filter: 'Filtro de Óleo',
     air_filter: 'Filtro de Ar',
     fuel_filter: 'Filtro de Combustível',
@@ -353,6 +354,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
 
   const componentTypeIcons: Record<string, typeof Droplets> = {
     oil_change: Droplets,
+    oil: Droplets,
     oil_filter: Filter,
     air_filter: Filter,
     fuel_filter: Filter,
@@ -441,7 +443,9 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     <div className="space-y-4">
       {/* Summary Cards */}
       {(() => {
-        const oilChangePlan = allPlans.find(p => p.component_type === 'oil_change');
+        const oilChangePlan = allPlans.find(p => 
+          (p.component_type === 'oil_change' || (p.component_type === 'oil' && p.task === 'Substituição'))
+        );
         const lastOilHorimeter = lastOilChange ? lastOilChange.horimeter_at_service : null;
         const oilHours = lastOilHorimeter != null ? equipmentHorimeter - lastOilHorimeter : null;
         const oilInterval = oilChangePlan?.interval_value ?? null;
