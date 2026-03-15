@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Droplets, CalendarDays, PlusCircle,
-  Filter, FlaskConical, ExternalLink, Check, ChevronsUpDown, Pencil, TestTubes
+  Filter, FlaskConical, ExternalLink, Check, ChevronsUpDown, Pencil, TestTubes, Clock
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
