@@ -440,7 +440,60 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   return (
     <div className="space-y-4">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      {(() => {
+        const oilChangePlan = allPlans.find(p => p.component_type === 'oil_change');
+        const lastOilHorimeter = lastOilChange ? lastOilChange.horimeter_at_service : null;
+        const oilHours = lastOilHorimeter != null ? equipmentHorimeter - lastOilHorimeter : null;
+        const oilInterval = oilChangePlan?.interval_value ?? null;
+        const oilHoursStatus = oilHours != null && oilInterval != null && oilInterval > 0
+          ? getStatus(equipmentHorimeter, lastOilHorimeter!, oilInterval)
+          : null;
+        const oilHoursPercent = oilHours != null && oilInterval != null && oilInterval > 0
+          ? getPercent(equipmentHorimeter, lastOilHorimeter!, oilInterval)
+          : null;
+
+        return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+        {/* Oil Hours Card */}
+        <Card className={cn(
+          oilHoursStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+          oilHoursStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+        )}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground font-medium">Horas do Óleo</span>
+              </div>
+              {oilHoursStatus && (
+                <Badge
+                  variant={oilHoursStatus === 'critical' ? 'destructive' : oilHoursStatus === 'warning' ? 'secondary' : 'default'}
+                  className={cn('text-[10px] px-1.5 py-0',
+                    oilHoursStatus === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
+                    oilHoursStatus === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
+                  )}
+                >
+                  {oilHoursStatus === 'ok' ? 'Em dia' : oilHoursStatus === 'warning' ? 'Atenção' : 'Vencido'}
+                </Badge>
+              )}
+            </div>
+            {oilHours != null ? (
+              <>
+                <p className="font-bold text-lg font-mono">{fmtNum(oilHours)}h</p>
+                {oilInterval != null && oilInterval > 0 ? (
+                  <>
+                    <Progress value={oilHoursPercent!} className="h-1.5 mt-1.5 mb-1" />
+                    <p className="text-xs text-muted-foreground font-mono">{fmtNum(oilHours)} / {fmtNum(oilInterval)}h ({oilHoursPercent}%)</p>
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Sem plano de troca de óleo</p>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">Nenhuma troca registrada</p>
+            )}
+          </CardContent>
+        </Card>
         {/* Oil Type */}
         <Card className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => {
           setSelectedOilTypeId(oilTypeId || '');
