@@ -443,7 +443,9 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     <div className="space-y-4">
       {/* Summary Cards */}
       {(() => {
-        const oilChangePlan = allPlans.find(p => p.component_type === 'oil_change');
+        const oilChangePlan = allPlans.find(p => 
+          (p.component_type === 'oil_change' || (p.component_type === 'oil' && p.task === 'Substituição'))
+        );
         const lastOilHorimeter = lastOilChange ? lastOilChange.horimeter_at_service : null;
         const oilHours = lastOilHorimeter != null ? equipmentHorimeter - lastOilHorimeter : null;
         const oilInterval = oilChangePlan?.interval_value ?? null;
