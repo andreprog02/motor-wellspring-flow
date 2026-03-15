@@ -133,17 +133,17 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     },
   });
 
-  // Fetch oil analyses
+  // Fetch oil analyses (with collection info)
   const analyses = useQuery({
     queryKey: ['oil_analyses', equipmentId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('oil_analyses')
-        .select('*')
+        .select('*, oil_collections(collection_number)')
         .eq('equipment_id', equipmentId)
         .order('analysis_date', { ascending: false });
       if (error) throw error;
-      return data as OilAnalysis[];
+      return data as (OilAnalysis & { collection_id?: string | null; oil_collections?: { collection_number: string } | null })[];
     },
   });
 
