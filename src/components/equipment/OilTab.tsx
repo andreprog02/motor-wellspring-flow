@@ -256,6 +256,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       setAnalysisResult('');
       setAnalysisNotes('');
       setAnalysisFile(null);
+      setAnalysisCollectionId('');
     },
     onError: (err: any) => toast.error('Erro: ' + err.message),
   });
