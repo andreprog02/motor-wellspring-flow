@@ -593,6 +593,10 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         <Button size="sm" variant="outline" onClick={() => {
           setAnalysisHorimeter(String(equipmentHorimeter));
           setAnalysisDate(formatLocalDate());
+          setAnalysisCollectionId('');
+          setAnalysisResult('');
+          setAnalysisNotes('');
+          setAnalysisFile(null);
           setAnalysisDialogOpen(true);
         }}>
           <FlaskConical className="h-3.5 w-3.5 mr-1.5" />
