@@ -346,6 +346,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
 
   const componentTypeLabels: Record<string, string> = {
     oil_change: 'Troca de Óleo',
+    oil: 'Substituição de Óleo',
     oil_filter: 'Filtro de Óleo',
     air_filter: 'Filtro de Ar',
     fuel_filter: 'Filtro de Combustível',
@@ -353,6 +354,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
 
   const componentTypeIcons: Record<string, typeof Droplets> = {
     oil_change: Droplets,
+    oil: Droplets,
     oil_filter: Filter,
     air_filter: Filter,
     fuel_filter: Filter,
