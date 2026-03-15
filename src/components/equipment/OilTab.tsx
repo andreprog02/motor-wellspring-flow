@@ -750,14 +750,25 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           ) : (
             <div className="space-y-2">
               {(collections.data || []).map((c) => (
-                <Card key={c.id}>
+                <Card key={c.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => {
+                  setAnalysisCollectionId(c.id);
+                  setAnalysisHorimeter(String(c.horimeter_at_collection));
+                  setAnalysisDate(formatLocalDate());
+                  setAnalysisResult('');
+                  setAnalysisNotes('');
+                  setAnalysisFile(null);
+                  setAnalysisDialogOpen(true);
+                }}>
                   <CardContent className="p-3">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline" className="font-mono text-xs">{c.collection_number || '—'}</Badge>
                         <span className="font-mono text-xs">{format(new Date(c.collection_date), 'dd/MM/yyyy')}</span>
                       </div>
-                      <Badge variant="secondary" className="font-mono text-xs">{fmtNum(c.horimeter_at_collection)}h</Badge>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="font-mono text-xs">{fmtNum(c.horimeter_at_collection)}h</Badge>
+                        <FlaskConical className="h-3.5 w-3.5 text-muted-foreground" />
+                      </div>
                     </div>
                     {c.notes && <p className="text-xs text-muted-foreground mt-0.5">{c.notes}</p>}
                   </CardContent>
