@@ -245,6 +245,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         result: analysisResult,
         attachment_url,
         notes: analysisNotes,
+        collection_id: analysisCollectionId || null,
       });
       if (error) throw error;
     },
