@@ -767,6 +767,7 @@ export type Database = {
         Row: {
           analysis_date: string
           attachment_url: string | null
+          collection_id: string | null
           created_at: string
           equipment_id: string
           horimeter_at_analysis: number
@@ -777,6 +778,7 @@ export type Database = {
         Insert: {
           analysis_date?: string
           attachment_url?: string | null
+          collection_id?: string | null
           created_at?: string
           equipment_id: string
           horimeter_at_analysis?: number
@@ -787,6 +789,7 @@ export type Database = {
         Update: {
           analysis_date?: string
           attachment_url?: string | null
+          collection_id?: string | null
           created_at?: string
           equipment_id?: string
           horimeter_at_analysis?: number
@@ -795,6 +798,13 @@ export type Database = {
           result?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "oil_analyses_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "oil_collections"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "oil_analyses_equipment_id_fkey"
             columns: ["equipment_id"]

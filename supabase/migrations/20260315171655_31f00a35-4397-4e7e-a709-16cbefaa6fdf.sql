@@ -1,0 +1,1 @@
+ALTER TABLE public.oil_analyses ADD COLUMN collection_id UUID REFERENCES public.oil_collections(id) ON DELETE SET NULL DEFAULT NULL;
