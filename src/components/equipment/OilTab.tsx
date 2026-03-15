@@ -565,6 +565,8 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           </CardContent>
         </Card>
       </div>
+        );
+      })()}
 
       {/* Maintenance Plan Status */}
       {allPlans.length > 0 && (
