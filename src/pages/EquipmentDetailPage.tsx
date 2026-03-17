@@ -970,7 +970,12 @@ export default function EquipmentDetailPage() {
                                   </div>
                                   <Progress value={ts.percent} className="h-1" />
                                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                                    <span className="font-mono">{fmtNum(ts.usage)}{ts.unit} / {fmtNum(ts.interval)}{ts.unit}</span>
+                                    <span className="font-mono">
+                                      {ts.unit === 'arr.'
+                                        ? `${fmtNum(equipment.total_starts)} / ${fmtNum(ts.interval)} arr.`
+                                        : `${fmtNum(ts.usage)}${ts.unit} / ${fmtNum(ts.interval)}${ts.unit}`
+                                      }
+                                    </span>
                                     <span className="font-mono">{ts.percent}%</span>
                                   </div>
                                 </div>
