@@ -679,11 +679,13 @@ export default function EquipmentDetailPage() {
                     }, []);
 
                     const taskStatuses = uniquePlans.map(plan => {
+                      const counter = getCounterValue(plan.trigger_type);
+                      const unit = getCounterUnit(plan.trigger_type);
                       const baseline = Math.max(comp.horimeter_at_install, plan.last_execution_value);
-                      const usage = equipment.total_horimeter - baseline;
+                      const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline };
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit };
                     });
 
                     // Apply task filter
