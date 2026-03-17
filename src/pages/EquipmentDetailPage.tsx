@@ -22,6 +22,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind, Thermometer, Fan, Disc, Battery, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
+import { CylinderComponentEditDialog } from '@/components/equipment/CylinderComponentEditDialog';
 import { OilTab } from '@/components/equipment/OilTab';
 import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
@@ -132,6 +133,14 @@ export default function EquipmentDetailPage() {
   const [linkPlanOpen, setLinkPlanOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [taskFilter, setTaskFilter] = useState<Record<string, string>>({});
+  const [editComp, setEditComp] = useState<{
+    open: boolean;
+    componentType: string;
+    cylinderNumber: number;
+    componentId: string;
+    horimeterAtInstall: number;
+    plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null }>;
+  }>({ open: false, componentType: '', cylinderNumber: 0, componentId: '', horimeterAtInstall: 0, plans: [] });
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -680,10 +689,18 @@ export default function EquipmentDetailPage() {
                     return (
                       <Card
                         key={comp.id}
-                        className={
+                        className={`cursor-pointer transition-shadow hover:shadow-md ${
                           overallStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
                           overallStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
-                        }
+                        }`}
+                        onClick={() => setEditComp({
+                          open: true,
+                          componentType: comp.component_type,
+                          cylinderNumber: comp.cylinder_number,
+                          componentId: comp.id,
+                          horimeterAtInstall: comp.horimeter_at_install,
+                          plans: getPlansForComponent(group.type, comp.id),
+                        })}
                       >
                         <CardContent className="p-3">
                           <div className="flex items-center justify-between mb-2">
@@ -734,7 +751,7 @@ export default function EquipmentDetailPage() {
                               size="sm"
                               variant="outline"
                               className="flex-1 text-xs"
-                              onClick={() => openMaintDialog(comp.component_type, [comp.cylinder_number])}
+                              onClick={(e) => { e.stopPropagation(); openMaintDialog(comp.component_type, [comp.cylinder_number]); }}
                             >
                               <PlusCircle className="h-3 w-3 mr-1" />
                               Registrar
@@ -969,6 +986,21 @@ export default function EquipmentDetailPage() {
           componentType={maintDialog.componentType}
           allComponents={allCylComps.filter(c => c.component_type === maintDialog.componentType)}
           preSelectedCylinders={maintDialog.preSelectedCylinders}
+        />
+      )}
+
+      {/* Edit Component Dialog */}
+      {editComp.open && (
+        <CylinderComponentEditDialog
+          open={editComp.open}
+          onOpenChange={(open) => setEditComp(prev => ({ ...prev, open }))}
+          equipmentId={id!}
+          equipmentHorimeter={equipment.total_horimeter}
+          componentType={editComp.componentType}
+          cylinderNumber={editComp.cylinderNumber}
+          componentId={editComp.componentId}
+          currentHorimeterAtInstall={editComp.horimeterAtInstall}
+          plans={editComp.plans}
         />
       )}
 
