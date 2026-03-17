@@ -949,8 +949,8 @@ export default function EquipmentDetailPage() {
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1 mb-2">
                             <div className="flex justify-between">
-                              <span>Horímetro instalação:</span>
-                              <span className="font-mono">{fmtNum(comp.horimeter)}h</span>
+                              <span>{group.type === 'starter_motor' ? 'Arranques na instalação:' : 'Horímetro instalação:'}</span>
+                              <span className="font-mono">{fmtNum(comp.horimeter)}{group.type === 'starter_motor' ? ' arr.' : 'h'}</span>
                             </div>
                           </div>
 
