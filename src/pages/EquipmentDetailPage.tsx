@@ -341,16 +341,28 @@ export default function EquipmentDetailPage() {
   // Calculate status counts across ALL component types
   // Helper: get worst status for a component across its plans, considering component install horimeter
   // Count each task independently per component (not worst-per-component)
+  // Get the correct counter value based on trigger_type
+  const getCounterValue = (triggerType: string) => {
+    if (triggerType === 'starts') return equipment.total_starts;
+    return equipment.total_horimeter;
+  };
+
+  const getCounterUnit = (triggerType: string) => {
+    if (triggerType === 'starts') return 'arr.';
+    return 'h';
+  };
+
   const getTaskStatuses = (plans: MaintenancePlan[], compInstallHorimeter?: number) => {
     const uniquePlans = plans.reduce<MaintenancePlan[]>((acc, p) => {
       if (!acc.find(a => a.task === p.task)) acc.push(p);
       return acc;
     }, []);
     return uniquePlans.map(plan => {
+      const counter = getCounterValue(plan.trigger_type);
       const baseline = compInstallHorimeter !== undefined
         ? Math.max(compInstallHorimeter, plan.last_execution_value)
         : plan.last_execution_value;
-      const usage = equipment.total_horimeter - baseline;
+      const usage = counter - baseline;
       return getStatus(usage, plan.interval_value);
     });
   };
@@ -667,11 +679,13 @@ export default function EquipmentDetailPage() {
                     }, []);
 
                     const taskStatuses = uniquePlans.map(plan => {
+                      const counter = getCounterValue(plan.trigger_type);
+                      const unit = getCounterUnit(plan.trigger_type);
                       const baseline = Math.max(comp.horimeter_at_install, plan.last_execution_value);
-                      const usage = equipment.total_horimeter - baseline;
+                      const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline };
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit };
                     });
 
                     // Apply task filter
@@ -738,7 +752,7 @@ export default function EquipmentDetailPage() {
                                   </div>
                                   <Progress value={ts.percent} className="h-1" />
                                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                                    <span className="font-mono">{fmtNum(ts.usage)}h / {fmtNum(ts.interval)}h</span>
+                                    <span className="font-mono">{fmtNum(ts.usage)}{ts.unit} / {fmtNum(ts.interval)}{ts.unit}</span>
                                     <span className="font-mono">{ts.percent}%</span>
                                   </div>
                                 </div>
@@ -893,11 +907,13 @@ export default function EquipmentDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {group.components.map(comp => {
                     const taskStatuses = uniquePlans.map(plan => {
+                      const counter = getCounterValue(plan.trigger_type);
+                      const unit = getCounterUnit(plan.trigger_type);
                       const baseline = Math.max(comp.horimeter, plan.last_execution_value);
-                      const usage = equipment.total_horimeter - baseline;
+                      const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage };
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit };
                     });
 
                     const filteredStatuses = activeFilter === '_all'
@@ -933,8 +949,8 @@ export default function EquipmentDetailPage() {
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1 mb-2">
                             <div className="flex justify-between">
-                              <span>Horímetro instalação:</span>
-                              <span className="font-mono">{fmtNum(comp.horimeter)}h</span>
+                              <span>{group.type === 'starter_motor' ? 'Arranques na instalação:' : 'Horímetro instalação:'}</span>
+                              <span className="font-mono">{fmtNum(comp.horimeter)}{group.type === 'starter_motor' ? ' arr.' : 'h'}</span>
                             </div>
                           </div>
 
@@ -954,7 +970,7 @@ export default function EquipmentDetailPage() {
                                   </div>
                                   <Progress value={ts.percent} className="h-1" />
                                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                                    <span className="font-mono">{fmtNum(ts.usage)}h / {fmtNum(ts.interval)}h</span>
+                                    <span className="font-mono">{fmtNum(ts.usage)}{ts.unit} / {fmtNum(ts.interval)}{ts.unit}</span>
                                     <span className="font-mono">{ts.percent}%</span>
                                   </div>
                                 </div>
