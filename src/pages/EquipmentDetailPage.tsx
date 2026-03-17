@@ -689,10 +689,18 @@ export default function EquipmentDetailPage() {
                     return (
                       <Card
                         key={comp.id}
-                        className={
+                        className={`cursor-pointer transition-shadow hover:shadow-md ${
                           overallStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
                           overallStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
-                        }
+                        }`}
+                        onClick={() => setEditComp({
+                          open: true,
+                          componentType: comp.component_type,
+                          cylinderNumber: comp.cylinder_number,
+                          componentId: comp.id,
+                          horimeterAtInstall: comp.horimeter_at_install,
+                          plans: getPlansForComponent(group.type, comp.id),
+                        })}
                       >
                         <CardContent className="p-3">
                           <div className="flex items-center justify-between mb-2">
