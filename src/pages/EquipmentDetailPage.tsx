@@ -341,16 +341,28 @@ export default function EquipmentDetailPage() {
   // Calculate status counts across ALL component types
   // Helper: get worst status for a component across its plans, considering component install horimeter
   // Count each task independently per component (not worst-per-component)
+  // Get the correct counter value based on trigger_type
+  const getCounterValue = (triggerType: string) => {
+    if (triggerType === 'starts') return equipment.total_starts;
+    return equipment.total_horimeter;
+  };
+
+  const getCounterUnit = (triggerType: string) => {
+    if (triggerType === 'starts') return 'arr.';
+    return 'h';
+  };
+
   const getTaskStatuses = (plans: MaintenancePlan[], compInstallHorimeter?: number) => {
     const uniquePlans = plans.reduce<MaintenancePlan[]>((acc, p) => {
       if (!acc.find(a => a.task === p.task)) acc.push(p);
       return acc;
     }, []);
     return uniquePlans.map(plan => {
+      const counter = getCounterValue(plan.trigger_type);
       const baseline = compInstallHorimeter !== undefined
         ? Math.max(compInstallHorimeter, plan.last_execution_value)
         : plan.last_execution_value;
-      const usage = equipment.total_horimeter - baseline;
+      const usage = counter - baseline;
       return getStatus(usage, plan.interval_value);
     });
   };
