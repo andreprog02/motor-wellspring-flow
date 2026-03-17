@@ -133,6 +133,14 @@ export default function EquipmentDetailPage() {
   const [linkPlanOpen, setLinkPlanOpen] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [taskFilter, setTaskFilter] = useState<Record<string, string>>({});
+  const [editComp, setEditComp] = useState<{
+    open: boolean;
+    componentType: string;
+    cylinderNumber: number;
+    componentId: string;
+    horimeterAtInstall: number;
+    plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null }>;
+  }>({ open: false, componentType: '', cylinderNumber: 0, componentId: '', horimeterAtInstall: 0, plans: [] });
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
