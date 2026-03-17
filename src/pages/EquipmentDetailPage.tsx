@@ -751,7 +751,7 @@ export default function EquipmentDetailPage() {
                               size="sm"
                               variant="outline"
                               className="flex-1 text-xs"
-                              onClick={() => openMaintDialog(comp.component_type, [comp.cylinder_number])}
+                              onClick={(e) => { e.stopPropagation(); openMaintDialog(comp.component_type, [comp.cylinder_number]); }}
                             >
                               <PlusCircle className="h-3 w-3 mr-1" />
                               Registrar
