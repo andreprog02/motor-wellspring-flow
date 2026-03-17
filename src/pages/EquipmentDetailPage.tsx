@@ -989,6 +989,21 @@ export default function EquipmentDetailPage() {
         />
       )}
 
+      {/* Edit Component Dialog */}
+      {editComp.open && (
+        <CylinderComponentEditDialog
+          open={editComp.open}
+          onOpenChange={(open) => setEditComp(prev => ({ ...prev, open }))}
+          equipmentId={id!}
+          equipmentHorimeter={equipment.total_horimeter}
+          componentType={editComp.componentType}
+          cylinderNumber={editComp.cylinderNumber}
+          componentId={editComp.componentId}
+          currentHorimeterAtInstall={editComp.horimeterAtInstall}
+          plans={editComp.plans}
+        />
+      )}
+
       {/* Install Cylinder Head Dialog */}
       <Dialog open={installChOpen} onOpenChange={setInstallChOpen}>
         <DialogContent className="sm:max-w-md">
