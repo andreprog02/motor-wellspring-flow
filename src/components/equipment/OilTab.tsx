@@ -278,6 +278,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         oil_type_id: maintenanceType === 'oil_change' ? (mtOilTypeId || null) : null,
         notes,
         service_date: date,
+        tenant_id: tenantId,
       });
       if (logErr) throw logErr;
 
