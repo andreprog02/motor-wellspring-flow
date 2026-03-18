@@ -62,6 +62,7 @@ function getPercent(current: number, lastExec: number, interval: number) {
 
 export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: OilTabProps) {
   const queryClient = useQueryClient();
+  const tenantId = useTenantId();
 
   // Analysis dialog state
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false);
