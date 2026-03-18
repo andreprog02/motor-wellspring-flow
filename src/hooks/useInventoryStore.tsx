@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 
 export interface Manufacturer {
   id: string;
@@ -50,6 +51,7 @@ export interface InventoryItemDisplay extends InventoryItemRow {
 
 export function useInventoryStore() {
   const qc = useQueryClient();
+  const tenantId = useTenantId();
 
   const { data: manufacturers = [] } = useQuery({
     queryKey: ['manufacturers'],
@@ -110,10 +112,9 @@ export function useInventoryStore() {
     qc.invalidateQueries({ queryKey: ['inventory_items'] });
   };
 
-  // Manufacturers
   const addManufacturer = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await (supabase as any).from('manufacturers').insert({ name }).select().single();
+      const { data, error } = await (supabase as any).from('manufacturers').insert({ name, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as Manufacturer;
     },
@@ -136,10 +137,9 @@ export function useInventoryStore() {
     onSuccess: () => invalidateAll(),
   });
 
-  // Models
   const addModel = useMutation({
     mutationFn: async ({ manufacturer_id, name }: { manufacturer_id: string; name: string }) => {
-      const { data, error } = await (supabase as any).from('manufacturer_models').insert({ manufacturer_id, name }).select().single();
+      const { data, error } = await (supabase as any).from('manufacturer_models').insert({ manufacturer_id, name, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as ManufacturerModel;
     },
@@ -162,10 +162,9 @@ export function useInventoryStore() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['manufacturer_models'] }),
   });
 
-  // Locations
   const addLocation = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await (supabase as any).from('locations').insert({ name }).select().single();
+      const { data, error } = await (supabase as any).from('locations').insert({ name, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as Location;
     },
@@ -188,7 +187,6 @@ export function useInventoryStore() {
     onSuccess: () => invalidateAll(),
   });
 
-  // Inventory items
   const addItem = useMutation({
     mutationFn: async (item: Omit<InventoryItemRow, 'id'>) => {
       const { error } = await (supabase as any).from('inventory_items').insert({
@@ -205,6 +203,7 @@ export function useInventoryStore() {
         category: item.tipo,
         min_stock: 0,
         manufacturer_id: null,
+        tenant_id: tenantId,
       });
       if (error) throw error;
     },
