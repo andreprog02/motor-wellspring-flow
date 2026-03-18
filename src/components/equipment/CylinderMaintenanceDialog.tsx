@@ -46,6 +46,7 @@ export function CylinderMaintenanceDialog({
   componentType, allComponents, preSelectedCylinders,
 }: Props) {
   const qc = useQueryClient();
+  const tenantId = useTenantId();
   const [selectedCylinders, setSelectedCylinders] = useState<number[]>(preSelectedCylinders || []);
   const [task, setTask] = useState('');
   const [serviceType, setServiceType] = useState('inspection');
