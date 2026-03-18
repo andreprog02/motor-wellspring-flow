@@ -6,6 +6,7 @@ import { useCylinderHeadStore, cylinderHeadStatusLabels, cylinderHeadComponentTy
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { useInventoryStore } from '@/hooks/useInventoryStore';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -50,6 +51,7 @@ export default function CylinderHeadsPage() {
   const { equipments } = useEquipmentStore();
   const inventoryStore = useInventoryStore();
   const qc = useQueryClient();
+  const tenantId = useTenantId();
 
   // Fetch maintenance descriptions from DB
   const descriptionsQuery = useQuery({
@@ -68,7 +70,7 @@ export default function CylinderHeadsPage() {
   // Description CRUD mutations
   const addDescription = useMutation({
     mutationFn: async (name: string) => {
-      const { error } = await (supabase as any).from('maintenance_descriptions').insert({ name });
+      const { error } = await (supabase as any).from('maintenance_descriptions').insert({ name, tenant_id: tenantId });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['maintenance_descriptions'] }),

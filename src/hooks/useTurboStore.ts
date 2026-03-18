@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { formatLocalDate } from '@/lib/utils';
+import { useTenantId } from '@/hooks/useTenantId';
 
 export interface Turbo {
   id: string;
@@ -66,6 +67,7 @@ export { statusLabels as turboStatusLabels };
 
 export function useTurboStore() {
   const queryClient = useQueryClient();
+  const tenantId = useTenantId();
 
   const turbos = useQuery({
     queryKey: ['turbos'],
@@ -112,7 +114,7 @@ export function useTurboStore() {
 
   const addTurbo = useMutation({
     mutationFn: async (data: { serial_number: string }) => {
-      const { data: t, error } = await (supabase as any).from('turbos').insert({ serial_number: data.serial_number, status: 'in_stock' }).select().single();
+      const { data: t, error } = await (supabase as any).from('turbos').insert({ serial_number: data.serial_number, status: 'in_stock', tenant_id: tenantId }).select().single();
       if (error) throw error;
       return t as Turbo;
     },
@@ -142,6 +144,7 @@ export function useTurboStore() {
         turbo_id: data.turbo_id,
         equipment_id: data.equipment_id,
         install_equipment_horimeter: data.install_equipment_horimeter,
+        tenant_id: tenantId,
       }).select().single();
       if (error) throw error;
       return inst as TurboInstallation;
@@ -161,7 +164,7 @@ export function useTurboStore() {
     mutationFn: async (data: { turbo_id: string; description: string; horimeter_at_maintenance: number; maintenance_date?: string; attachment_url?: string | null }) => {
       const mDate = data.maintenance_date || formatLocalDate();
       const insertData: Record<string, any> = {
-        turbo_id: data.turbo_id, description: data.description, horimeter_at_maintenance: data.horimeter_at_maintenance, maintenance_date: mDate,
+        turbo_id: data.turbo_id, description: data.description, horimeter_at_maintenance: data.horimeter_at_maintenance, maintenance_date: mDate, tenant_id: tenantId,
       };
       if (data.attachment_url) insertData.attachment_url = data.attachment_url;
       const { data: m, error } = await (supabase as any).from('turbo_maintenances').insert(insertData).select().single();
@@ -180,7 +183,8 @@ export function useTurboStore() {
 
   const addTurboComponentsBatch = useMutation({
     mutationFn: async (rows: Array<{ turbo_id: string; component_type: string; replacement_date: string; horimeter_at_replacement: number }>) => {
-      const { error } = await (supabase as any).from('turbo_components').insert(rows);
+      const rowsWithTenant = rows.map(r => ({ ...r, tenant_id: tenantId }));
+      const { error } = await (supabase as any).from('turbo_components').insert(rowsWithTenant);
       if (error) throw error;
     },
     onSuccess: () => invalidateAll(),
@@ -210,7 +214,7 @@ export function useTurboStore() {
 
   const addHistoricalInstallation = useMutation({
     mutationFn: async (data: { turbo_id: string; equipment_id: string; install_date: string; install_equipment_horimeter: number; remove_date?: string | null; remove_equipment_horimeter?: number | null }) => {
-      const insertData: Record<string, any> = { turbo_id: data.turbo_id, equipment_id: data.equipment_id, install_date: data.install_date, install_equipment_horimeter: data.install_equipment_horimeter };
+      const insertData: Record<string, any> = { turbo_id: data.turbo_id, equipment_id: data.equipment_id, install_date: data.install_date, install_equipment_horimeter: data.install_equipment_horimeter, tenant_id: tenantId };
       if (data.remove_date) { insertData.remove_date = data.remove_date; insertData.remove_equipment_horimeter = data.remove_equipment_horimeter ?? 0; }
       const { data: inst, error } = await (supabase as any).from('turbo_installations').insert(insertData).select().single();
       if (error) throw error;

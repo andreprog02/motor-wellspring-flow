@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 
 export interface MaintenanceLog {
   id: string;
@@ -32,6 +33,7 @@ export interface MaintenanceLogDisplay extends MaintenanceLog {
 
 export function useMaintenanceStore() {
   const qc = useQueryClient();
+  const tenantId = useTenantId();
 
   const logs = useQuery({
     queryKey: ['maintenance_logs'],
@@ -79,7 +81,6 @@ export function useMaintenanceStore() {
         last_execution_value: number;
       }>;
     }) => {
-      // 1. Insert the maintenance log
       const { data: log, error: logErr } = await (supabase as any)
         .from('maintenance_logs')
         .insert({
@@ -89,17 +90,18 @@ export function useMaintenanceStore() {
           oil_type_id: data.log.oil_type_id || null,
           notes: data.log.notes,
           service_date: data.log.service_date,
+          tenant_id: tenantId,
         })
         .select()
         .single();
       if (logErr) throw logErr;
 
-      // 2. Insert items used
       if (data.items.length > 0) {
         const itemRows = data.items.map(item => ({
           maintenance_log_id: log.id,
           inventory_item_id: item.inventory_item_id,
           quantity: item.quantity,
+          tenant_id: tenantId,
         }));
         const { error: itemErr } = await (supabase as any)
           .from('maintenance_log_items')
@@ -107,7 +109,6 @@ export function useMaintenanceStore() {
         if (itemErr) throw itemErr;
       }
 
-      // 3. Deduct from inventory
       for (const item of data.items) {
         const { data: current, error: fetchErr } = await (supabase as any)
           .from('inventory_items')
@@ -124,10 +125,8 @@ export function useMaintenanceStore() {
         if (updateErr) throw updateErr;
       }
 
-      // 4. Upsert periodicity plans
       if (data.periodicity && data.periodicity.length > 0) {
         for (const plan of data.periodicity) {
-          // Check if plan already exists for this equipment + component_type
           const { data: existing } = await (supabase as any)
             .from('component_maintenance_plans')
             .select('id')
@@ -148,12 +147,11 @@ export function useMaintenanceStore() {
           } else {
             await (supabase as any)
               .from('component_maintenance_plans')
-              .insert(plan);
+              .insert({ ...plan, tenant_id: tenantId });
           }
         }
       }
 
-      // 5. Update equipment horimeter
       await (supabase as any)
         .from('equipments')
         .update({ total_horimeter: data.log.horimeter_at_service })

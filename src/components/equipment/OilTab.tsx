@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { formatLocalDate } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,6 +62,7 @@ function getPercent(current: number, lastExec: number, interval: number) {
 
 export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: OilTabProps) {
   const queryClient = useQueryClient();
+  const tenantId = useTenantId();
 
   // Analysis dialog state
   const [analysisDialogOpen, setAnalysisDialogOpen] = useState(false);
@@ -196,7 +198,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   // Add oil type mutation
   const addOilType = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await supabase.from('oil_types').insert({ name }).select().single();
+      const { data, error } = await supabase.from('oil_types').insert({ name, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as { id: string; name: string };
     },
@@ -247,6 +249,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         attachment_url,
         notes: analysisNotes,
         collection_id: analysisCollectionId || null,
+        tenant_id: tenantId,
       });
       if (error) throw error;
     },
@@ -275,6 +278,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         oil_type_id: maintenanceType === 'oil_change' ? (mtOilTypeId || null) : null,
         notes,
         service_date: date,
+        tenant_id: tenantId,
       });
       if (logErr) throw logErr;
 
@@ -326,6 +330,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         collection_date: collectionDate,
         horimeter_at_collection: Number(collectionHorimeter),
         notes: collectionNotes || null,
+        tenant_id: tenantId,
       });
       if (error) throw error;
     },

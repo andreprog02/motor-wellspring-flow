@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTenantId } from '@/hooks/useTenantId';
 
 const componentTypeLabels: Record<string, string> = {
   spark_plug: 'Vela',
@@ -45,6 +46,7 @@ export function CylinderMaintenanceDialog({
   componentType, allComponents, preSelectedCylinders,
 }: Props) {
   const qc = useQueryClient();
+  const tenantId = useTenantId();
   const [selectedCylinders, setSelectedCylinders] = useState<number[]>(preSelectedCylinders || []);
   const [task, setTask] = useState('');
   const [serviceType, setServiceType] = useState('inspection');
@@ -121,6 +123,7 @@ export function CylinderMaintenanceDialog({
           horimeter_at_service: horimeter,
           notes: `Cil. ${cylLabel} - ${componentTypeLabels[componentType]} - ${taskLabel}${notes ? ` - ${notes}` : ''}`,
           service_date: serviceDate,
+          tenant_id: tenantId,
         })
         .select()
         .single();

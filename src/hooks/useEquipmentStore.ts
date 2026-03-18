@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 
 export interface Equipment {
   id: string;
@@ -55,6 +56,7 @@ export interface CylinderComponent {
 
 export function useEquipmentStore() {
   const queryClient = useQueryClient();
+  const tenantId = useTenantId();
 
   const equipments = useQuery({
     queryKey: ['equipments'],
@@ -118,6 +120,7 @@ export function useEquipmentStore() {
           oil_type_id: data.equipment.oil_type_id,
           manufacturer_id: data.equipment.manufacturer_id,
           model_id: data.equipment.model_id,
+          tenant_id: tenantId,
         })
         .select()
         .single();
@@ -134,6 +137,7 @@ export function useEquipmentStore() {
           model_id: sc.model_id || null,
           horimeter: sc.horimeter,
           use_equipment_hours: sc.use_equipment_hours,
+          tenant_id: tenantId,
         }));
         const { error: subErr } = await supabase.from('equipment_sub_components').insert(subs);
         if (subErr) throw subErr;
@@ -142,16 +146,15 @@ export function useEquipmentStore() {
       const cylinders = data.equipment.cylinders;
       if (cylinders > 0) {
         const cylinderRows: Array<{
-          equipment_id: string; cylinder_number: number; component_type: string; horimeter_at_install: number;
+          equipment_id: string; cylinder_number: number; component_type: string; horimeter_at_install: number; tenant_id: string | null;
         }> = [];
         for (let i = 1; i <= cylinders; i++) {
           ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'].forEach(type => {
-            cylinderRows.push({ equipment_id: equipmentId, cylinder_number: i, component_type: type, horimeter_at_install: data.equipment.total_horimeter });
+            cylinderRows.push({ equipment_id: equipmentId, cylinder_number: i, component_type: type, horimeter_at_install: data.equipment.total_horimeter, tenant_id: tenantId });
           });
         }
         const { error: cylErr } = await supabase.from('cylinder_components').insert(cylinderRows);
         if (cylErr) throw cylErr;
-        // Plans are now created via maintenance plan templates, not auto-generated
       }
 
       return eq;
@@ -170,7 +173,6 @@ export function useEquipmentStore() {
 
   const deleteEquipment = useMutation({
     mutationFn: async (id: string) => {
-      // Delete related data first
       await supabase.from('component_maintenance_plans').delete().eq('equipment_id', id);
       await supabase.from('cylinder_components').delete().eq('equipment_id', id);
       await supabase.from('equipment_sub_components').delete().eq('equipment_id', id);
@@ -182,7 +184,7 @@ export function useEquipmentStore() {
 
   const addOilType = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await supabase.from('oil_types').insert({ name }).select().single();
+      const { data, error } = await supabase.from('oil_types').insert({ name, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as OilType;
     },
@@ -191,7 +193,7 @@ export function useEquipmentStore() {
 
   const addComponentManufacturer = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await supabase.from('component_manufacturers').insert({ name }).select().single();
+      const { data, error } = await supabase.from('component_manufacturers').insert({ name, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as ComponentManufacturer;
     },
@@ -200,7 +202,7 @@ export function useEquipmentStore() {
 
   const addComponentModel = useMutation({
     mutationFn: async (params: { manufacturer_id: string; name: string }) => {
-      const { data, error } = await supabase.from('component_models').insert(params).select().single();
+      const { data, error } = await supabase.from('component_models').insert({ ...params, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as ComponentModel;
     },

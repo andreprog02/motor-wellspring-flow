@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import MotorDetail from "./pages/MotorDetail";
 import InventoryPage from "./pages/InventoryPage";
@@ -20,9 +22,18 @@ import TurbosPage from "./pages/TurbosPage";
 import BearingMaintenancePage from "./pages/BearingMaintenancePage";
 import ReportsPage from "./pages/ReportsPage";
 import ToolsPage from "./pages/ToolsPage";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
+import TeamPage from "./pages/TeamPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+const P = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>{children}</ProtectedRoute>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -30,26 +41,33 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/motor/:id" element={<MotorDetail />} />
-          <Route path="/inventory" element={<InventoryPage />} />
-          <Route path="/tools" element={<ToolsPage />} />
-          <Route path="/manufacturers" element={<ManufacturersPage />} />
-          <Route path="/locations" element={<LocationsPage />} />
-          <Route path="/maintenance" element={<MaintenancePage />} />
-          <Route path="/maintenance/oil" element={<OilMaintenancePage />} />
-          <Route path="/maintenance/pistons" element={<PistonMaintenancePage />} />
-          <Route path="/maintenance/liners" element={<LinerMaintenancePage />} />
-          <Route path="/maintenance/spark-plugs" element={<SparkPlugMaintenancePage />} />
-          <Route path="/maintenance/bearings" element={<BearingMaintenancePage />} />
-          <Route path="/maintenance/plans" element={<MaintenancePlansPage />} />
-          <Route path="/equipment/:id" element={<EquipmentDetailPage />} />
-          <Route path="/cylinder-heads" element={<CylinderHeadsPage />} />
-          <Route path="/turbos" element={<TurbosPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/" element={<P><Index /></P>} />
+            <Route path="/motor/:id" element={<P><MotorDetail /></P>} />
+            <Route path="/inventory" element={<P><InventoryPage /></P>} />
+            <Route path="/tools" element={<P><ToolsPage /></P>} />
+            <Route path="/manufacturers" element={<P><ManufacturersPage /></P>} />
+            <Route path="/locations" element={<P><LocationsPage /></P>} />
+            <Route path="/maintenance" element={<P><MaintenancePage /></P>} />
+            <Route path="/maintenance/oil" element={<P><OilMaintenancePage /></P>} />
+            <Route path="/maintenance/pistons" element={<P><PistonMaintenancePage /></P>} />
+            <Route path="/maintenance/liners" element={<P><LinerMaintenancePage /></P>} />
+            <Route path="/maintenance/spark-plugs" element={<P><SparkPlugMaintenancePage /></P>} />
+            <Route path="/maintenance/bearings" element={<P><BearingMaintenancePage /></P>} />
+            <Route path="/maintenance/plans" element={<P><MaintenancePlansPage /></P>} />
+            <Route path="/equipment/:id" element={<P><EquipmentDetailPage /></P>} />
+            <Route path="/cylinder-heads" element={<P><CylinderHeadsPage /></P>} />
+            <Route path="/turbos" element={<P><TurbosPage /></P>} />
+            <Route path="/reports" element={<P><ReportsPage /></P>} />
+            <Route path="/team" element={<P><TeamPage /></P>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
