@@ -198,7 +198,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   // Add oil type mutation
   const addOilType = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await supabase.from('oil_types').insert({ name }).select().single();
+      const { data, error } = await supabase.from('oil_types').insert({ name, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as { id: string; name: string };
     },
