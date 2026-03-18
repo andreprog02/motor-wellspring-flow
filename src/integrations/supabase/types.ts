@@ -24,6 +24,7 @@ export type Database = {
           interval_value: number
           last_execution_value: number
           task: string
+          tenant_id: string | null
           trigger_type: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           interval_value?: number
           last_execution_value?: number
           task: string
+          tenant_id?: string | null
           trigger_type?: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           interval_value?: number
           last_execution_value?: number
           task?: string
+          tenant_id?: string | null
           trigger_type?: string
         }
         Relationships: [
@@ -56,6 +59,13 @@ export type Database = {
             referencedRelation: "equipments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "component_maintenance_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       component_manufacturers: {
@@ -63,18 +73,29 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          tenant_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "component_manufacturers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       component_models: {
         Row: {
@@ -82,18 +103,21 @@ export type Database = {
           id: string
           manufacturer_id: string
           name: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           manufacturer_id: string
           name: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           manufacturer_id?: string
           name?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -101,6 +125,13 @@ export type Database = {
             columns: ["manufacturer_id"]
             isOneToOne: false
             referencedRelation: "component_manufacturers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "component_models_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -113,6 +144,7 @@ export type Database = {
           equipment_id: string
           horimeter_at_install: number
           id: string
+          tenant_id: string | null
         }
         Insert: {
           component_type: string
@@ -121,6 +153,7 @@ export type Database = {
           equipment_id: string
           horimeter_at_install?: number
           id?: string
+          tenant_id?: string | null
         }
         Update: {
           component_type?: string
@@ -129,6 +162,7 @@ export type Database = {
           equipment_id?: string
           horimeter_at_install?: number
           id?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -136,6 +170,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cylinder_components_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -148,6 +189,7 @@ export type Database = {
           horimeter_at_replacement: number
           id: string
           replacement_date: string
+          tenant_id: string | null
         }
         Insert: {
           component_type: string
@@ -156,6 +198,7 @@ export type Database = {
           horimeter_at_replacement?: number
           id?: string
           replacement_date?: string
+          tenant_id?: string | null
         }
         Update: {
           component_type?: string
@@ -164,6 +207,7 @@ export type Database = {
           horimeter_at_replacement?: number
           id?: string
           replacement_date?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -171,6 +215,13 @@ export type Database = {
             columns: ["cylinder_head_id"]
             isOneToOne: false
             referencedRelation: "cylinder_heads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cylinder_head_components_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -185,6 +236,7 @@ export type Database = {
           install_equipment_horimeter: number
           remove_date: string | null
           remove_equipment_horimeter: number | null
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -195,6 +247,7 @@ export type Database = {
           install_equipment_horimeter?: number
           remove_date?: string | null
           remove_equipment_horimeter?: number | null
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -205,6 +258,7 @@ export type Database = {
           install_equipment_horimeter?: number
           remove_date?: string | null
           remove_equipment_horimeter?: number | null
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -221,6 +275,13 @@ export type Database = {
             referencedRelation: "equipments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "cylinder_head_installations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       cylinder_head_maintenances: {
@@ -231,6 +292,7 @@ export type Database = {
           horimeter_at_maintenance: number
           id: string
           maintenance_date: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -239,6 +301,7 @@ export type Database = {
           horimeter_at_maintenance?: number
           id?: string
           maintenance_date?: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -247,6 +310,7 @@ export type Database = {
           horimeter_at_maintenance?: number
           id?: string
           maintenance_date?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -254,6 +318,13 @@ export type Database = {
             columns: ["cylinder_head_id"]
             isOneToOne: false
             referencedRelation: "cylinder_heads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cylinder_head_maintenances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -267,6 +338,7 @@ export type Database = {
           location_id: string | null
           serial_number: string
           status: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -276,6 +348,7 @@ export type Database = {
           location_id?: string | null
           serial_number?: string
           status?: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -285,6 +358,7 @@ export type Database = {
           location_id?: string | null
           serial_number?: string
           status?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -292,6 +366,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cylinder_heads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -306,6 +387,7 @@ export type Database = {
           manufacturer_id: string | null
           model_id: string | null
           serial_number: string
+          tenant_id: string | null
           use_equipment_hours: boolean
         }
         Insert: {
@@ -317,6 +399,7 @@ export type Database = {
           manufacturer_id?: string | null
           model_id?: string | null
           serial_number?: string
+          tenant_id?: string | null
           use_equipment_hours?: boolean
         }
         Update: {
@@ -328,6 +411,7 @@ export type Database = {
           manufacturer_id?: string | null
           model_id?: string | null
           serial_number?: string
+          tenant_id?: string | null
           use_equipment_hours?: boolean
         }
         Relationships: [
@@ -352,6 +436,13 @@ export type Database = {
             referencedRelation: "component_models"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "equipment_sub_components_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipments: {
@@ -368,6 +459,7 @@ export type Database = {
           name: string
           oil_type_id: string | null
           serial_number: string
+          tenant_id: string | null
           total_horimeter: number
           total_starts: number
         }
@@ -384,6 +476,7 @@ export type Database = {
           name: string
           oil_type_id?: string | null
           serial_number?: string
+          tenant_id?: string | null
           total_horimeter?: number
           total_starts?: number
         }
@@ -400,6 +493,7 @@ export type Database = {
           name?: string
           oil_type_id?: string | null
           serial_number?: string
+          tenant_id?: string | null
           total_horimeter?: number
           total_starts?: number
         }
@@ -432,6 +526,13 @@ export type Database = {
             referencedRelation: "oil_types"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "equipments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       inventory_items: {
@@ -451,6 +552,7 @@ export type Database = {
           name: string
           part_number: string
           quantity: number
+          tenant_id: string | null
           tipo: string
         }
         Insert: {
@@ -469,6 +571,7 @@ export type Database = {
           name: string
           part_number?: string
           quantity?: number
+          tenant_id?: string | null
           tipo?: string
         }
         Update: {
@@ -487,6 +590,7 @@ export type Database = {
           name?: string
           part_number?: string
           quantity?: number
+          tenant_id?: string | null
           tipo?: string
         }
         Relationships: [
@@ -511,6 +615,48 @@ export type Database = {
             referencedRelation: "manufacturer_models"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "inventory_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invites: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          invited_by: string | null
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          invited_by?: string | null
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          invited_by?: string | null
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       locations: {
@@ -518,36 +664,58 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          tenant_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "locations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       maintenance_descriptions: {
         Row: {
           created_at: string
           id: string
           name: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          tenant_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_descriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       maintenance_log_items: {
         Row: {
@@ -556,6 +724,7 @@ export type Database = {
           inventory_item_id: string
           maintenance_log_id: string
           quantity: number
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -563,6 +732,7 @@ export type Database = {
           inventory_item_id: string
           maintenance_log_id: string
           quantity?: number
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -570,6 +740,7 @@ export type Database = {
           inventory_item_id?: string
           maintenance_log_id?: string
           quantity?: number
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -586,6 +757,13 @@ export type Database = {
             referencedRelation: "maintenance_logs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "maintenance_log_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maintenance_logs: {
@@ -598,6 +776,7 @@ export type Database = {
           notes: string | null
           oil_type_id: string | null
           service_date: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -608,6 +787,7 @@ export type Database = {
           notes?: string | null
           oil_type_id?: string | null
           service_date?: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -618,6 +798,7 @@ export type Database = {
           notes?: string | null
           oil_type_id?: string | null
           service_date?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -634,6 +815,13 @@ export type Database = {
             referencedRelation: "oil_types"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "maintenance_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       maintenance_plan_template_tasks: {
@@ -644,6 +832,7 @@ export type Database = {
           interval_value: number
           task: string
           template_id: string
+          tenant_id: string | null
           trigger_type: string
         }
         Insert: {
@@ -653,6 +842,7 @@ export type Database = {
           interval_value?: number
           task: string
           template_id: string
+          tenant_id?: string | null
           trigger_type?: string
         }
         Update: {
@@ -662,6 +852,7 @@ export type Database = {
           interval_value?: number
           task?: string
           template_id?: string
+          tenant_id?: string | null
           trigger_type?: string
         }
         Relationships: [
@@ -670,6 +861,13 @@ export type Database = {
             columns: ["template_id"]
             isOneToOne: false
             referencedRelation: "maintenance_plan_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_plan_template_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -682,6 +880,7 @@ export type Database = {
           manufacturer_id: string | null
           model_id: string | null
           name: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -690,6 +889,7 @@ export type Database = {
           manufacturer_id?: string | null
           model_id?: string | null
           name: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -698,6 +898,7 @@ export type Database = {
           manufacturer_id?: string | null
           model_id?: string | null
           name?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -714,6 +915,13 @@ export type Database = {
             referencedRelation: "component_models"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "maintenance_plan_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       manufacturer_models: {
@@ -722,18 +930,21 @@ export type Database = {
           id: string
           manufacturer_id: string
           name: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           manufacturer_id: string
           name: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           manufacturer_id?: string
           name?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -743,6 +954,13 @@ export type Database = {
             referencedRelation: "manufacturers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "manufacturer_models_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       manufacturers: {
@@ -750,18 +968,29 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          tenant_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "manufacturers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       oil_analyses: {
         Row: {
@@ -774,6 +1003,7 @@ export type Database = {
           id: string
           notes: string | null
           result: string
+          tenant_id: string | null
         }
         Insert: {
           analysis_date?: string
@@ -785,6 +1015,7 @@ export type Database = {
           id?: string
           notes?: string | null
           result?: string
+          tenant_id?: string | null
         }
         Update: {
           analysis_date?: string
@@ -796,6 +1027,7 @@ export type Database = {
           id?: string
           notes?: string | null
           result?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -812,6 +1044,13 @@ export type Database = {
             referencedRelation: "equipments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "oil_analyses_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       oil_collections: {
@@ -823,6 +1062,7 @@ export type Database = {
           horimeter_at_collection: number
           id: string
           notes: string | null
+          tenant_id: string | null
         }
         Insert: {
           collection_date?: string
@@ -832,6 +1072,7 @@ export type Database = {
           horimeter_at_collection?: number
           id?: string
           notes?: string | null
+          tenant_id?: string | null
         }
         Update: {
           collection_date?: string
@@ -841,6 +1082,7 @@ export type Database = {
           horimeter_at_collection?: number
           id?: string
           notes?: string | null
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -850,9 +1092,80 @@ export type Database = {
             referencedRelation: "equipments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "oil_collections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
         ]
       }
       oil_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oil_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          role: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id: string
+          role?: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          role?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
         Row: {
           created_at: string
           id: string
@@ -877,6 +1190,7 @@ export type Database = {
           horimeter_at_replacement: number
           id: string
           replacement_date: string
+          tenant_id: string | null
           turbo_id: string
         }
         Insert: {
@@ -885,6 +1199,7 @@ export type Database = {
           horimeter_at_replacement?: number
           id?: string
           replacement_date?: string
+          tenant_id?: string | null
           turbo_id: string
         }
         Update: {
@@ -893,9 +1208,17 @@ export type Database = {
           horimeter_at_replacement?: number
           id?: string
           replacement_date?: string
+          tenant_id?: string | null
           turbo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "turbo_components_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "turbo_components_turbo_id_fkey"
             columns: ["turbo_id"]
@@ -914,6 +1237,7 @@ export type Database = {
           install_equipment_horimeter: number
           remove_date: string | null
           remove_equipment_horimeter: number | null
+          tenant_id: string | null
           turbo_id: string
         }
         Insert: {
@@ -924,6 +1248,7 @@ export type Database = {
           install_equipment_horimeter?: number
           remove_date?: string | null
           remove_equipment_horimeter?: number | null
+          tenant_id?: string | null
           turbo_id: string
         }
         Update: {
@@ -934,6 +1259,7 @@ export type Database = {
           install_equipment_horimeter?: number
           remove_date?: string | null
           remove_equipment_horimeter?: number | null
+          tenant_id?: string | null
           turbo_id?: string
         }
         Relationships: [
@@ -942,6 +1268,13 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turbo_installations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
           {
@@ -961,6 +1294,7 @@ export type Database = {
           horimeter_at_maintenance: number
           id: string
           maintenance_date: string
+          tenant_id: string | null
           turbo_id: string
         }
         Insert: {
@@ -970,6 +1304,7 @@ export type Database = {
           horimeter_at_maintenance?: number
           id?: string
           maintenance_date?: string
+          tenant_id?: string | null
           turbo_id: string
         }
         Update: {
@@ -979,9 +1314,17 @@ export type Database = {
           horimeter_at_maintenance?: number
           id?: string
           maintenance_date?: string
+          tenant_id?: string | null
           turbo_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "turbo_maintenances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "turbo_maintenances_turbo_id_fkey"
             columns: ["turbo_id"]
@@ -999,6 +1342,7 @@ export type Database = {
           location_id: string | null
           serial_number: string
           status: string
+          tenant_id: string | null
         }
         Insert: {
           created_at?: string
@@ -1007,6 +1351,7 @@ export type Database = {
           location_id?: string | null
           serial_number?: string
           status?: string
+          tenant_id?: string | null
         }
         Update: {
           created_at?: string
@@ -1015,6 +1360,7 @@ export type Database = {
           location_id?: string | null
           serial_number?: string
           status?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -1022,6 +1368,13 @@ export type Database = {
             columns: ["location_id"]
             isOneToOne: false
             referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "turbos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -1036,6 +1389,8 @@ export type Database = {
         Returns: Json
       }
       get_turbo_metrics: { Args: { p_turbo_id: string }; Returns: Json }
+      get_user_tenant_id: { Args: never; Returns: string }
+      is_admin: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
