@@ -123,6 +123,7 @@ export function CylinderMaintenanceDialog({
           horimeter_at_service: horimeter,
           notes: `Cil. ${cylLabel} - ${componentTypeLabels[componentType]} - ${taskLabel}${notes ? ` - ${notes}` : ''}`,
           service_date: serviceDate,
+          tenant_id: tenantId,
         })
         .select()
         .single();
