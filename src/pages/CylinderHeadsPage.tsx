@@ -70,7 +70,7 @@ export default function CylinderHeadsPage() {
   // Description CRUD mutations
   const addDescription = useMutation({
     mutationFn: async (name: string) => {
-      const { error } = await (supabase as any).from('maintenance_descriptions').insert({ name });
+      const { error } = await (supabase as any).from('maintenance_descriptions').insert({ name, tenant_id: tenantId });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['maintenance_descriptions'] }),
