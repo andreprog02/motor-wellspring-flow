@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 
 export interface MaintenancePlanTemplate {
   id: string;
@@ -22,14 +23,12 @@ export interface MaintenancePlanTemplateTask {
 
 export function useMaintenancePlanTemplates() {
   const qc = useQueryClient();
+  const tenantId = useTenantId();
 
   const templates = useQuery({
     queryKey: ['maintenance_plan_templates'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('maintenance_plan_templates')
-        .select('*')
-        .order('name');
+      const { data, error } = await (supabase as any).from('maintenance_plan_templates').select('*').order('name');
       if (error) throw error;
       return data as MaintenancePlanTemplate[];
     },
@@ -38,10 +37,7 @@ export function useMaintenancePlanTemplates() {
   const templateTasks = useQuery({
     queryKey: ['maintenance_plan_template_tasks'],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from('maintenance_plan_template_tasks')
-        .select('*')
-        .order('created_at');
+      const { data, error } = await (supabase as any).from('maintenance_plan_template_tasks').select('*').order('created_at');
       if (error) throw error;
       return data as MaintenancePlanTemplateTask[];
     },
@@ -54,11 +50,7 @@ export function useMaintenancePlanTemplates() {
 
   const addTemplate = useMutation({
     mutationFn: async (params: { name: string; description: string; manufacturer_id?: string | null; model_id?: string | null }) => {
-      const { data, error } = await (supabase as any)
-        .from('maintenance_plan_templates')
-        .insert(params)
-        .select()
-        .single();
+      const { data, error } = await (supabase as any).from('maintenance_plan_templates').insert({ ...params, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as MaintenancePlanTemplate;
     },
@@ -67,10 +59,7 @@ export function useMaintenancePlanTemplates() {
 
   const updateTemplate = useMutation({
     mutationFn: async (params: { id: string; name: string; description: string; manufacturer_id?: string | null; model_id?: string | null }) => {
-      const { error } = await (supabase as any)
-        .from('maintenance_plan_templates')
-        .update({ name: params.name, description: params.description, manufacturer_id: params.manufacturer_id ?? null, model_id: params.model_id ?? null })
-        .eq('id', params.id);
+      const { error } = await (supabase as any).from('maintenance_plan_templates').update({ name: params.name, description: params.description, manufacturer_id: params.manufacturer_id ?? null, model_id: params.model_id ?? null }).eq('id', params.id);
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -78,10 +67,7 @@ export function useMaintenancePlanTemplates() {
 
   const deleteTemplate = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from('maintenance_plan_templates')
-        .delete()
-        .eq('id', id);
+      const { error } = await (supabase as any).from('maintenance_plan_templates').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -89,11 +75,7 @@ export function useMaintenancePlanTemplates() {
 
   const addTask = useMutation({
     mutationFn: async (params: Omit<MaintenancePlanTemplateTask, 'id' | 'created_at'>) => {
-      const { data, error } = await (supabase as any)
-        .from('maintenance_plan_template_tasks')
-        .insert(params)
-        .select()
-        .single();
+      const { data, error } = await (supabase as any).from('maintenance_plan_template_tasks').insert({ ...params, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as MaintenancePlanTemplateTask;
     },
@@ -102,10 +84,7 @@ export function useMaintenancePlanTemplates() {
 
   const updateTask = useMutation({
     mutationFn: async (params: { id: string; updates: Partial<Omit<MaintenancePlanTemplateTask, 'id' | 'created_at'>> }) => {
-      const { error } = await (supabase as any)
-        .from('maintenance_plan_template_tasks')
-        .update(params.updates)
-        .eq('id', params.id);
+      const { error } = await (supabase as any).from('maintenance_plan_template_tasks').update(params.updates).eq('id', params.id);
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -113,10 +92,7 @@ export function useMaintenancePlanTemplates() {
 
   const deleteTask = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await (supabase as any)
-        .from('maintenance_plan_template_tasks')
-        .delete()
-        .eq('id', id);
+      const { error } = await (supabase as any).from('maintenance_plan_template_tasks').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -124,65 +100,39 @@ export function useMaintenancePlanTemplates() {
 
   const CYLINDER_COMPONENT_TYPES = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
 
-  /** Apply a template to an equipment: generates component_maintenance_plans rows */
   const applyTemplateToEquipment = async (templateId: string, equipmentId: string, currentHorimeter: number) => {
     const tasks = (templateTasks.data ?? []).filter(t => t.template_id === templateId);
     if (tasks.length === 0) return;
 
-    // Delete existing plans for this equipment first
-    await (supabase as any)
-      .from('component_maintenance_plans')
-      .delete()
-      .eq('equipment_id', equipmentId);
+    await (supabase as any).from('component_maintenance_plans').delete().eq('equipment_id', equipmentId);
 
-    // Fetch cylinder components for this equipment
-    const { data: cylComps } = await (supabase as any)
-      .from('cylinder_components')
-      .select('id, component_type, cylinder_number')
-      .eq('equipment_id', equipmentId);
+    const { data: cylComps } = await (supabase as any).from('cylinder_components').select('id, component_type, cylinder_number').eq('equipment_id', equipmentId);
 
     const rows: Array<Record<string, any>> = [];
 
     for (const t of tasks) {
       if (CYLINDER_COMPONENT_TYPES.includes(t.component_type) && cylComps && cylComps.length > 0) {
-        // Create one plan row per cylinder component of this type
         const matchingComps = cylComps.filter((c: any) => c.component_type === t.component_type);
         for (const comp of matchingComps) {
           rows.push({
-            equipment_id: equipmentId,
-            component_type: t.component_type,
-            component_id: comp.id,
-            task: t.task,
-            trigger_type: t.trigger_type,
-            interval_value: t.interval_value,
-            last_execution_value: 0,
+            equipment_id: equipmentId, component_type: t.component_type, component_id: comp.id,
+            task: t.task, trigger_type: t.trigger_type, interval_value: t.interval_value, last_execution_value: 0, tenant_id: tenantId,
           });
         }
       } else {
-        // Non-cylinder types: one plan row shared
         rows.push({
-          equipment_id: equipmentId,
-          component_type: t.component_type,
-          task: t.task,
-          trigger_type: t.trigger_type,
-          interval_value: t.interval_value,
-          last_execution_value: 0,
+          equipment_id: equipmentId, component_type: t.component_type,
+          task: t.task, trigger_type: t.trigger_type, interval_value: t.interval_value, last_execution_value: 0, tenant_id: tenantId,
         });
       }
     }
 
     if (rows.length > 0) {
-      const { error } = await (supabase as any)
-        .from('component_maintenance_plans')
-        .insert(rows);
+      const { error } = await (supabase as any).from('component_maintenance_plans').insert(rows);
       if (error) throw error;
     }
 
-    // Link template to equipment
-    await (supabase as any)
-      .from('equipments')
-      .update({ maintenance_plan_template_id: templateId })
-      .eq('id', equipmentId);
+    await (supabase as any).from('equipments').update({ maintenance_plan_template_id: templateId }).eq('id', equipmentId);
 
     qc.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
     qc.invalidateQueries({ queryKey: ['equipments'] });
