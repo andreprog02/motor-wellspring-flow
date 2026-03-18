@@ -119,6 +119,31 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
       </nav>
 
       <div className={cn("px-3 py-3 border-t border-sidebar-border space-y-1")}>
+        {/* User info */}
+        {showLabels && profile && (
+          <div className="px-3 py-2">
+            <p className="text-xs font-medium text-sidebar-accent-foreground truncate">{profile.full_name || profile.email}</p>
+            <p className="text-[10px] text-sidebar-foreground truncate">{tenant?.name}</p>
+            {isAdmin && <span className="text-[9px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">Admin</span>}
+          </div>
+        )}
+        {isAdmin && (
+          <Link
+            to="/team"
+            onClick={isMobile ? onMobileClose : undefined}
+            title={!showLabels ? 'Equipe' : undefined}
+            className={cn(
+              'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
+              !showLabels ? 'justify-center px-2' : '',
+              location.pathname === '/team'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+            )}
+          >
+            <Users className="h-4 w-4 shrink-0" />
+            {showLabels && 'Equipe'}
+          </Link>
+        )}
         <button
           onClick={() => setBackupOpen(true)}
           title={!showLabels ? 'Backup' : undefined}
@@ -130,6 +155,18 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         >
           <DatabaseBackup className="h-4 w-4 shrink-0" />
           {showLabels && 'Backup'}
+        </button>
+        <button
+          onClick={signOut}
+          title={!showLabels ? 'Sair' : undefined}
+          className={cn(
+            'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
+            !showLabels ? 'justify-center px-2' : '',
+            'text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive'
+          )}
+        >
+          <LogOut className="h-4 w-4 shrink-0" />
+          {showLabels && 'Sair'}
         </button>
         <div className={cn("px-2 pt-1", !showLabels && "text-center")}>
           <p className="text-[10px] text-sidebar-foreground">v1.0 · Multi-tenant SaaS</p>
