@@ -51,6 +51,7 @@ export default function CylinderHeadsPage() {
   const { equipments } = useEquipmentStore();
   const inventoryStore = useInventoryStore();
   const qc = useQueryClient();
+  const tenantId = useTenantId();
 
   // Fetch maintenance descriptions from DB
   const descriptionsQuery = useQuery({
