@@ -330,6 +330,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         collection_date: collectionDate,
         horimeter_at_collection: Number(collectionHorimeter),
         notes: collectionNotes || null,
+        tenant_id: tenantId,
       });
       if (error) throw error;
     },

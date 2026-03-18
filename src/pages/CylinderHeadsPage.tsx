@@ -6,6 +6,7 @@ import { useCylinderHeadStore, cylinderHeadStatusLabels, cylinderHeadComponentTy
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { useInventoryStore } from '@/hooks/useInventoryStore';
 import { supabase } from '@/integrations/supabase/client';
+import { useTenantId } from '@/hooks/useTenantId';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
