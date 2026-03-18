@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useTenantId } from '@/hooks/useTenantId';
 
 const componentTypeLabels: Record<string, string> = {
   spark_plug: 'Vela',
