@@ -18,12 +18,6 @@ const navItems = [
 ];
 
 const maintenanceSubItems = [
-  { to: '/maintenance', label: 'Visão Geral', icon: Wrench },
-  { to: '/maintenance/oil', label: 'Óleo', icon: Droplets },
-  { to: '/maintenance/pistons', label: 'Pistões', icon: Cylinder },
-  { to: '/maintenance/liners', label: 'Camisas', icon: CircleDot },
-  { to: '/maintenance/spark-plugs', label: 'Velas', icon: Zap },
-  { to: '/maintenance/bearings', label: 'Bronzinas', icon: Circle },
   { to: '/maintenance/plans', label: 'Planos', icon: ClipboardList },
 ];
 
