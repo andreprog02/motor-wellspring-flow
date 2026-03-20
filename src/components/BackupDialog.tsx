@@ -63,6 +63,7 @@ interface Props {
 export function BackupDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const tenantId = useTenantId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
