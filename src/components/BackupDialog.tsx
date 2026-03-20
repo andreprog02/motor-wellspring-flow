@@ -150,13 +150,21 @@ export function BackupDialog({ open, onOpenChange }: Props) {
         }
       }
 
-      // Insert in order (parents first)
+      // Insert in order (parents first), injecting tenant_id
+      const SKIP_TENANT = ['tenants', 'profiles'];
       for (const table of TABLES_ORDERED) {
         const rows = backup[table];
         if (!rows || rows.length === 0) continue;
+        // Inject tenant_id for tables that support it
+        const enrichedRows = rows.map((row: any) => {
+          if (!SKIP_TENANT.includes(table) && tenantId) {
+            return { ...row, tenant_id: tenantId };
+          }
+          return row;
+        });
         // Insert in batches of 500
-        for (let i = 0; i < rows.length; i += 500) {
-          const batch = rows.slice(i, i + 500);
+        for (let i = 0; i < enrichedRows.length; i += 500) {
+          const batch = enrichedRows.slice(i, i + 500);
           const { error } = await (supabase as any).from(table).insert(batch);
           if (error) throw new Error(`Erro ao restaurar ${table}: ${error.message}`);
         }
