@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Upload, Loader2, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTenantId } from '@/hooks/useTenantId';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -62,6 +63,7 @@ interface Props {
 export function BackupDialog({ open, onOpenChange }: Props) {
   const { toast } = useToast();
   const qc = useQueryClient();
+  const tenantId = useTenantId();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -148,13 +150,21 @@ export function BackupDialog({ open, onOpenChange }: Props) {
         }
       }
 
-      // Insert in order (parents first)
+      // Insert in order (parents first), injecting tenant_id
+      const SKIP_TENANT = ['tenants', 'profiles'];
       for (const table of TABLES_ORDERED) {
         const rows = backup[table];
         if (!rows || rows.length === 0) continue;
+        // Inject tenant_id for tables that support it
+        const enrichedRows = rows.map((row: any) => {
+          if (!SKIP_TENANT.includes(table) && tenantId) {
+            return { ...row, tenant_id: tenantId };
+          }
+          return row;
+        });
         // Insert in batches of 500
-        for (let i = 0; i < rows.length; i += 500) {
-          const batch = rows.slice(i, i + 500);
+        for (let i = 0; i < enrichedRows.length; i += 500) {
+          const batch = enrichedRows.slice(i, i + 500);
           const { error } = await (supabase as any).from(table).insert(batch);
           if (error) throw new Error(`Erro ao restaurar ${table}: ${error.message}`);
         }
