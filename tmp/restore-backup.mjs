@@ -39,20 +39,20 @@ const orderedTables = [
 ];
 
 const raw = fs.readFileSync(backupPath, 'utf8');
-const backup = JSON.parse(raw).tables ?? JSON.parse(raw);
+const parsed = JSON.parse(raw);
+const backup = parsed.tables ?? parsed;
 
-const headers = {
+const baseHeaders = {
   apikey: serviceRoleKey,
   Authorization: `Bearer ${serviceRoleKey}`,
   'Content-Type': 'application/json',
-  Prefer: 'return=minimal',
 };
 
 async function rest(path, options = {}) {
   const res = await fetch(`${supabaseUrl}/rest/v1/${path}`, {
     ...options,
     headers: {
-      ...headers,
+      ...baseHeaders,
       ...(options.headers ?? {}),
     },
   });
@@ -65,11 +65,19 @@ async function rest(path, options = {}) {
   return res;
 }
 
+function chunk(array, size) {
+  const out = [];
+  for (let i = 0; i < array.length; i += size) out.push(array.slice(i, i + size));
+  return out;
+}
+
 const summary = [];
 
 for (const table of [...orderedTables].reverse()) {
-  await rest(`${table}?tenant_id=eq.${tenantId}`, { method: 'DELETE' });
-  summary.push({ table, inserted: 0 });
+  await rest(`${table}?tenant_id=eq.${tenantId}`, {
+    method: 'DELETE',
+    headers: { Prefer: 'return=minimal' },
+  });
 }
 
 for (const table of orderedTables) {
@@ -78,16 +86,17 @@ for (const table of orderedTables) {
 
   const prepared = rows.map((row) => ({ ...row, tenant_id: tenantId }));
 
-  for (let i = 0; i < prepared.length; i += 200) {
-    const batch = prepared.slice(i, i + 200);
-    await rest(table, {
+  for (const batch of chunk(prepared, 200)) {
+    await rest(`${table}?on_conflict=id`, {
       method: 'POST',
+      headers: {
+        Prefer: 'resolution=merge-duplicates,return=minimal',
+      },
       body: JSON.stringify(batch),
     });
   }
 
-  const item = summary.find((entry) => entry.table === table);
-  if (item) item.inserted = prepared.length;
+  summary.push({ table, inserted: prepared.length });
 }
 
 console.log(JSON.stringify({ ok: true, tenantId, summary }, null, 2));
