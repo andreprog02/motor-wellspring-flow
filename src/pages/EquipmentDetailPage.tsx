@@ -1057,6 +1057,19 @@ export default function EquipmentDetailPage() {
         />
       )}
 
+      {/* Edit Sub Component Dialog */}
+      {editSubComp.open && (
+        <SubComponentEditDialog
+          open={editSubComp.open}
+          onOpenChange={(open) => setEditSubComp(prev => ({ ...prev, open }))}
+          componentId={editSubComp.componentId}
+          componentType={editSubComp.componentType}
+          currentHorimeter={editSubComp.horimeter}
+          currentInstallationDate={editSubComp.installationDate}
+          equipmentTotalStarts={equipment.total_starts}
+        />
+      )}
+
       {/* Install Cylinder Head Dialog */}
       <Dialog open={installChOpen} onOpenChange={setInstallChOpen}>
         <DialogContent className="sm:max-w-md">
