@@ -981,10 +981,8 @@ export default function EquipmentDetailPage() {
                                 <span className="font-mono">{format(new Date(comp.installation_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
                               </div>
                             )}
-                          </div>
-                              <span className="font-mono">{fmtNum(comp.horimeter)}{group.type === 'starter_motor' ? ' arr.' : 'h'}</span>
-                            </div>
-                          </div>
+
+
 
                           {filteredStatuses.length > 0 && (
                             <div className="space-y-1.5">
