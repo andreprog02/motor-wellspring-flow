@@ -1,0 +1,1 @@
+ALTER TABLE public.equipment_sub_components ADD COLUMN installation_date date DEFAULT NULL;

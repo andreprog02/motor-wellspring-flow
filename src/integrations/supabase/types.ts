@@ -384,6 +384,7 @@ export type Database = {
           equipment_id: string
           horimeter: number
           id: string
+          installation_date: string | null
           manufacturer_id: string | null
           model_id: string | null
           serial_number: string
@@ -396,6 +397,7 @@ export type Database = {
           equipment_id: string
           horimeter?: number
           id?: string
+          installation_date?: string | null
           manufacturer_id?: string | null
           model_id?: string | null
           serial_number?: string
@@ -408,6 +410,7 @@ export type Database = {
           equipment_id?: string
           horimeter?: number
           id?: string
+          installation_date?: string | null
           manufacturer_id?: string | null
           model_id?: string | null
           serial_number?: string

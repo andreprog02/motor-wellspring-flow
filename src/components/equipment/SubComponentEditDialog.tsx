@@ -1,0 +1,136 @@
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+
+interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  componentId: string;
+  componentType: string;
+  currentHorimeter: number;
+  currentInstallationDate: string | null;
+  equipmentTotalStarts: number;
+}
+
+const typeLabels: Record<string, string> = {
+  starter_motor: 'Motor de Arranque',
+  battery: 'Bateria',
+};
+
+export function SubComponentEditDialog({
+  open, onOpenChange, componentId, componentType,
+  currentHorimeter, currentInstallationDate, equipmentTotalStarts,
+}: Props) {
+  const qc = useQueryClient();
+  const [horimeter, setHorimeter] = useState(currentHorimeter);
+  const [installDate, setInstallDate] = useState<Date | undefined>(
+    currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setHorimeter(currentHorimeter);
+      setInstallDate(currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined);
+    }
+  }, [open, currentHorimeter, currentInstallationDate]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('equipment_sub_components')
+        .update({
+          horimeter,
+          installation_date: installDate ? format(installDate, 'yyyy-MM-dd') : null,
+        } as any)
+        .eq('id', componentId);
+
+      if (error) throw error;
+
+      qc.invalidateQueries({ queryKey: ['equipment_sub_components'] });
+      toast.success(`${typeLabels[componentType] || componentType} atualizado`);
+      onOpenChange(false);
+    } catch (err: any) {
+      toast.error(`Erro: ${err.message}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const label = typeLabels[componentType] || componentType;
+  const isStarter = componentType === 'starter_motor';
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar {label}</DialogTitle>
+          <DialogDescription>
+            Altere os dados de instalação do componente.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label>{isStarter ? 'Arranques na Instalação' : 'Horímetro na Instalação'}</Label>
+            <Input
+              type="number"
+              value={horimeter}
+              onChange={e => setHorimeter(Number(e.target.value))}
+            />
+            {isStarter && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Total de arranques do equipamento: {equipmentTotalStarts.toLocaleString('pt-BR')}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <Label>Data da Instalação</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !installDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {installDate ? format(installDate, "dd/MM/yyyy") : "Selecionar data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={installDate}
+                  onSelect={setInstallDate}
+                  locale={ptBR}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Salvando...' : 'Salvar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

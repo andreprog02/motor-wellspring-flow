@@ -23,10 +23,12 @@ import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCir
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 import { CylinderComponentEditDialog } from '@/components/equipment/CylinderComponentEditDialog';
+import { SubComponentEditDialog } from '@/components/equipment/SubComponentEditDialog';
 import { OilTab } from '@/components/equipment/OilTab';
 import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
+import { cn } from '@/lib/utils';
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
@@ -141,6 +143,14 @@ export default function EquipmentDetailPage() {
     horimeterAtInstall: number;
     plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null }>;
   }>({ open: false, componentType: '', cylinderNumber: 0, componentId: '', horimeterAtInstall: 0, plans: [] });
+
+  const [editSubComp, setEditSubComp] = useState<{
+    open: boolean;
+    componentId: string;
+    componentType: string;
+    horimeter: number;
+    installationDate: string | null;
+  }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null });
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -928,13 +938,21 @@ export default function EquipmentDetailPage() {
                     const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
                       : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
 
-                    return (
+                      return (
                       <Card
                         key={comp.id}
-                        className={
+                        className={cn(
+                          'cursor-pointer transition-shadow hover:shadow-md',
                           overallStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
                           overallStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
-                        }
+                        )}
+                        onClick={() => setEditSubComp({
+                          open: true,
+                          componentId: comp.id,
+                          componentType: comp.component_type,
+                          horimeter: comp.horimeter,
+                          installationDate: comp.installation_date ?? null,
+                        })}
                       >
                         <CardContent className="p-3">
                           <div className="flex items-center justify-between mb-2">
@@ -957,6 +975,12 @@ export default function EquipmentDetailPage() {
                               <span>{group.type === 'starter_motor' ? 'Arranques na instalação:' : 'Horímetro instalação:'}</span>
                               <span className="font-mono">{fmtNum(comp.horimeter)}{group.type === 'starter_motor' ? ' arr.' : 'h'}</span>
                             </div>
+                            {comp.installation_date && (
+                              <div className="flex justify-between">
+                                <span>Data instalação:</span>
+                                <span className="font-mono">{format(new Date(comp.installation_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                              </div>
+                            )}
                           </div>
 
                           {filteredStatuses.length > 0 && (
@@ -1027,6 +1051,19 @@ export default function EquipmentDetailPage() {
           componentId={editComp.componentId}
           currentHorimeterAtInstall={editComp.horimeterAtInstall}
           plans={editComp.plans}
+        />
+      )}
+
+      {/* Edit Sub Component Dialog */}
+      {editSubComp.open && (
+        <SubComponentEditDialog
+          open={editSubComp.open}
+          onOpenChange={(open) => setEditSubComp(prev => ({ ...prev, open }))}
+          componentId={editSubComp.componentId}
+          componentType={editSubComp.componentType}
+          currentHorimeter={editSubComp.horimeter}
+          currentInstallationDate={editSubComp.installationDate}
+          equipmentTotalStarts={equipment.total_starts}
         />
       )}
 
