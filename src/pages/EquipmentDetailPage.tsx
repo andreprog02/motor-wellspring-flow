@@ -937,13 +937,21 @@ export default function EquipmentDetailPage() {
                     const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
                       : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
 
-                    return (
+                      return (
                       <Card
                         key={comp.id}
-                        className={
+                        className={cn(
+                          'cursor-pointer transition-shadow hover:shadow-md',
                           overallStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
                           overallStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
-                        }
+                        )}
+                        onClick={() => setEditSubComp({
+                          open: true,
+                          componentId: comp.id,
+                          componentType: comp.component_type,
+                          horimeter: comp.horimeter,
+                          installationDate: comp.installation_date ?? null,
+                        })}
                       >
                         <CardContent className="p-3">
                           <div className="flex items-center justify-between mb-2">
