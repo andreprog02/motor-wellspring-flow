@@ -758,7 +758,12 @@ export default function EquipmentDetailPage() {
                               {filteredStatuses.map((ts, i) => (
                                 <div key={i} className="space-y-0.5">
                                   <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">{ts.task}</span>
+                                    <span className="text-muted-foreground">
+                                      {ts.task}
+                                      {ts.lastDate && (
+                                        <span className="ml-1 font-mono">{format(new Date(ts.lastDate + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                                      )}
+                                    </span>
                                     <span className={
                                       ts.status === 'critical' ? 'text-[hsl(var(--status-critical))] font-semibold' :
                                       ts.status === 'warning' ? 'text-[hsl(var(--status-warning))] font-semibold' :
