@@ -28,6 +28,7 @@ import { OilTab } from '@/components/equipment/OilTab';
 import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
+import { cn } from '@/lib/utils';
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
