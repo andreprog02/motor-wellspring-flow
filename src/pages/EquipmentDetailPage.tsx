@@ -23,6 +23,7 @@ import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCir
 import { format } from 'date-fns';
 import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMaintenanceDialog';
 import { CylinderComponentEditDialog } from '@/components/equipment/CylinderComponentEditDialog';
+import { SubComponentEditDialog } from '@/components/equipment/SubComponentEditDialog';
 import { OilTab } from '@/components/equipment/OilTab';
 import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';

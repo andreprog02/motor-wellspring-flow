@@ -44,7 +44,7 @@ export interface EquipmentSubComponent {
   model_id: string | null;
   horimeter: number;
   use_equipment_hours: boolean;
-  installation_date: string | null;
+  installation_date?: string | null;
 }
 
 export interface CylinderComponent {
