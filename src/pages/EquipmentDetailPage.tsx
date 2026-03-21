@@ -695,7 +695,14 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit };
+                      // Find the log whose horimeter matches last_execution_value
+                      const lastLog = plan.last_execution_value > 0
+                        ? compLogs
+                            .filter((l: any) => l.maintenance_type === comp.component_type)
+                            .sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
+                        : null;
+                      const lastDate = lastLog ? lastLog.service_date : null;
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit, lastDate };
                     });
 
                     // Apply task filter
@@ -751,7 +758,12 @@ export default function EquipmentDetailPage() {
                               {filteredStatuses.map((ts, i) => (
                                 <div key={i} className="space-y-0.5">
                                   <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">{ts.task}</span>
+                                    <span className="text-muted-foreground">
+                                      {ts.task}
+                                      {ts.lastDate && (
+                                        <span className="ml-1 font-mono">{format(new Date(ts.lastDate + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                                      )}
+                                    </span>
                                     <span className={
                                       ts.status === 'critical' ? 'text-[hsl(var(--status-critical))] font-semibold' :
                                       ts.status === 'warning' ? 'text-[hsl(var(--status-warning))] font-semibold' :
@@ -928,7 +940,13 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit };
+                      // Find the log whose horimeter matches last_execution_value
+                      const scLogs = equipmentLogs.filter((l: any) => l.maintenance_type === group.type);
+                      const lastLog = plan.last_execution_value > 0
+                        ? scLogs.sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
+                        : null;
+                      const lastDate = lastLog ? lastLog.service_date : null;
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate };
                     });
 
                     const filteredStatuses = activeFilter === '_all'
@@ -988,7 +1006,12 @@ export default function EquipmentDetailPage() {
                               {filteredStatuses.map((ts, i) => (
                                 <div key={i} className="space-y-0.5">
                                   <div className="flex items-center justify-between text-xs">
-                                    <span className="text-muted-foreground">{ts.task}</span>
+                                    <span className="text-muted-foreground">
+                                      {ts.task}
+                                      {ts.lastDate && (
+                                        <span className="ml-1 font-mono">{format(new Date(ts.lastDate + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                                      )}
+                                    </span>
                                     <span className={
                                       ts.status === 'critical' ? 'text-[hsl(var(--status-critical))] font-semibold' :
                                       ts.status === 'warning' ? 'text-[hsl(var(--status-warning))] font-semibold' :
