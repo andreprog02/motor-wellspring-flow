@@ -143,6 +143,14 @@ export default function EquipmentDetailPage() {
     plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null }>;
   }>({ open: false, componentType: '', cylinderNumber: 0, componentId: '', horimeterAtInstall: 0, plans: [] });
 
+  const [editSubComp, setEditSubComp] = useState<{
+    open: boolean;
+    componentId: string;
+    componentType: string;
+    horimeter: number;
+    installationDate: string | null;
+  }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null });
+
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
 
