@@ -695,7 +695,14 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit };
+                      // Find the log whose horimeter matches last_execution_value
+                      const lastLog = plan.last_execution_value > 0
+                        ? compLogs
+                            .filter((l: any) => l.maintenance_type === comp.component_type)
+                            .sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
+                        : null;
+                      const lastDate = lastLog ? lastLog.service_date : null;
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit, lastDate };
                     });
 
                     // Apply task filter
