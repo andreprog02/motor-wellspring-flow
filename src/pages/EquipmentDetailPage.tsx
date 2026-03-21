@@ -975,6 +975,15 @@ export default function EquipmentDetailPage() {
                               <span>{group.type === 'starter_motor' ? 'Arranques na instalação:' : 'Horímetro instalação:'}</span>
                               <span className="font-mono">{fmtNum(comp.horimeter)}{group.type === 'starter_motor' ? ' arr.' : 'h'}</span>
                             </div>
+                            {comp.installation_date && (
+                              <div className="flex justify-between">
+                                <span>Data instalação:</span>
+                                <span className="font-mono">{format(new Date(comp.installation_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                              </div>
+                            )}
+                          </div>
+                              <span className="font-mono">{fmtNum(comp.horimeter)}{group.type === 'starter_motor' ? ' arr.' : 'h'}</span>
+                            </div>
                           </div>
 
                           {filteredStatuses.length > 0 && (
