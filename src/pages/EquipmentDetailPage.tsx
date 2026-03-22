@@ -1087,6 +1087,7 @@ export default function EquipmentDetailPage() {
           currentHorimeter={editSubComp.horimeter}
           currentInstallationDate={editSubComp.installationDate}
           equipmentTotalStarts={equipment.total_starts}
+          plans={editSubComp.plans}
         />
       )}
 
