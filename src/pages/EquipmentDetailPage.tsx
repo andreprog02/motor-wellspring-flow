@@ -50,6 +50,7 @@ interface MaintenancePlan {
   trigger_type: string;
   interval_value: number;
   last_execution_value: number;
+  last_execution_date: string | null;
 }
 
 interface CylComp {
