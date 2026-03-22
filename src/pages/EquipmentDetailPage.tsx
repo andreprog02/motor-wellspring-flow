@@ -942,12 +942,15 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      // Search ALL equipment logs of this type to find the date closest to last_execution_value
-                      const scLogs = equipmentLogs.filter((l: any) => l.maintenance_type === group.type);
-                      const lastLog = plan.last_execution_value > 0 && scLogs.length > 0
-                        ? [...scLogs].sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
-                        : null;
-                      const lastDate = lastLog ? lastLog.service_date : null;
+                      // Use stored date first, fallback to log search
+                      let lastDate = plan.last_execution_date;
+                      if (!lastDate && plan.last_execution_value > 0) {
+                        const scLogs = equipmentLogs.filter((l: any) => l.maintenance_type === group.type);
+                        if (scLogs.length > 0) {
+                          const lastLog = [...scLogs].sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0];
+                          lastDate = lastLog?.service_date || null;
+                        }
+                      }
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate };
                     });
 
