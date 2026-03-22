@@ -6,12 +6,24 @@ import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+
+interface MaintenancePlan {
+  id: string;
+  task: string;
+  last_execution_value: number;
+  interval_value: number;
+  component_id: string | null;
+  trigger_type: string;
+  last_execution_date: string | null;
+}
 
 interface Props {
   open: boolean;
@@ -21,30 +33,58 @@ interface Props {
   currentHorimeter: number;
   currentInstallationDate: string | null;
   equipmentTotalStarts: number;
+  plans: MaintenancePlan[];
 }
 
 const typeLabels: Record<string, string> = {
   starter_motor: 'Motor de Arranque',
   battery: 'Bateria',
+  turbine: 'Turbina',
+  intercooler: 'Intercooler',
+  oil_exchanger: 'Trocador de Óleo',
+  blowby: 'Blowby',
+  damper: 'Damper',
+};
+
+const triggerLabels: Record<string, string> = {
+  hours: 'Horas',
+  months: 'Meses',
+  starts: 'Arranques',
+};
+
+const triggerUnits: Record<string, string> = {
+  hours: 'h',
+  months: 'meses',
+  starts: 'arr.',
 };
 
 export function SubComponentEditDialog({
   open, onOpenChange, componentId, componentType,
-  currentHorimeter, currentInstallationDate, equipmentTotalStarts,
+  currentHorimeter, currentInstallationDate, equipmentTotalStarts, plans,
 }: Props) {
   const qc = useQueryClient();
   const [horimeter, setHorimeter] = useState(currentHorimeter);
   const [installDate, setInstallDate] = useState<Date | undefined>(
     currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined
   );
+  const [planValues, setPlanValues] = useState<Record<string, number>>({});
+  const [planDates, setPlanDates] = useState<Record<string, Date | undefined>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
       setHorimeter(currentHorimeter);
       setInstallDate(currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined);
+      const vals: Record<string, number> = {};
+      const dates: Record<string, Date | undefined> = {};
+      plans.forEach(p => {
+        vals[p.id] = p.last_execution_value;
+        dates[p.id] = p.last_execution_date ? new Date(p.last_execution_date + 'T12:00:00') : undefined;
+      });
+      setPlanValues(vals);
+      setPlanDates(dates);
     }
-  }, [open, currentHorimeter, currentInstallationDate]);
+  }, [open, currentHorimeter, currentInstallationDate, plans]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -59,7 +99,29 @@ export function SubComponentEditDialog({
 
       if (error) throw error;
 
+      // Update plans
+      for (const plan of plans) {
+        const newVal = planValues[plan.id];
+        const newDate = planDates[plan.id];
+        const dateStr = newDate ? format(newDate, 'yyyy-MM-dd') : null;
+        
+        const updates: any = {};
+        if (newVal !== undefined && newVal !== plan.last_execution_value) {
+          updates.last_execution_value = newVal;
+        }
+        if (dateStr !== plan.last_execution_date) {
+          updates.last_execution_date = dateStr;
+        }
+        if (Object.keys(updates).length > 0) {
+          await (supabase as any)
+            .from('component_maintenance_plans')
+            .update(updates)
+            .eq('id', plan.id);
+        }
+      }
+
       qc.invalidateQueries({ queryKey: ['equipment_sub_components'] });
+      qc.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
       toast.success(`${typeLabels[componentType] || componentType} atualizado`);
       onOpenChange(false);
     } catch (err: any) {
@@ -74,11 +136,11 @@ export function SubComponentEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar {label}</DialogTitle>
           <DialogDescription>
-            Altere os dados de instalação do componente.
+            Altere os dados de instalação e manutenções do componente.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
@@ -123,6 +185,69 @@ export function SubComponentEditDialog({
               </PopoverContent>
             </Popover>
           </div>
+
+          {plans.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-4">
+                <Label className="text-sm font-semibold">Manutenções Cadastradas</Label>
+                {plans.map(plan => {
+                  const unit = triggerUnits[plan.trigger_type] || 'h';
+                  const triggerLabel = triggerLabels[plan.trigger_type] || plan.trigger_type;
+                  return (
+                    <div key={plan.id} className="rounded-lg border border-border p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{plan.task}</span>
+                        <Badge variant="outline" className="text-[10px]">
+                          {triggerLabel} • {plan.interval_value.toLocaleString('pt-BR')}{unit}
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">
+                            Última execução ({triggerLabel.toLowerCase()})
+                          </Label>
+                          <Input
+                            type="number"
+                            value={planValues[plan.id] ?? plan.last_execution_value}
+                            onChange={e => setPlanValues(prev => ({ ...prev, [plan.id]: Number(e.target.value) }))}
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Data da execução</Label>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className={cn(
+                                  "w-full justify-start text-left font-normal h-9",
+                                  !planDates[plan.id] && "text-muted-foreground"
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                                {planDates[plan.id] ? format(planDates[plan.id]!, "dd/MM/yyyy") : "Selecionar"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={planDates[plan.id]}
+                                onSelect={d => setPlanDates(prev => ({ ...prev, [plan.id]: d }))}
+                                locale={ptBR}
+                                initialFocus
+                                className={cn("p-3 pointer-events-auto")}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>

@@ -50,6 +50,7 @@ interface MaintenancePlan {
   trigger_type: string;
   interval_value: number;
   last_execution_value: number;
+  last_execution_date: string | null;
 }
 
 interface CylComp {
@@ -141,7 +142,7 @@ export default function EquipmentDetailPage() {
     cylinderNumber: number;
     componentId: string;
     horimeterAtInstall: number;
-    plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null }>;
+    plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null; trigger_type: string; last_execution_date: string | null }>;
   }>({ open: false, componentType: '', cylinderNumber: 0, componentId: '', horimeterAtInstall: 0, plans: [] });
 
   const [editSubComp, setEditSubComp] = useState<{
@@ -150,7 +151,8 @@ export default function EquipmentDetailPage() {
     componentType: string;
     horimeter: number;
     installationDate: string | null;
-  }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null });
+    plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null; trigger_type: string; last_execution_date: string | null }>;
+  }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null, plans: [] });
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -698,12 +700,15 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      // Search ALL equipment logs of this type to find the date closest to last_execution_value
-                      const typeLogs = equipmentLogs.filter((l: any) => l.maintenance_type === comp.component_type);
-                      const lastLog = plan.last_execution_value > 0 && typeLogs.length > 0
-                        ? [...typeLogs].sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
-                        : null;
-                      const lastDate = lastLog ? lastLog.service_date : null;
+                      // Use stored date first, fallback to log search
+                      let lastDate = plan.last_execution_date;
+                      if (!lastDate && plan.last_execution_value > 0) {
+                        const typeLogs = equipmentLogs.filter((l: any) => l.maintenance_type === comp.component_type);
+                        if (typeLogs.length > 0) {
+                          const lastLog = [...typeLogs].sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0];
+                          lastDate = lastLog?.service_date || null;
+                        }
+                      }
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit, lastDate };
                     });
 
@@ -937,12 +942,15 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      // Search ALL equipment logs of this type to find the date closest to last_execution_value
-                      const scLogs = equipmentLogs.filter((l: any) => l.maintenance_type === group.type);
-                      const lastLog = plan.last_execution_value > 0 && scLogs.length > 0
-                        ? [...scLogs].sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
-                        : null;
-                      const lastDate = lastLog ? lastLog.service_date : null;
+                      // Use stored date first, fallback to log search
+                      let lastDate = plan.last_execution_date;
+                      if (!lastDate && plan.last_execution_value > 0) {
+                        const scLogs = equipmentLogs.filter((l: any) => l.maintenance_type === group.type);
+                        if (scLogs.length > 0) {
+                          const lastLog = [...scLogs].sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0];
+                          lastDate = lastLog?.service_date || null;
+                        }
+                      }
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate };
                     });
 
@@ -967,6 +975,7 @@ export default function EquipmentDetailPage() {
                           componentType: comp.component_type,
                           horimeter: comp.horimeter,
                           installationDate: comp.installation_date ?? null,
+                          plans: group.plans,
                         })}
                       >
                         <CardContent className="p-3">
@@ -1084,6 +1093,7 @@ export default function EquipmentDetailPage() {
           currentHorimeter={editSubComp.horimeter}
           currentInstallationDate={editSubComp.installationDate}
           equipmentTotalStarts={equipment.total_starts}
+          plans={editSubComp.plans}
         />
       )}
 
