@@ -714,6 +714,7 @@ export default function EquipmentDetailPage() {
                     const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
                       : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
 
+                    return (
                       <Card
                         key={comp.id}
                         className={`cursor-pointer transition-shadow hover:shadow-md ${
