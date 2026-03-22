@@ -141,7 +141,7 @@ export default function EquipmentDetailPage() {
     cylinderNumber: number;
     componentId: string;
     horimeterAtInstall: number;
-    plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null }>;
+    plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null; trigger_type: string; last_execution_date: string | null }>;
   }>({ open: false, componentType: '', cylinderNumber: 0, componentId: '', horimeterAtInstall: 0, plans: [] });
 
   const [editSubComp, setEditSubComp] = useState<{
