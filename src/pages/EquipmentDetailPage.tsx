@@ -682,6 +682,9 @@ export default function EquipmentDetailPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {group.components.map(comp => {
+                    const compLogs = equipmentLogs.filter((log: any) =>
+                      log.maintenance_type === comp.component_type && logMatchesCylinder(log, comp.cylinder_number)
+                    );
                     const compPlans = getPlansForComponent(group.type, comp.id);
                     const uniquePlans = compPlans.reduce<MaintenancePlan[]>((acc, p) => {
                       if (!acc.find(a => a.task === p.task)) acc.push(p);
@@ -695,7 +698,6 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      // Find the log whose horimeter matches last_execution_value
                       const lastLog = plan.last_execution_value > 0
                         ? compLogs
                             .filter((l: any) => l.maintenance_type === comp.component_type)
@@ -705,17 +707,10 @@ export default function EquipmentDetailPage() {
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit, lastDate };
                     });
 
-                    // Apply task filter
+                    const activeFilter = taskFilter[group.type] || '_all';
                     const filteredStatuses = activeFilter === '_all'
                       ? taskStatuses
                       : taskStatuses.filter(ts => ts.task === activeFilter);
-
-                    const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
-                      : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
-
-                    const compLogs = equipmentLogs.filter((log: any) =>
-                      log.maintenance_type === comp.component_type && logMatchesCylinder(log, comp.cylinder_number)
-                    );
 
                     return (
                       <Card
