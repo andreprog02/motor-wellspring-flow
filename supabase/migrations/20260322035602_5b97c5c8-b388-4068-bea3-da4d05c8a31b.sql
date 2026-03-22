@@ -1,0 +1,1 @@
+ALTER TABLE public.component_maintenance_plans ADD COLUMN last_execution_date date DEFAULT NULL;

@@ -22,6 +22,7 @@ export type Database = {
           equipment_id: string
           id: string
           interval_value: number
+          last_execution_date: string | null
           last_execution_value: number
           task: string
           tenant_id: string | null
@@ -34,6 +35,7 @@ export type Database = {
           equipment_id: string
           id?: string
           interval_value?: number
+          last_execution_date?: string | null
           last_execution_value?: number
           task: string
           tenant_id?: string | null
@@ -46,6 +48,7 @@ export type Database = {
           equipment_id?: string
           id?: string
           interval_value?: number
+          last_execution_date?: string | null
           last_execution_value?: number
           task?: string
           tenant_id?: string | null
