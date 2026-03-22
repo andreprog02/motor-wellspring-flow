@@ -712,7 +712,9 @@ export default function EquipmentDetailPage() {
                       ? taskStatuses
                       : taskStatuses.filter(ts => ts.task === activeFilter);
 
-                    return (
+                    const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
+                      : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
+
                       <Card
                         key={comp.id}
                         className={`cursor-pointer transition-shadow hover:shadow-md ${
