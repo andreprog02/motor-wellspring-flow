@@ -707,7 +707,6 @@ export default function EquipmentDetailPage() {
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit, lastDate };
                     });
 
-                    const activeFilter = taskFilter[group.type] || '_all';
                     const filteredStatuses = activeFilter === '_all'
                       ? taskStatuses
                       : taskStatuses.filter(ts => ts.task === activeFilter);
