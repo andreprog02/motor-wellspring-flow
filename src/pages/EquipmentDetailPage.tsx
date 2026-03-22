@@ -698,10 +698,10 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      const lastLog = plan.last_execution_value > 0
-                        ? compLogs
-                            .filter((l: any) => l.maintenance_type === comp.component_type)
-                            .sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
+                      // Search ALL equipment logs of this type to find the date closest to last_execution_value
+                      const typeLogs = equipmentLogs.filter((l: any) => l.maintenance_type === comp.component_type);
+                      const lastLog = plan.last_execution_value > 0 && typeLogs.length > 0
+                        ? [...typeLogs].sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
                         : null;
                       const lastDate = lastLog ? lastLog.service_date : null;
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit, lastDate };
@@ -937,10 +937,10 @@ export default function EquipmentDetailPage() {
                       const usage = counter - baseline;
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
-                      // Find the log whose horimeter matches last_execution_value
+                      // Search ALL equipment logs of this type to find the date closest to last_execution_value
                       const scLogs = equipmentLogs.filter((l: any) => l.maintenance_type === group.type);
-                      const lastLog = plan.last_execution_value > 0
-                        ? scLogs.sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
+                      const lastLog = plan.last_execution_value > 0 && scLogs.length > 0
+                        ? [...scLogs].sort((a: any, b: any) => Math.abs(a.horimeter_at_service - plan.last_execution_value) - Math.abs(b.horimeter_at_service - plan.last_execution_value))[0]
                         : null;
                       const lastDate = lastLog ? lastLog.service_date : null;
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate };
