@@ -354,13 +354,32 @@ export default function EquipmentDetailPage() {
   // Helper: get worst status for a component across its plans, considering component install horimeter
   // Count each task independently per component (not worst-per-component)
   // Get the correct counter value based on trigger_type
-  const getCounterValue = (triggerType: string) => {
-    if (triggerType === 'starts') return equipment.total_starts;
-    return equipment.total_horimeter;
+  const getMonthsElapsed = (dateStr: string | null): number => {
+    if (!dateStr) return 0;
+    const d = new Date(dateStr + 'T12:00:00');
+    const now = new Date();
+    const months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+    return Math.max(0, Math.round(months));
+  };
+
+  const getUsageForPlan = (plan: MaintenancePlan, compInstallValue?: number) => {
+    if (plan.trigger_type === 'months') {
+      return getMonthsElapsed(plan.last_execution_date);
+    }
+    if (plan.trigger_type === 'starts') {
+      const baseline = plan.last_execution_value;
+      return equipment.total_starts - baseline;
+    }
+    // hours
+    const baseline = compInstallValue !== undefined
+      ? Math.max(compInstallValue, plan.last_execution_value)
+      : plan.last_execution_value;
+    return equipment.total_horimeter - baseline;
   };
 
   const getCounterUnit = (triggerType: string) => {
     if (triggerType === 'starts') return 'arr.';
+    if (triggerType === 'months') return 'meses';
     return 'h';
   };
 
@@ -370,11 +389,7 @@ export default function EquipmentDetailPage() {
       return acc;
     }, []);
     return uniquePlans.map(plan => {
-      const counter = getCounterValue(plan.trigger_type);
-      const baseline = compInstallHorimeter !== undefined
-        ? Math.max(compInstallHorimeter, plan.last_execution_value)
-        : plan.last_execution_value;
-      const usage = counter - baseline;
+      const usage = getUsageForPlan(plan, compInstallHorimeter);
       return getStatus(usage, plan.interval_value);
     });
   };
@@ -410,7 +425,7 @@ export default function EquipmentDetailPage() {
     // Oil plans - each plan is already independent
     const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
     oilPlans.forEach(p => {
-      const usage = equipment.total_horimeter - p.last_execution_value;
+      const usage = getUsageForPlan(p);
       allStatuses.push(getStatus(usage, p.interval_value));
     });
 
@@ -585,8 +600,8 @@ export default function EquipmentDetailPage() {
             {/* Oil tab */}
             {(() => {
               const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
-              const oilCritical = oilPlans.filter(p => getStatus(equipment.total_horimeter - p.last_execution_value, p.interval_value) === 'critical').length;
-              const oilWarning = oilPlans.filter(p => getStatus(equipment.total_horimeter - p.last_execution_value, p.interval_value) === 'warning').length;
+              const oilCritical = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'critical').length;
+              const oilWarning = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'warning').length;
               return (
                 <TabsTrigger value="oil" className="relative gap-1.5">
                   <Droplets className="h-3.5 w-3.5" />
@@ -694,10 +709,8 @@ export default function EquipmentDetailPage() {
                     }, []);
 
                     const taskStatuses = uniquePlans.map(plan => {
-                      const counter = getCounterValue(plan.trigger_type);
                       const unit = getCounterUnit(plan.trigger_type);
-                      const baseline = Math.max(comp.horimeter_at_install, plan.last_execution_value);
-                      const usage = counter - baseline;
+                      const usage = getUsageForPlan(plan, comp.horimeter_at_install);
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
                       // Use stored date first, fallback to log search
@@ -709,7 +722,7 @@ export default function EquipmentDetailPage() {
                           lastDate = lastLog?.service_date || null;
                         }
                       }
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit, lastDate };
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate, triggerType: plan.trigger_type };
                     });
 
                     const filteredStatuses = activeFilter === '_all'
@@ -776,12 +789,9 @@ export default function EquipmentDetailPage() {
                                   </div>
                                   <Progress value={ts.percent} className="h-1" />
                                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                                    <span className="font-mono">
-                                      {ts.unit === 'arr.'
-                                        ? `${fmtNum(equipment.total_starts)} / ${fmtNum(ts.interval)} arr.`
-                                        : `${fmtNum(ts.usage)}${ts.unit} / ${fmtNum(ts.interval)}${ts.unit}`
-                                      }
-                                    </span>
+                                     <span className="font-mono">
+                                      {fmtNum(ts.usage)} {ts.unit} / {fmtNum(ts.interval)} {ts.unit}
+                                     </span>
                                     <span className="font-mono">{ts.percent}%</span>
                                   </div>
                                 </div>
@@ -936,10 +946,8 @@ export default function EquipmentDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {group.components.map(comp => {
                     const taskStatuses = uniquePlans.map(plan => {
-                      const counter = getCounterValue(plan.trigger_type);
                       const unit = getCounterUnit(plan.trigger_type);
-                      const baseline = Math.max(comp.horimeter, plan.last_execution_value);
-                      const usage = counter - baseline;
+                      const usage = getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined);
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
                       // Use stored date first, fallback to log search
@@ -1028,12 +1036,9 @@ export default function EquipmentDetailPage() {
                                   </div>
                                   <Progress value={ts.percent} className="h-1" />
                                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                                    <span className="font-mono">
-                                      {ts.unit === 'arr.'
-                                        ? `${fmtNum(equipment.total_starts)} / ${fmtNum(ts.interval)} arr.`
-                                        : `${fmtNum(ts.usage)}${ts.unit} / ${fmtNum(ts.interval)}${ts.unit}`
-                                      }
-                                    </span>
+                                     <span className="font-mono">
+                                      {fmtNum(ts.usage)} {ts.unit} / {fmtNum(ts.interval)} {ts.unit}
+                                     </span>
                                     <span className="font-mono">{ts.percent}%</span>
                                   </div>
                                 </div>
