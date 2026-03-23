@@ -223,26 +223,6 @@ export function CylinderMaintenanceDialog({
             </div>
           </div>
 
-          {/* Task from plans */}
-          <div>
-            <Label>Tarefa</Label>
-            {uniqueTasks.length > 0 ? (
-              <Select value={task} onValueChange={setTask}>
-                <SelectTrigger><SelectValue placeholder="Selecione a tarefa..." /></SelectTrigger>
-                <SelectContent>
-                  {uniqueTasks.map(t => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                  <SelectItem value="_custom">Outro (personalizado)</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <Input value={task} onChange={e => setTask(e.target.value)} placeholder="Ex: Substituição, Limpeza, Inspeção..." />
-            )}
-            {task === '_custom' && (
-              <Input className="mt-2" value="" onChange={e => setTask(e.target.value)} placeholder="Digite a tarefa..." />
-            )}
-          </div>
 
           {/* Service type */}
           <div>

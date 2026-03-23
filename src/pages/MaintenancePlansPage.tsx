@@ -17,20 +17,20 @@ import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FileText, Factory, Box
 import { useToast } from '@/hooks/use-toast';
 
 const COMPONENT_TYPES = [
-  { value: 'oil', label: 'Óleo' },
-  { value: 'spark_plug', label: 'Vela' },
-  { value: 'liner', label: 'Camisa' },
-  { value: 'piston', label: 'Pistão' },
-  { value: 'connecting_rod', label: 'Biela' },
-  { value: 'bearing', label: 'Bronzina' },
-  { value: 'turbine', label: 'Turbina' },
-  { value: 'intercooler', label: 'Intercooler' },
-  { value: 'oil_exchanger', label: 'Trocador de Óleo' },
-  { value: 'blowby', label: 'Blowby' },
-  { value: 'damper', label: 'Damper' },
-  { value: 'starter_motor', label: 'Motor de Arranque' },
   { value: 'battery', label: 'Bateria' },
+  { value: 'bearing', label: 'Bronzina' },
+  { value: 'connecting_rod', label: 'Biela' },
+  { value: 'blowby', label: 'Blowby' },
+  { value: 'liner', label: 'Camisa' },
+  { value: 'damper', label: 'Damper' },
+  { value: 'intercooler', label: 'Intercooler' },
+  { value: 'starter_motor', label: 'Motor de Arranque' },
+  { value: 'oil', label: 'Óleo' },
   { value: 'custom', label: 'Personalizado' },
+  { value: 'piston', label: 'Pistão' },
+  { value: 'oil_exchanger', label: 'Trocador de Óleo' },
+  { value: 'turbine', label: 'Turbina' },
+  { value: 'spark_plug', label: 'Vela' },
 ];
 
 const SERVICE_TYPES = [
