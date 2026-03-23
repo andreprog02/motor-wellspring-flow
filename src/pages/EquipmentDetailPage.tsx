@@ -600,8 +600,8 @@ export default function EquipmentDetailPage() {
             {/* Oil tab */}
             {(() => {
               const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
-              const oilCritical = oilPlans.filter(p => getStatus(equipment.total_horimeter - p.last_execution_value, p.interval_value) === 'critical').length;
-              const oilWarning = oilPlans.filter(p => getStatus(equipment.total_horimeter - p.last_execution_value, p.interval_value) === 'warning').length;
+              const oilCritical = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'critical').length;
+              const oilWarning = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'warning').length;
               return (
                 <TabsTrigger value="oil" className="relative gap-1.5">
                   <Droplets className="h-3.5 w-3.5" />
