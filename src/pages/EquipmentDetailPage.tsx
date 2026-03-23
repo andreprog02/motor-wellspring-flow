@@ -709,10 +709,8 @@ export default function EquipmentDetailPage() {
                     }, []);
 
                     const taskStatuses = uniquePlans.map(plan => {
-                      const counter = getCounterValue(plan.trigger_type);
                       const unit = getCounterUnit(plan.trigger_type);
-                      const baseline = Math.max(comp.horimeter_at_install, plan.last_execution_value);
-                      const usage = counter - baseline;
+                      const usage = getUsageForPlan(plan, comp.horimeter_at_install);
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
                       // Use stored date first, fallback to log search
