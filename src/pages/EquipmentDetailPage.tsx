@@ -94,6 +94,14 @@ const componentTypeLabels: Record<string, string> = {
   battery: 'Bateria',
 };
 
+const componentTypePluralLabels: Record<string, string> = {
+  spark_plug: 'Velas',
+  liner: 'Camisas',
+  piston: 'Pistões',
+  connecting_rod: 'Bielas',
+  bearing: 'Bronzinas',
+};
+
 const subComponentIcons: Record<string, typeof Cog> = {
   turbine: Wind,
   intercooler: Thermometer,
