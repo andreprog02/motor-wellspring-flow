@@ -949,10 +949,8 @@ export default function EquipmentDetailPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {group.components.map(comp => {
                     const taskStatuses = uniquePlans.map(plan => {
-                      const counter = getCounterValue(plan.trigger_type);
                       const unit = getCounterUnit(plan.trigger_type);
-                      const baseline = Math.max(comp.horimeter, plan.last_execution_value);
-                      const usage = counter - baseline;
+                      const usage = getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined);
                       const st = getStatus(usage, plan.interval_value);
                       const pct = getPercent(usage, plan.interval_value);
                       // Use stored date first, fallback to log search
