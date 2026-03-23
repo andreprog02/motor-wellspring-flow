@@ -722,7 +722,7 @@ export default function EquipmentDetailPage() {
                           lastDate = lastLog?.service_date || null;
                         }
                       }
-                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, baseline, unit, lastDate };
+                      return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate, triggerType: plan.trigger_type };
                     });
 
                     const filteredStatuses = activeFilter === '_all'
