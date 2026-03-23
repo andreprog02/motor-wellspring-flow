@@ -252,7 +252,7 @@ export default function MaintenancePlansPage() {
   const filteredDialogModels = models.filter(m => m.manufacturer_id === templateManufId);
 
   const renderPlanCard = (template: MaintenancePlanTemplate) => {
-    const tasks = allTasks.filter(t => t.template_id === template.id);
+    const tasks = allTasks.filter(t => t.template_id === template.id).sort((a, b) => componentLabel(a.component_type).localeCompare(componentLabel(b.component_type)));
     const isExpanded = expandedPlans.has(template.id);
     const templateStatus = getTemplateStatus(template.id);
     const worstStatus = templateStatus.critical > 0 ? 'critical' : templateStatus.warning > 0 ? 'warning' : 'ok';
