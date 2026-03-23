@@ -425,7 +425,7 @@ export default function EquipmentDetailPage() {
     // Oil plans - each plan is already independent
     const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
     oilPlans.forEach(p => {
-      const usage = equipment.total_horimeter - p.last_execution_value;
+      const usage = getUsageForPlan(p);
       allStatuses.push(getStatus(usage, p.interval_value));
     });
 
