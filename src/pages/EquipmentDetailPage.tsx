@@ -94,6 +94,14 @@ const componentTypeLabels: Record<string, string> = {
   battery: 'Bateria',
 };
 
+const componentTypePluralLabels: Record<string, string> = {
+  spark_plug: 'Velas',
+  liner: 'Camisas',
+  piston: 'Pistões',
+  connecting_rod: 'Bielas',
+  bearing: 'Bronzinas',
+};
+
 const subComponentIcons: Record<string, typeof Cog> = {
   turbine: Wind,
   intercooler: Thermometer,
@@ -582,7 +590,7 @@ export default function EquipmentDetailPage() {
               const cylWarning = groupStatuses.warning;
               return (
                 <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
-                  {group.label}s
+                  {componentTypePluralLabels[group.type] || `${group.label}s`}
                   {cylCritical > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
                       {cylCritical}
