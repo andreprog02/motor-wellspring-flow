@@ -354,13 +354,32 @@ export default function EquipmentDetailPage() {
   // Helper: get worst status for a component across its plans, considering component install horimeter
   // Count each task independently per component (not worst-per-component)
   // Get the correct counter value based on trigger_type
-  const getCounterValue = (triggerType: string) => {
-    if (triggerType === 'starts') return equipment.total_starts;
-    return equipment.total_horimeter;
+  const getMonthsElapsed = (dateStr: string | null): number => {
+    if (!dateStr) return 0;
+    const d = new Date(dateStr + 'T12:00:00');
+    const now = new Date();
+    const months = (now.getFullYear() - d.getFullYear()) * 12 + (now.getMonth() - d.getMonth());
+    return Math.max(0, Math.round(months));
+  };
+
+  const getUsageForPlan = (plan: MaintenancePlan, compInstallValue?: number) => {
+    if (plan.trigger_type === 'months') {
+      return getMonthsElapsed(plan.last_execution_date);
+    }
+    if (plan.trigger_type === 'starts') {
+      const baseline = plan.last_execution_value;
+      return equipment.total_starts - baseline;
+    }
+    // hours
+    const baseline = compInstallValue !== undefined
+      ? Math.max(compInstallValue, plan.last_execution_value)
+      : plan.last_execution_value;
+    return equipment.total_horimeter - baseline;
   };
 
   const getCounterUnit = (triggerType: string) => {
     if (triggerType === 'starts') return 'arr.';
+    if (triggerType === 'months') return 'meses';
     return 'h';
   };
 
@@ -370,11 +389,7 @@ export default function EquipmentDetailPage() {
       return acc;
     }, []);
     return uniquePlans.map(plan => {
-      const counter = getCounterValue(plan.trigger_type);
-      const baseline = compInstallHorimeter !== undefined
-        ? Math.max(compInstallHorimeter, plan.last_execution_value)
-        : plan.last_execution_value;
-      const usage = counter - baseline;
+      const usage = getUsageForPlan(plan, compInstallHorimeter);
       return getStatus(usage, plan.interval_value);
     });
   };
