@@ -1111,7 +1111,7 @@ export default function EquipmentDetailPage() {
                           componentType: comp.component_type,
                           horimeter: comp.horimeter,
                           installationDate: comp.installation_date ?? null,
-                          plans: group.plans,
+                          plans: group.plans.filter(p => p.component_id === comp.id),
                         })}
                       >
                         <CardContent className="p-3">
