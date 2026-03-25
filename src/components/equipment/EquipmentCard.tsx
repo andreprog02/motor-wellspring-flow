@@ -89,9 +89,11 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Clock className="h-3.5 w-3.5" /> <span>{equipment.total_horimeter}h</span>
-            </div>
+            {equipment.total_horimeter > 0 && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" /> <span>{equipment.total_horimeter}h</span>
+              </div>
+            )}
             {equipment.equipment_type !== 'outro' && (
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Zap className="h-3.5 w-3.5" /> <span>{equipment.total_starts} arranques</span>
