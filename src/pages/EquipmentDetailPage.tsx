@@ -171,6 +171,7 @@ export default function EquipmentDetailPage() {
   const [newCompName, setNewCompName] = useState('');
   const [newCompSerial, setNewCompSerial] = useState('');
   const [newCompDate, setNewCompDate] = useState('');
+  const [newCompUseEquipDate, setNewCompUseEquipDate] = useState(false);
   const [newCompHorimeter, setNewCompHorimeter] = useState('0');
   const [addingComp, setAddingComp] = useState(false);
 
