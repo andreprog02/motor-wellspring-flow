@@ -148,7 +148,7 @@ export function SubComponentEditDialog({
     }
   };
 
-  const label = typeLabels[componentType] || componentType;
+  const label = isOtherAsset ? compName : (typeLabels[componentType] || componentType);
   const isStarter = componentType === 'starter_motor';
 
   return (
