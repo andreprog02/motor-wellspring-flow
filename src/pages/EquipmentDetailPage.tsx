@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
@@ -29,6 +29,9 @@ import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useTenantId } from '@/hooks/useTenantId';
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
@@ -123,6 +126,8 @@ const triggerLabels: Record<string, string> = {
 export default function EquipmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const tenantId = useTenantId();
   const { equipments, oilTypes } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
   const planTemplates = useMaintenancePlanTemplates();
@@ -161,6 +166,13 @@ export default function EquipmentDetailPage() {
     installationDate: string | null;
     plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null; trigger_type: string; last_execution_date: string | null }>;
   }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null, plans: [] });
+
+  const [addCompOpen, setAddCompOpen] = useState(false);
+  const [newCompName, setNewCompName] = useState('');
+  const [newCompSerial, setNewCompSerial] = useState('');
+  const [newCompDate, setNewCompDate] = useState('');
+  const [newCompHorimeter, setNewCompHorimeter] = useState('0');
+  const [addingComp, setAddingComp] = useState(false);
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -450,6 +462,34 @@ export default function EquipmentDetailPage() {
     });
   };
 
+  const handleAddComponent = async () => {
+    if (!newCompName.trim() || !id) return;
+    setAddingComp(true);
+    try {
+      const { error } = await supabase.from('equipment_sub_components').insert({
+        equipment_id: id,
+        component_type: newCompName.trim(),
+        serial_number: newCompSerial.trim(),
+        horimeter: parseFloat(newCompHorimeter) || 0,
+        installation_date: newCompDate || null,
+        use_equipment_hours: true,
+        tenant_id: tenantId,
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['equipment_sub_components', id] });
+      toast.success('Componente adicionado com sucesso!');
+      setNewCompName('');
+      setNewCompSerial('');
+      setNewCompDate('');
+      setNewCompHorimeter('0');
+      setAddCompOpen(false);
+    } catch {
+      toast.error('Erro ao adicionar componente.');
+    } finally {
+      setAddingComp(false);
+    }
+  };
+
   const isOtherAsset = equipment.equipment_type === 'outro';
 
   // Determine default tab
@@ -679,6 +719,15 @@ export default function EquipmentDetailPage() {
                 </TabsTrigger>
               );
             })}
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-2 text-xs h-8"
+              onClick={() => setAddCompOpen(true)}
+            >
+              <PlusCircle className="h-3.5 w-3.5 mr-1" />
+              Adicionar Componente
+            </Button>
           </TabsList>
 
           {/* One tab per cylinder component type - only for generators */}
@@ -1224,6 +1273,55 @@ export default function EquipmentDetailPage() {
             <Button variant="outline" onClick={() => setLinkPlanOpen(false)}>Cancelar</Button>
             <Button onClick={handleLinkPlan} disabled={!selectedTemplateId}>
               Vincular
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Component Dialog */}
+      <Dialog open={addCompOpen} onOpenChange={setAddCompOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Componente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome do Componente *</Label>
+              <Input
+                placeholder="Ex: Correia, Filtro, Bomba..."
+                value={newCompName}
+                onChange={(e) => setNewCompName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Número de Série</Label>
+              <Input
+                placeholder="S/N (opcional)"
+                value={newCompSerial}
+                onChange={(e) => setNewCompSerial(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Horímetro na Instalação</Label>
+              <Input
+                type="number"
+                value={newCompHorimeter}
+                onChange={(e) => setNewCompHorimeter(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de Instalação</Label>
+              <Input
+                type="date"
+                value={newCompDate}
+                onChange={(e) => setNewCompDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddCompOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAddComponent} disabled={!newCompName.trim() || addingComp}>
+              {addingComp ? 'Adicionando...' : 'Adicionar'}
             </Button>
           </DialogFooter>
         </DialogContent>
