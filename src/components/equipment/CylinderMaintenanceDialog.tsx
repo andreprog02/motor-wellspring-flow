@@ -123,7 +123,7 @@ export function CylinderMaintenanceDialog({
     setSaving(true);
     try {
       const cylLabel = selectedCylinders.map(n => n.toString()).join(', ');
-      const taskLabel = task || (serviceType === 'replacement' ? 'Substituição' : 'Inspeção');
+      const taskLabel = serviceTypeToLabel[serviceType] || serviceType;
 
       // 1. Create maintenance log
       const { data: log, error: logErr } = await (supabase as any)
