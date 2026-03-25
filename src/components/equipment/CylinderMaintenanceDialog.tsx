@@ -21,6 +21,17 @@ const componentTypeLabels: Record<string, string> = {
   bearing: 'Bronzina',
 };
 
+const serviceTypeToLabel: Record<string, string> = {
+  inspection: 'Inspeção',
+  replacement: 'Substituição',
+  cleaning: 'Limpeza',
+  lubrication: 'Lubrificação',
+  analysis: 'Análise',
+  collection: 'Coleta',
+  calibration: 'Calibração',
+  adjustment: 'Regulagem',
+};
+
 interface CylComp {
   id: string;
   equipment_id: string;
@@ -112,7 +123,7 @@ export function CylinderMaintenanceDialog({
     setSaving(true);
     try {
       const cylLabel = selectedCylinders.map(n => n.toString()).join(', ');
-      const taskLabel = task || (serviceType === 'replacement' ? 'Substituição' : 'Inspeção');
+      const taskLabel = serviceTypeToLabel[serviceType] || serviceType;
 
       // 1. Create maintenance log
       const { data: log, error: logErr } = await (supabase as any)
@@ -148,7 +159,7 @@ export function CylinderMaintenanceDialog({
       // 3. Update maintenance plan last_execution_value ONLY for selected cylinders' plans
       // First try per-component plans (component_id matches)
       if (selectedCompIds.length > 0) {
-        const taskLabel = task || (serviceType === 'replacement' ? 'Substituição' : 'Inspeção');
+        const planTaskLabel = serviceTypeToLabel[serviceType] || serviceType;
         for (const compId of selectedCompIds) {
           await (supabase as any)
             .from('component_maintenance_plans')
@@ -156,7 +167,7 @@ export function CylinderMaintenanceDialog({
             .eq('equipment_id', equipmentId)
             .eq('component_type', componentType)
             .eq('component_id', compId)
-            .eq('task', taskLabel);
+            .eq('task', planTaskLabel);
         }
       }
 
