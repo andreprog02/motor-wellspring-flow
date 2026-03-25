@@ -59,6 +59,9 @@ interface CustomComponentData {
   manufacturer_id: string;
   model_id: string;
   installation_date: Date | undefined;
+  useEquipmentDate: boolean;
+  horimeter: number;
+  hasHorimeter: boolean;
 }
 
 const GENERATOR_STEPS = [
@@ -190,14 +193,17 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
       // Custom components for "outro" type
       customComponents.forEach(cc => {
         if (cc.name.trim()) {
+          const installDate = cc.useEquipmentDate
+            ? (basic.installation_date ? format(basic.installation_date, 'yyyy-MM-dd') : null)
+            : (cc.installation_date ? format(cc.installation_date, 'yyyy-MM-dd') : null);
           subComponents.push({
             component_type: cc.name.trim(),
             serial_number: cc.serial_number,
             manufacturer_id: cc.manufacturer_id || null,
             model_id: cc.model_id || null,
-            horimeter: basic.total_horimeter,
-            use_equipment_hours: true,
-            installation_date: cc.installation_date ? format(cc.installation_date, 'yyyy-MM-dd') : null,
+            horimeter: cc.hasHorimeter ? cc.horimeter : basic.total_horimeter,
+            use_equipment_hours: !cc.hasHorimeter,
+            installation_date: installDate,
           });
         }
       });
@@ -503,7 +509,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
         </div>
         <Button
           size="sm"
-          onClick={() => setCustomComponents(prev => [...prev, { name: '', serial_number: '', manufacturer_id: '', model_id: '', installation_date: undefined }])}
+          onClick={() => setCustomComponents(prev => [...prev, { name: '', serial_number: '', manufacturer_id: '', model_id: '', installation_date: undefined, useEquipmentDate: true, horimeter: 0, hasHorimeter: false }])}
         >
           <Plus className="h-3.5 w-3.5 mr-1" />
           Adicionar
@@ -547,23 +553,54 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
               </div>
               <div>
                 <Label className="text-xs">Data de Instalação</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn('w-full mt-1 justify-start text-left font-normal text-xs', !cc.installation_date && 'text-muted-foreground')}>
-                      <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                      {cc.installation_date ? format(cc.installation_date, 'dd/MM/yyyy') : 'Selecione...'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={cc.installation_date}
-                      onSelect={d => setCustomComponents(prev => prev.map((c, i) => i === idx ? { ...c, installation_date: d } : c))}
-                      initialFocus
-                      className="p-3 pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="checkbox"
+                    checked={cc.useEquipmentDate}
+                    onChange={e => setCustomComponents(prev => prev.map((c, i) => i === idx ? { ...c, useEquipmentDate: e.target.checked } : c))}
+                    className="rounded border-input"
+                  />
+                  <span className="text-xs text-muted-foreground">Usar data do equipamento</span>
+                </div>
+                {!cc.useEquipmentDate && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn('w-full mt-1 justify-start text-left font-normal text-xs', !cc.installation_date && 'text-muted-foreground')}>
+                        <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                        {cc.installation_date ? format(cc.installation_date, 'dd/MM/yyyy') : 'Selecione...'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={cc.installation_date}
+                        onSelect={d => setCustomComponents(prev => prev.map((c, i) => i === idx ? { ...c, installation_date: d } : c))}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+              <div className="col-span-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={cc.hasHorimeter}
+                    onChange={e => setCustomComponents(prev => prev.map((c, i) => i === idx ? { ...c, hasHorimeter: e.target.checked } : c))}
+                    className="rounded border-input"
+                  />
+                  <span className="text-xs text-muted-foreground">Possui horímetro próprio</span>
+                </div>
+                {cc.hasHorimeter && (
+                  <Input
+                    className="mt-1"
+                    type="number"
+                    placeholder="Horímetro do componente"
+                    value={cc.horimeter}
+                    onChange={e => setCustomComponents(prev => prev.map((c, i) => i === idx ? { ...c, horimeter: Number(e.target.value) } : c))}
+                  />
+                )}
               </div>
               <div>
                 <Label className="text-xs">Fabricante</Label>
