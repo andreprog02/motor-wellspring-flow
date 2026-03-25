@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/AppLayout';
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
