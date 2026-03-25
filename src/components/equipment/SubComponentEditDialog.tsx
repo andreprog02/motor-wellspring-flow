@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { CalendarIcon } from 'lucide-react';
@@ -34,6 +35,7 @@ interface Props {
   currentInstallationDate: string | null;
   equipmentTotalStarts: number;
   plans: MaintenancePlan[];
+  isOtherAsset?: boolean;
 }
 
 const typeLabels: Record<string, string> = {
@@ -50,51 +52,66 @@ const triggerLabels: Record<string, string> = {
   hours: 'Horas',
   months: 'Meses',
   starts: 'Arranques',
+  weeks: 'Semanas',
+  days: 'Dias',
 };
 
 const triggerUnits: Record<string, string> = {
   hours: 'h',
   months: 'meses',
   starts: 'arr.',
+  weeks: 'sem.',
+  days: 'dias',
 };
 
 export function SubComponentEditDialog({
   open, onOpenChange, componentId, componentType,
   currentHorimeter, currentInstallationDate, equipmentTotalStarts, plans,
+  isOtherAsset = false,
 }: Props) {
   const qc = useQueryClient();
   const [horimeter, setHorimeter] = useState(currentHorimeter);
+  const [compName, setCompName] = useState(componentType);
   const [installDate, setInstallDate] = useState<Date | undefined>(
     currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined
   );
   const [planValues, setPlanValues] = useState<Record<string, number>>({});
   const [planDates, setPlanDates] = useState<Record<string, Date | undefined>>({});
+  const [planTriggerTypes, setPlanTriggerTypes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
       setHorimeter(currentHorimeter);
+      setCompName(componentType);
       setInstallDate(currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined);
       const vals: Record<string, number> = {};
       const dates: Record<string, Date | undefined> = {};
+      const triggers: Record<string, string> = {};
       plans.forEach(p => {
         vals[p.id] = p.last_execution_value;
         dates[p.id] = p.last_execution_date ? new Date(p.last_execution_date + 'T12:00:00') : undefined;
+        triggers[p.id] = p.trigger_type;
       });
       setPlanValues(vals);
       setPlanDates(dates);
+      setPlanTriggerTypes(triggers);
     }
-  }, [open, currentHorimeter, currentInstallationDate, plans]);
+  }, [open, currentHorimeter, currentInstallationDate, plans, componentType]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
+      const updateData: any = {
+        horimeter,
+        installation_date: installDate ? format(installDate, 'yyyy-MM-dd') : null,
+      };
+      if (isOtherAsset && compName.trim() && compName.trim() !== componentType) {
+        updateData.component_type = compName.trim();
+      }
       const { error } = await supabase
         .from('equipment_sub_components')
-        .update({
-          horimeter,
-          installation_date: installDate ? format(installDate, 'yyyy-MM-dd') : null,
-        } as any)
+        .update(updateData)
         .eq('id', componentId);
 
       if (error) throw error;
@@ -111,6 +128,10 @@ export function SubComponentEditDialog({
         }
         if (dateStr !== plan.last_execution_date) {
           updates.last_execution_date = dateStr;
+        }
+        const newTrigger = planTriggerTypes[plan.id];
+        if (newTrigger && newTrigger !== plan.trigger_type) {
+          updates.trigger_type = newTrigger;
         }
         if (Object.keys(updates).length > 0) {
           await (supabase as any)
@@ -131,7 +152,7 @@ export function SubComponentEditDialog({
     }
   };
 
-  const label = typeLabels[componentType] || componentType;
+  const label = isOtherAsset ? compName : (typeLabels[componentType] || componentType);
   const isStarter = componentType === 'starter_motor';
 
   return (
@@ -144,6 +165,16 @@ export function SubComponentEditDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          {isOtherAsset && (
+            <div>
+              <Label>Nome do Componente</Label>
+              <Input
+                value={compName}
+                onChange={e => setCompName(e.target.value)}
+                placeholder="Nome do componente"
+              />
+            </div>
+          )}
           <div>
             <Label>{isStarter ? 'Arranques na Instalação' : 'Horímetro na Instalação'}</Label>
             <Input
@@ -192,8 +223,9 @@ export function SubComponentEditDialog({
               <div className="space-y-4">
                 <Label className="text-sm font-semibold">Manutenções Cadastradas</Label>
                 {plans.map(plan => {
-                  const unit = triggerUnits[plan.trigger_type] || 'h';
-                  const triggerLabel = triggerLabels[plan.trigger_type] || plan.trigger_type;
+                  const currentTrigger = planTriggerTypes[plan.id] || plan.trigger_type;
+                  const unit = triggerUnits[currentTrigger] || 'h';
+                  const triggerLabel = triggerLabels[currentTrigger] || currentTrigger;
                   return (
                     <div key={plan.id} className="rounded-lg border border-border p-3 space-y-3">
                       <div className="flex items-center justify-between">
@@ -202,6 +234,26 @@ export function SubComponentEditDialog({
                           {triggerLabel} • {plan.interval_value.toLocaleString('pt-BR')}{unit}
                         </Badge>
                       </div>
+
+                      {isOtherAsset && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Contador de manutenção</Label>
+                          <Select
+                            value={currentTrigger}
+                            onValueChange={v => setPlanTriggerTypes(prev => ({ ...prev, [plan.id]: v }))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="hours">Horímetro</SelectItem>
+                              <SelectItem value="months">Meses</SelectItem>
+                              <SelectItem value="weeks">Semanas</SelectItem>
+                              <SelectItem value="days">Dias</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
