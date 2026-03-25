@@ -591,8 +591,8 @@ export default function EquipmentDetailPage() {
         {/* Tabs */}
         <Tabs defaultValue={defaultTab}>
           <TabsList className="flex-wrap h-auto gap-1">
-            {/* Cylinder component tabs */}
-            {cylByType.map(group => {
+            {/* Cylinder component tabs - only for generators */}
+            {!isOtherAsset && cylByType.map(group => {
               const groupStatuses = countStatuses(
                 group.components.flatMap(comp => getTaskStatuses(getPlansForComponent(group.type, comp.id), comp.horimeter_at_install))
               );
