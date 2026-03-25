@@ -540,6 +540,16 @@ export default function EquipmentDetailPage() {
             <p className="text-sm text-muted-foreground">{equipment.serial_number || 'Sem S/N'}</p>
           </div>
           <div className="flex items-center gap-2">
+            {!isOtherAsset && (
+              <Button variant="outline" size="sm" onClick={() => {
+                setQuickHorimeter(equipment.total_horimeter);
+                setQuickStarts(equipment.total_starts);
+                setQuickCounterOpen(true);
+              }}>
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
+                Atualizar Contadores
+              </Button>
+            )}
             {currentTemplateName && (
               <Badge variant="secondary" className="text-xs gap-1">
                 <ClipboardList className="h-3 w-3" />
