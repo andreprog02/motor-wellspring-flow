@@ -888,7 +888,9 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Cadastrar Equipamento</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {isOtherAsset ? 'Cadastrar Equipamento' : 'Cadastrar Gerador'}
+          </DialogTitle>
         </DialogHeader>
 
         {renderStepper()}
