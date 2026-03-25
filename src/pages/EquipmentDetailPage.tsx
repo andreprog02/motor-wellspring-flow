@@ -850,7 +850,8 @@ export default function EquipmentDetailPage() {
             );
           })}
 
-          {/* Oil Tab */}
+          {/* Oil Tab - only for generators */}
+          {!isOtherAsset && (
           <TabsContent value="oil" className="mt-4">
             <OilTab
               equipmentId={id!}
