@@ -494,33 +494,39 @@ export default function EquipmentDetailPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-2 text-sm">
-              <Zap className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Arranques</p>
-                <p className="font-bold">{fmtNum(equipment.total_starts)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-2 text-sm">
-              <Cylinder className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Cilindros</p>
-                <p className="font-bold">{equipment.cylinders}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-2 text-sm">
-              <Fuel className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Combustível</p>
-                <p className="font-bold">{fuelLabels[equipment.fuel_type] || equipment.fuel_type}</p>
-              </div>
-            </CardContent>
-          </Card>
+          {!isOtherAsset && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-2 text-sm">
+                <Zap className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Arranques</p>
+                  <p className="font-bold">{fmtNum(equipment.total_starts)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {!isOtherAsset && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-2 text-sm">
+                <Cylinder className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Cilindros</p>
+                  <p className="font-bold">{equipment.cylinders}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {!isOtherAsset && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-2 text-sm">
+                <Fuel className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Combustível</p>
+                  <p className="font-bold">{fuelLabels[equipment.fuel_type] || equipment.fuel_type}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {equipment.installation_date && (
             <Card>
               <CardContent className="p-4 flex items-center gap-2 text-sm">
