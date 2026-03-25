@@ -21,6 +21,17 @@ const componentTypeLabels: Record<string, string> = {
   bearing: 'Bronzina',
 };
 
+const serviceTypeToLabel: Record<string, string> = {
+  inspection: 'Inspeção',
+  replacement: 'Substituição',
+  cleaning: 'Limpeza',
+  lubrication: 'Lubrificação',
+  analysis: 'Análise',
+  collection: 'Coleta',
+  calibration: 'Calibração',
+  adjustment: 'Regulagem',
+};
+
 interface CylComp {
   id: string;
   equipment_id: string;
