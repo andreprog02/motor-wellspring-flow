@@ -138,6 +138,23 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
               </div>
             )}
           </div>
+
+          <div className="mt-3 pt-2 border-t">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full h-7 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                setQuickHorimeter(equipment.total_horimeter);
+                setQuickStarts(equipment.total_starts);
+                setQuickEditOpen(true);
+              }}
+            >
+              <Clock className="h-3 w-3 mr-1" />
+              Atualizar Contadores
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
