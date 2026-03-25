@@ -763,6 +763,18 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
                         )}
                         <span className="font-mono text-xs">{format(new Date(a.analysis_date), 'dd/MM/yyyy')}</span>
                         <Badge variant="secondary" className="font-mono text-xs">{fmtNum(a.horimeter_at_analysis)}h</Badge>
+                        {(() => {
+                          const statusMatch = a.result?.match(/^\[(Boa|Atenção|Ruim)\]/);
+                          if (!statusMatch) return null;
+                          const st = statusMatch[1];
+                          return (
+                            <Badge className={cn('text-[10px] px-1.5 py-0',
+                              st === 'Boa' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
+                              st === 'Atenção' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' :
+                              'bg-destructive text-destructive-foreground'
+                            )}>{st}</Badge>
+                          );
+                        })()}
                       </div>
                       {a.attachment_url && (
                         <a href={a.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
@@ -770,7 +782,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
                         </a>
                       )}
                     </div>
-                    {a.result && <p className="text-xs font-medium">{a.result}</p>}
+                    {a.result && <p className="text-xs font-medium">{a.result.replace(/^\[(Boa|Atenção|Ruim)\]\s*/, '')}</p>}
                     {a.notes && <p className="text-xs text-muted-foreground mt-0.5">{a.notes}</p>}
                   </CardContent>
                 </Card>
