@@ -47,6 +47,8 @@ const SERVICE_TYPES = [
 const TRIGGER_TYPES = [
   { value: 'hours', label: 'Horas' },
   { value: 'months', label: 'Meses' },
+  { value: 'weeks', label: 'Semanas' },
+  { value: 'days', label: 'Dias' },
   { value: 'starts', label: 'Arranques' },
 ];
 
