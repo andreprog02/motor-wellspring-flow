@@ -29,6 +29,9 @@ import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useTenantId } from '@/hooks/useTenantId';
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
