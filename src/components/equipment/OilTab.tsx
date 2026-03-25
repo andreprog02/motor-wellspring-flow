@@ -81,6 +81,10 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   const [oilChangeTypeId, setOilChangeTypeId] = useState(oilTypeId || '');
   const [oilChangeComboOpen, setOilChangeComboOpen] = useState(false);
   const [oilChangeSearch, setOilChangeSearch] = useState('');
+  const [alsoReplaceFilter, setAlsoReplaceFilter] = useState(false);
+
+  // Analysis status
+  const [analysisStatus, setAnalysisStatus] = useState<string>('');
 
   // Oil type edit state
   const [oilTypeDialogOpen, setOilTypeDialogOpen] = useState(false);
