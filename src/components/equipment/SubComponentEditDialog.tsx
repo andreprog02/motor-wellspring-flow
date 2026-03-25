@@ -219,8 +219,9 @@ export function SubComponentEditDialog({
               <div className="space-y-4">
                 <Label className="text-sm font-semibold">Manutenções Cadastradas</Label>
                 {plans.map(plan => {
-                  const unit = triggerUnits[plan.trigger_type] || 'h';
-                  const triggerLabel = triggerLabels[plan.trigger_type] || plan.trigger_type;
+                  const currentTrigger = planTriggerTypes[plan.id] || plan.trigger_type;
+                  const unit = triggerUnits[currentTrigger] || 'h';
+                  const triggerLabel = triggerLabels[currentTrigger] || currentTrigger;
                   return (
                     <div key={plan.id} className="rounded-lg border border-border p-3 space-y-3">
                       <div className="flex items-center justify-between">
@@ -229,6 +230,26 @@ export function SubComponentEditDialog({
                           {triggerLabel} • {plan.interval_value.toLocaleString('pt-BR')}{unit}
                         </Badge>
                       </div>
+
+                      {isOtherAsset && (
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Contador de manutenção</Label>
+                          <Select
+                            value={currentTrigger}
+                            onValueChange={v => setPlanTriggerTypes(prev => ({ ...prev, [plan.id]: v }))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="hours">Horímetro</SelectItem>
+                              <SelectItem value="months">Meses</SelectItem>
+                              <SelectItem value="weeks">Semanas</SelectItem>
+                              <SelectItem value="days">Dias</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
 
                       <div className="grid grid-cols-2 gap-3">
                         <div>
