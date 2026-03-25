@@ -523,44 +523,68 @@ export default function MaintenancePlansPage() {
               <div className="space-y-2">
                 <Label>Componente *</Label>
                 {(() => {
-                  // Find the template to get its model_id
+                  // Find the template to get its manufacturer_id and model_id
                   const currentTemplate = allTemplates.find(t => t.id === taskTemplateId);
-                  const templateModelIdValue = currentTemplate?.model_id;
+                  const tplManufId = currentTemplate?.manufacturer_id;
+                  const tplModelId = currentTemplate?.model_id;
                   
-                  // Find equipments linked to this model
-                  const modelEquipments = templateModelIdValue
-                    ? allEquipments.filter(e => e.model_id === templateModelIdValue)
-                    : [];
+                  // Find equipments that match the template's manufacturer AND model
+                  const modelEquipments = allEquipments.filter(e => {
+                    if (tplManufId && tplModelId) return e.manufacturer_id === tplManufId && e.model_id === tplModelId;
+                    if (tplManufId) return e.manufacturer_id === tplManufId;
+                    return false;
+                  });
                   
-                  // Get unique custom component types from those equipments' sub-components
-                  const customCompTypes = new Set<string>();
-                  for (const eq of modelEquipments) {
-                    const eqSubs = allSubComponents.filter(sc => sc.equipment_id === eq.id);
-                    for (const sc of eqSubs) {
-                      // Only add if it's not already in the standard list
-                      if (!COMPONENT_TYPES.find(ct => ct.value === sc.component_type)) {
-                        customCompTypes.add(sc.component_type);
-                      }
+                  const equipmentIds = new Set(modelEquipments.map(e => e.id));
+                  
+                  // Collect component types that actually exist in these equipments
+                  const componentTypes = new Set<string>();
+                  
+                  // From cylinder_components (generators)
+                  for (const cc of allCylinderComponents) {
+                    if (equipmentIds.has(cc.equipment_id)) {
+                      componentTypes.add(cc.component_type);
                     }
                   }
                   
-                  const dynamicOptions = [
-                    ...COMPONENT_TYPES,
-                    ...Array.from(customCompTypes).sort().map(ct => ({ value: ct, label: ct })),
-                  ];
+                  // From sub_components
+                  for (const sc of allSubComponents) {
+                    if (equipmentIds.has(sc.equipment_id)) {
+                      componentTypes.add(sc.component_type);
+                    }
+                  }
+                  
+                  // Also add standard non-cylinder types that generators always have
+                  const generatorEquipments = modelEquipments.filter(e => e.equipment_type === 'gerador');
+                  if (generatorEquipments.length > 0) {
+                    // Add oil as it's always relevant for generators
+                    componentTypes.add('oil');
+                  }
+                  
+                  // Map to label options
+                  const standardLabels: Record<string, string> = {
+                    battery: 'Bateria', bearing: 'Bronzina', connecting_rod: 'Biela',
+                    blowby: 'Blowby', liner: 'Camisa', damper: 'Damper',
+                    intercooler: 'Intercooler', starter_motor: 'Motor de Arranque',
+                    oil: 'Óleo', piston: 'Pistão', oil_exchanger: 'Trocador de Óleo',
+                    turbine: 'Turbina', spark_plug: 'Vela',
+                  };
+                  
+                  const dynamicOptions = Array.from(componentTypes)
+                    .map(ct => ({ value: ct, label: standardLabels[ct] || ct }))
+                    .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
+                  
+                  if (dynamicOptions.length === 0) {
+                    return <p className="text-sm text-muted-foreground">Nenhum equipamento cadastrado para este fabricante/modelo. Cadastre um equipamento primeiro.</p>;
+                  }
                   
                   return (
-                    <>
-                      <Select value={taskComponentType} onValueChange={setTaskComponentType}>
-                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {dynamicOptions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      {taskComponentType === 'custom' && (
-                        <Input placeholder="Nome do componente" value={taskCustomType} onChange={e => setTaskCustomType(e.target.value)} />
-                      )}
-                    </>
+                    <Select value={taskComponentType} onValueChange={setTaskComponentType}>
+                      <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                      <SelectContent>
+                        {dynamicOptions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   );
                 })()}
               </div>
