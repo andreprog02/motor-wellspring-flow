@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialType?: string;
 }
 
 interface BasicData {
