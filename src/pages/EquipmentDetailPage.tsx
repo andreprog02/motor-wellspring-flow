@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTenantId } from '@/hooks/useTenantId';
+import { Checkbox } from '@/components/ui/checkbox';
 
 const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
 
@@ -171,6 +172,7 @@ export default function EquipmentDetailPage() {
   const [newCompName, setNewCompName] = useState('');
   const [newCompSerial, setNewCompSerial] = useState('');
   const [newCompDate, setNewCompDate] = useState('');
+  const [newCompUseEquipDate, setNewCompUseEquipDate] = useState(false);
   const [newCompHorimeter, setNewCompHorimeter] = useState('0');
   const [addingComp, setAddingComp] = useState(false);
 
@@ -487,12 +489,15 @@ export default function EquipmentDetailPage() {
     if (!newCompName.trim() || !id) return;
     setAddingComp(true);
     try {
+      const installDate = newCompUseEquipDate && equipment?.installation_date
+        ? equipment.installation_date
+        : (newCompDate || null);
       const { error } = await supabase.from('equipment_sub_components').insert({
         equipment_id: id,
         component_type: newCompName.trim(),
         serial_number: newCompSerial.trim(),
         horimeter: parseFloat(newCompHorimeter) || 0,
-        installation_date: newCompDate || null,
+        installation_date: installDate,
         use_equipment_hours: true,
         tenant_id: tenantId,
       });
@@ -502,6 +507,7 @@ export default function EquipmentDetailPage() {
       setNewCompName('');
       setNewCompSerial('');
       setNewCompDate('');
+      setNewCompUseEquipDate(false);
       setNewCompHorimeter('0');
       setAddCompOpen(false);
     } catch {
@@ -1333,11 +1339,28 @@ export default function EquipmentDetailPage() {
             </div>
             <div className="space-y-2">
               <Label>Data de Instalação</Label>
-              <Input
-                type="date"
-                value={newCompDate}
-                onChange={(e) => setNewCompDate(e.target.value)}
-              />
+              {equipment?.installation_date && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="useEquipDate"
+                    checked={newCompUseEquipDate}
+                    onCheckedChange={(checked) => {
+                      setNewCompUseEquipDate(!!checked);
+                      if (checked) setNewCompDate('');
+                    }}
+                  />
+                  <label htmlFor="useEquipDate" className="text-sm text-muted-foreground cursor-pointer">
+                    Usar data do equipamento ({format(new Date(equipment.installation_date + 'T12:00:00'), 'dd/MM/yyyy')})
+                  </label>
+                </div>
+              )}
+              {!newCompUseEquipDate && (
+                <Input
+                  type="date"
+                  value={newCompDate}
+                  onChange={(e) => setNewCompDate(e.target.value)}
+                />
+              )}
             </div>
           </div>
           <DialogFooter>
