@@ -1025,11 +1025,7 @@ export default function EquipmentDetailPage() {
           )}
 
           {subCompByType.map(group => {
-            const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
-              if (!acc.find(a => a.task === p.task)) acc.push(p);
-              return acc;
-            }, []);
-            const uniqueTaskNames = [...new Set(uniquePlans.map(p => p.task))];
+            const uniqueTaskNames = [...new Set(group.plans.map(p => p.task))];
             const activeFilter = taskFilter[group.type] || '_all';
             const Icon = subComponentIcons[group.type] || Cog;
             return (
@@ -1067,7 +1063,13 @@ export default function EquipmentDetailPage() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {group.components.map(comp => {
-                    const taskStatuses = uniquePlans.map(plan => {
+                    // Filter plans specifically for THIS component by component_id
+                    const compPlans = group.plans.filter(p => p.component_id === comp.id);
+                    const compUniquePlans = compPlans.reduce<MaintenancePlan[]>((acc, p) => {
+                      if (!acc.find(a => a.task === p.task)) acc.push(p);
+                      return acc;
+                    }, []);
+                    const taskStatuses = compUniquePlans.map(plan => {
                       const unit = getCounterUnit(plan.trigger_type);
                       const usage = getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined);
                       const st = getStatus(usage, plan.interval_value);
