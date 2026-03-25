@@ -268,6 +268,32 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Quick Edit Counters Dialog */}
+      <Dialog open={quickEditOpen} onOpenChange={setQuickEditOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Atualizar Contadores</DialogTitle>
+            <DialogDescription>Atualize rapidamente o horímetro{equipment.equipment_type !== 'outro' ? ' e arranques' : ''}.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Horímetro</Label>
+              <Input type="number" value={quickHorimeter} onChange={e => setQuickHorimeter(Number(e.target.value))} />
+            </div>
+            {equipment.equipment_type !== 'outro' && (
+              <div>
+                <Label>Arranques</Label>
+                <Input type="number" value={quickStarts} onChange={e => setQuickStarts(Number(e.target.value))} />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickEditOpen(false)}>Cancelar</Button>
+            <Button onClick={handleQuickSave} disabled={updateEquipment.isPending}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
