@@ -62,9 +62,11 @@ const triggerUnits: Record<string, string> = {
 export function SubComponentEditDialog({
   open, onOpenChange, componentId, componentType,
   currentHorimeter, currentInstallationDate, equipmentTotalStarts, plans,
+  isOtherAsset = false,
 }: Props) {
   const qc = useQueryClient();
   const [horimeter, setHorimeter] = useState(currentHorimeter);
+  const [compName, setCompName] = useState(componentType);
   const [installDate, setInstallDate] = useState<Date | undefined>(
     currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined
   );
@@ -75,6 +77,7 @@ export function SubComponentEditDialog({
   useEffect(() => {
     if (open) {
       setHorimeter(currentHorimeter);
+      setCompName(componentType);
       setInstallDate(currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined);
       const vals: Record<string, number> = {};
       const dates: Record<string, Date | undefined> = {};
@@ -85,7 +88,7 @@ export function SubComponentEditDialog({
       setPlanValues(vals);
       setPlanDates(dates);
     }
-  }, [open, currentHorimeter, currentInstallationDate, plans]);
+  }, [open, currentHorimeter, currentInstallationDate, plans, componentType]);
 
   const handleSave = async () => {
     setSaving(true);
