@@ -138,12 +138,14 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
             <div><Label>Nome</Label><Input value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} /></div>
             <div><Label>Número de Série</Label><Input value={editData.serial_number} onChange={e => setEditData(p => ({ ...p, serial_number: e.target.value }))} /></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Horímetro</Label><Input type="number" value={editData.total_horimeter} onChange={e => setEditData(p => ({ ...p, total_horimeter: Number(e.target.value) }))} /></div>
-              <div><Label>Arranques</Label><Input type="number" value={editData.total_starts} onChange={e => setEditData(p => ({ ...p, total_starts: Number(e.target.value) }))} /></div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><Label>Cilindros</Label><Input type="number" value={editData.cylinders} onChange={e => setEditData(p => ({ ...p, cylinders: Number(e.target.value) }))} /></div>
+            <div><Label>Horímetro</Label><Input type="number" value={editData.total_horimeter} onChange={e => setEditData(p => ({ ...p, total_horimeter: Number(e.target.value) }))} /></div>
+            {equipment.equipment_type !== 'outro' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div><Label>Arranques</Label><Input type="number" value={editData.total_starts} onChange={e => setEditData(p => ({ ...p, total_starts: Number(e.target.value) }))} /></div>
+                <div><Label>Cilindros</Label><Input type="number" value={editData.cylinders} onChange={e => setEditData(p => ({ ...p, cylinders: Number(e.target.value) }))} /></div>
+              </div>
+            )}
+            {equipment.equipment_type !== 'outro' && (
               <div>
                 <Label>Combustível</Label>
                 <Select value={editData.fuel_type} onValueChange={v => setEditData(p => ({ ...p, fuel_type: v }))}>
@@ -155,59 +157,61 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
+            )}
             <div><Label>Data de Instalação</Label><Input type="date" value={editData.installation_date} onChange={e => setEditData(p => ({ ...p, installation_date: e.target.value }))} /></div>
-            <div>
-              <Label>Tipo de Óleo</Label>
-              <Popover open={oilComboOpen} onOpenChange={setOilComboOpen}>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" role="combobox" aria-expanded={oilComboOpen} className="w-full justify-between">
-                    {editData.oil_type_id ? allOilTypes.find(o => o.id === editData.oil_type_id)?.name || 'Selecione...' : 'Selecione...'}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Pesquisar ou criar..." value={oilSearch} onValueChange={setOilSearch} />
-                    <CommandList>
-                      <CommandEmpty>
-                        {oilSearch.trim() ? (
-                          <Button
-                            variant="ghost"
-                            className="w-full justify-start text-sm"
-                            onClick={async () => {
-                              try {
-                                const newOil = await addOilType.mutateAsync(oilSearch.trim());
-                                setEditData(p => ({ ...p, oil_type_id: newOil.id }));
-                                setOilSearch('');
+            {equipment.equipment_type !== 'outro' && (
+              <div>
+                <Label>Tipo de Óleo</Label>
+                <Popover open={oilComboOpen} onOpenChange={setOilComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" aria-expanded={oilComboOpen} className="w-full justify-between">
+                      {editData.oil_type_id ? allOilTypes.find(o => o.id === editData.oil_type_id)?.name || 'Selecione...' : 'Selecione...'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Pesquisar ou criar..." value={oilSearch} onValueChange={setOilSearch} />
+                      <CommandList>
+                        <CommandEmpty>
+                          {oilSearch.trim() ? (
+                            <Button
+                              variant="ghost"
+                              className="w-full justify-start text-sm"
+                              onClick={async () => {
+                                try {
+                                  const newOil = await addOilType.mutateAsync(oilSearch.trim());
+                                  setEditData(p => ({ ...p, oil_type_id: newOil.id }));
+                                  setOilSearch('');
+                                  setOilComboOpen(false);
+                                } catch { toast.error('Erro ao criar tipo de óleo'); }
+                              }}
+                            >
+                              + Criar "{oilSearch.trim()}"
+                            </Button>
+                          ) : 'Nenhum tipo de óleo encontrado.'}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {allOilTypes.map(o => (
+                            <CommandItem
+                              key={o.id}
+                              value={o.name}
+                              onSelect={() => {
+                                setEditData(p => ({ ...p, oil_type_id: o.id }));
                                 setOilComboOpen(false);
-                              } catch { toast.error('Erro ao criar tipo de óleo'); }
-                            }}
-                          >
-                            + Criar "{oilSearch.trim()}"
-                          </Button>
-                        ) : 'Nenhum tipo de óleo encontrado.'}
-                      </CommandEmpty>
-                      <CommandGroup>
-                        {allOilTypes.map(o => (
-                          <CommandItem
-                            key={o.id}
-                            value={o.name}
-                            onSelect={() => {
-                              setEditData(p => ({ ...p, oil_type_id: o.id }));
-                              setOilComboOpen(false);
-                            }}
-                          >
-                            <Check className={cn("mr-2 h-4 w-4", editData.oil_type_id === o.id ? "opacity-100" : "opacity-0")} />
-                            {o.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
+                              }}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", editData.oil_type_id === o.id ? "opacity-100" : "opacity-0")} />
+                              {o.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditOpen(false)}>Cancelar</Button>
