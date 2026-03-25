@@ -81,7 +81,18 @@ export default function MaintenancePlansPage() {
     },
   });
 
+  // Fetch all sub-components to discover model-specific component types
+  const allSubComponentsQuery = useQuery({
+    queryKey: ['all_equipment_sub_components'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('equipment_sub_components').select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const allActivePlans = activePlans.data ?? [];
+  const allSubComponents = allSubComponentsQuery.data ?? [];
 
   // Helper: get status for a plan on an equipment
   const getStatus = (equipmentHorimeter: number, lastExecution: number, interval: number) => {
@@ -498,15 +509,56 @@ export default function MaintenancePlansPage() {
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
                 <Label>Componente *</Label>
-                <Select value={taskComponentType} onValueChange={setTaskComponentType}>
+                {(() => {
+                  // Find the template to get its model_id
+                  const currentTemplate = allTemplates.find(t => t.id === taskTemplateId);
+                  const templateModelIdValue = currentTemplate?.model_id;
+                  
+                  // Find equipments linked to this model
+                  const modelEquipments = templateModelIdValue
+                    ? allEquipments.filter(e => e.model_id === templateModelIdValue)
+                    : [];
+                  
+                  // Get unique custom component types from those equipments' sub-components
+                  const customCompTypes = new Set<string>();
+                  for (const eq of modelEquipments) {
+                    const eqSubs = allSubComponents.filter(sc => sc.equipment_id === eq.id);
+                    for (const sc of eqSubs) {
+                      // Only add if it's not already in the standard list
+                      if (!COMPONENT_TYPES.find(ct => ct.value === sc.component_type)) {
+                        customCompTypes.add(sc.component_type);
+                      }
+                    }
+                  }
+                  
+                  const dynamicOptions = [
+                    ...COMPONENT_TYPES,
+                    ...Array.from(customCompTypes).sort().map(ct => ({ value: ct, label: ct })),
+                  ];
+                  
+                  return (
+                    <>
+                      <Select value={taskComponentType} onValueChange={setTaskComponentType}>
+                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {dynamicOptions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      {taskComponentType === 'custom' && (
+                        <Input placeholder="Nome do componente" value={taskCustomType} onChange={e => setTaskCustomType(e.target.value)} />
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo de Serviço *</Label>
+                <Select value={taskService} onValueChange={setTaskService}>
                   <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
                   <SelectContent>
-                    {COMPONENT_TYPES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+                    {SERVICE_TYPES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                {taskComponentType === 'custom' && (
-                  <Input placeholder="Nome do componente" value={taskCustomType} onChange={e => setTaskCustomType(e.target.value)} />
-                )}
               </div>
               <div className="space-y-2">
                 <Label>Tipo de Serviço *</Label>
