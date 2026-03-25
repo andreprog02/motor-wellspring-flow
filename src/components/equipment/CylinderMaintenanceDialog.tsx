@@ -196,7 +196,11 @@ export function CylinderMaintenanceDialog({
         toast.success(`Manutenção registrada — ${componentTypeLabels[componentType] || componentType} — Cil. ${cylLabel}`);
       } else {
         // Sub-component mode
-        const selectedNames = subs.filter(s => selectedSubIds.includes(s.id)).map((s, i) => s.serial_number || `${componentType} ${i + 1}`);
+        const selectedNames = selectedSubIds.map(sid => {
+          const idx = subs.findIndex(s => s.id === sid);
+          const sub = subs[idx];
+          return sub?.serial_number || `${componentTypeLabels[componentType] || componentType} ${idx + 1}`;
+        });
         const subLabel = selectedNames.join(', ');
 
         const { error: logErr } = await (supabase as any)
