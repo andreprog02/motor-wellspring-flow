@@ -175,6 +175,9 @@ export default function EquipmentDetailPage() {
   const [newCompUseEquipDate, setNewCompUseEquipDate] = useState(false);
   const [newCompHorimeter, setNewCompHorimeter] = useState('0');
   const [addingComp, setAddingComp] = useState(false);
+  const [quickCounterOpen, setQuickCounterOpen] = useState(false);
+  const [quickHorimeter, setQuickHorimeter] = useState(0);
+  const [quickStarts, setQuickStarts] = useState(0);
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
