@@ -250,7 +250,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         equipment_id: equipmentId,
         analysis_date: analysisDate,
         horimeter_at_analysis: Number(analysisHorimeter),
-        result: analysisResult,
+        result: analysisStatus ? `[${analysisStatus}] ${analysisResult}` : analysisResult,
         attachment_url,
         notes: analysisNotes,
         collection_id: analysisCollectionId || null,
