@@ -142,62 +142,100 @@ export function CylinderMaintenanceDialog({
   const selectionCount = isCylinderMode ? selectedCylinders.length : selectedSubIds.length;
 
   const handleSubmit = async () => {
-    if (selectedCylinders.length === 0) {
-      toast.error('Selecione pelo menos um cilindro');
+    if (!hasSelection) {
+      toast.error(isCylinderMode ? 'Selecione pelo menos um cilindro' : 'Selecione pelo menos um componente');
       return;
     }
     setSaving(true);
     try {
-      const cylLabel = selectedCylinders.map(n => n.toString()).join(', ');
       const taskLabel = serviceTypeToLabel[serviceType] || serviceType;
 
-      // 1. Create maintenance log
-      const { data: log, error: logErr } = await (supabase as any)
-        .from('maintenance_logs')
-        .insert({
-          equipment_id: equipmentId,
-          maintenance_type: componentType,
-          horimeter_at_service: horimeter,
-          notes: `Cil. ${cylLabel} - ${componentTypeLabels[componentType]} - ${taskLabel}${notes ? ` - ${notes}` : ''}`,
-          service_date: serviceDate,
-          tenant_id: tenantId,
-        })
-        .select()
-        .single();
-      if (logErr) throw logErr;
+      if (isCylinderMode) {
+        const cylLabel = selectedCylinders.map(n => n.toString()).join(', ');
 
-      // 2. For each selected cylinder
-      const selectedCompIds: string[] = [];
-      for (const cylNum of selectedCylinders) {
-        const comp = allComponents.find(c => c.cylinder_number === cylNum);
-        if (!comp) continue;
-        selectedCompIds.push(comp.id);
+        const { data: log, error: logErr } = await (supabase as any)
+          .from('maintenance_logs')
+          .insert({
+            equipment_id: equipmentId,
+            maintenance_type: componentType,
+            horimeter_at_service: horimeter,
+            notes: `Cil. ${cylLabel} - ${componentTypeLabels[componentType] || componentType} - ${taskLabel}${notes ? ` - ${notes}` : ''}`,
+            service_date: serviceDate,
+            tenant_id: tenantId,
+          })
+          .select()
+          .single();
+        if (logErr) throw logErr;
 
-        // If replacement, update cylinder component horimeter
-        if (serviceType === 'replacement') {
-          await (supabase as any)
-            .from('cylinder_components')
-            .update({ horimeter_at_install: horimeter })
-            .eq('id', comp.id);
+        const selectedCompIds: string[] = [];
+        for (const cylNum of selectedCylinders) {
+          const comp = allComponents.find(c => c.cylinder_number === cylNum);
+          if (!comp) continue;
+          selectedCompIds.push(comp.id);
+          if (serviceType === 'replacement') {
+            await (supabase as any)
+              .from('cylinder_components')
+              .update({ horimeter_at_install: horimeter })
+              .eq('id', comp.id);
+          }
         }
-      }
 
-      // 3. Update maintenance plan last_execution_value ONLY for selected cylinders' plans
-      // First try per-component plans (component_id matches)
-      if (selectedCompIds.length > 0) {
+        if (selectedCompIds.length > 0) {
+          const planTaskLabel = serviceTypeToLabel[serviceType] || serviceType;
+          for (const compId of selectedCompIds) {
+            await (supabase as any)
+              .from('component_maintenance_plans')
+              .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
+              .eq('equipment_id', equipmentId)
+              .eq('component_type', componentType)
+              .eq('component_id', compId)
+              .eq('task', planTaskLabel);
+          }
+        }
+
+        toast.success(`Manutenção registrada — ${componentTypeLabels[componentType] || componentType} — Cil. ${cylLabel}`);
+      } else {
+        // Sub-component mode
+        const selectedNames = subs.filter(s => selectedSubIds.includes(s.id)).map((s, i) => s.serial_number || `${componentType} ${i + 1}`);
+        const subLabel = selectedNames.join(', ');
+
+        const { error: logErr } = await (supabase as any)
+          .from('maintenance_logs')
+          .insert({
+            equipment_id: equipmentId,
+            maintenance_type: componentType,
+            horimeter_at_service: horimeter,
+            notes: `${subLabel} - ${taskLabel}${notes ? ` - ${notes}` : ''}`,
+            service_date: serviceDate,
+            tenant_id: tenantId,
+          })
+          .select()
+          .single();
+        if (logErr) throw logErr;
+
+        // Update plans for selected sub-components
         const planTaskLabel = serviceTypeToLabel[serviceType] || serviceType;
-        for (const compId of selectedCompIds) {
+        for (const subId of selectedSubIds) {
           await (supabase as any)
             .from('component_maintenance_plans')
-            .update({ last_execution_value: horimeter })
+            .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
             .eq('equipment_id', equipmentId)
             .eq('component_type', componentType)
-            .eq('component_id', compId)
+            .eq('component_id', subId)
             .eq('task', planTaskLabel);
+
+          if (serviceType === 'replacement') {
+            await (supabase as any)
+              .from('equipment_sub_components')
+              .update({ horimeter })
+              .eq('id', subId);
+          }
         }
+
+        toast.success(`Manutenção registrada — ${subLabel}`);
       }
 
-      // 4. Update equipment horimeter if higher
+      // Update equipment horimeter if higher
       if (horimeter > equipmentHorimeter) {
         await (supabase as any)
           .from('equipments')
@@ -207,10 +245,10 @@ export function CylinderMaintenanceDialog({
 
       qc.invalidateQueries({ queryKey: ['maintenance_logs'] });
       qc.invalidateQueries({ queryKey: ['cylinder_components'] });
+      qc.invalidateQueries({ queryKey: ['equipment_sub_components'] });
       qc.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
       qc.invalidateQueries({ queryKey: ['equipments'] });
 
-      toast.success(`Manutenção registrada — ${componentTypeLabels[componentType]} — Cil. ${cylLabel}`);
       onOpenChange(false);
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);
