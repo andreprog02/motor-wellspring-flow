@@ -489,12 +489,15 @@ export default function EquipmentDetailPage() {
     if (!newCompName.trim() || !id) return;
     setAddingComp(true);
     try {
+      const installDate = newCompUseEquipDate && equipment?.installation_date
+        ? equipment.installation_date
+        : (newCompDate || null);
       const { error } = await supabase.from('equipment_sub_components').insert({
         equipment_id: id,
         component_type: newCompName.trim(),
         serial_number: newCompSerial.trim(),
         horimeter: parseFloat(newCompHorimeter) || 0,
-        installation_date: newCompDate || null,
+        installation_date: installDate,
         use_equipment_hours: true,
         tenant_id: tenantId,
       });
