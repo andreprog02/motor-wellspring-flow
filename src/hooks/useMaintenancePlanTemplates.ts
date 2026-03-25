@@ -106,16 +106,38 @@ export function useMaintenancePlanTemplates() {
 
     await (supabase as any).from('component_maintenance_plans').delete().eq('equipment_id', equipmentId);
 
-    const { data: cylComps } = await (supabase as any).from('cylinder_components').select('id, component_type, cylinder_number').eq('equipment_id', equipmentId);
+    // Fetch both cylinder components and sub-components
+    const [{ data: cylComps }, { data: subComps }] = await Promise.all([
+      (supabase as any).from('cylinder_components').select('id, component_type, cylinder_number').eq('equipment_id', equipmentId),
+      (supabase as any).from('equipment_sub_components').select('id, component_type').eq('equipment_id', equipmentId),
+    ]);
 
     const rows: Array<Record<string, any>> = [];
 
     for (const t of tasks) {
       if (CYLINDER_COMPONENT_TYPES.includes(t.component_type) && cylComps && cylComps.length > 0) {
+        // Match cylinder components (spark_plug, liner, piston, etc.)
         const matchingComps = cylComps.filter((c: any) => c.component_type === t.component_type);
         for (const comp of matchingComps) {
           rows.push({
             equipment_id: equipmentId, component_type: t.component_type, component_id: comp.id,
+            task: t.task, trigger_type: t.trigger_type, interval_value: t.interval_value, last_execution_value: 0, tenant_id: tenantId,
+          });
+        }
+      } else if (subComps && subComps.length > 0) {
+        // Match sub-components (custom components for other assets)
+        const matchingSubs = subComps.filter((sc: any) => sc.component_type === t.component_type);
+        if (matchingSubs.length > 0) {
+          for (const sub of matchingSubs) {
+            rows.push({
+              equipment_id: equipmentId, component_type: t.component_type, component_id: sub.id,
+              task: t.task, trigger_type: t.trigger_type, interval_value: t.interval_value, last_execution_value: 0, tenant_id: tenantId,
+            });
+          }
+        } else {
+          // No matching sub-component found, create without component_id
+          rows.push({
+            equipment_id: equipmentId, component_type: t.component_type,
             task: t.task, trigger_type: t.trigger_type, interval_value: t.interval_value, last_execution_value: 0, tenant_id: tenantId,
           });
         }
@@ -136,6 +158,7 @@ export function useMaintenancePlanTemplates() {
 
     qc.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
     qc.invalidateQueries({ queryKey: ['equipments'] });
+    qc.invalidateQueries({ queryKey: ['equipment_sub_components'] });
   };
 
   return {
