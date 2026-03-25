@@ -566,7 +566,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Última Troca de Filtro</span>
+              <span className="text-xs text-muted-foreground font-medium">Última Troca de Filtro de Óleo</span>
             </div>
             {lastFilterChange ? (
               <>
