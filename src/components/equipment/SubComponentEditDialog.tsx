@@ -161,6 +161,16 @@ export function SubComponentEditDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          {isOtherAsset && (
+            <div>
+              <Label>Nome do Componente</Label>
+              <Input
+                value={compName}
+                onChange={e => setCompName(e.target.value)}
+                placeholder="Nome do componente"
+              />
+            </div>
+          )}
           <div>
             <Label>{isStarter ? 'Arranques na Instalação' : 'Horímetro na Instalação'}</Label>
             <Input
