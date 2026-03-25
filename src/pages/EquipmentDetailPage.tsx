@@ -1034,29 +1034,37 @@ export default function EquipmentDetailPage() {
             const Icon = subComponentIcons[group.type] || Cog;
             return (
               <TabsContent key={group.type} value={group.type} className="mt-4">
-                {uniqueTaskNames.length > 1 && (
-                  <div className="flex items-center gap-2 flex-wrap mb-3">
-                    <Button
-                      size="sm"
-                      variant={activeFilter === '_all' ? 'default' : 'outline'}
-                      className="text-xs h-7 px-3"
-                      onClick={() => setTaskFilter(prev => ({ ...prev, [group.type]: '_all' }))}
-                    >
-                      Todos
-                    </Button>
-                    {uniqueTaskNames.map(tn => (
-                      <Button
-                        key={tn}
-                        size="sm"
-                        variant={activeFilter === tn ? 'default' : 'outline'}
-                        className="text-xs h-7 px-3"
-                        onClick={() => setTaskFilter(prev => ({ ...prev, [group.type]: tn }))}
-                      >
-                        {tn}
-                      </Button>
-                    ))}
+                <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {uniqueTaskNames.length > 1 && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant={activeFilter === '_all' ? 'default' : 'outline'}
+                          className="text-xs h-7 px-3"
+                          onClick={() => setTaskFilter(prev => ({ ...prev, [group.type]: '_all' }))}
+                        >
+                          Todos
+                        </Button>
+                        {uniqueTaskNames.map(tn => (
+                          <Button
+                            key={tn}
+                            size="sm"
+                            variant={activeFilter === tn ? 'default' : 'outline'}
+                            className="text-xs h-7 px-3"
+                            onClick={() => setTaskFilter(prev => ({ ...prev, [group.type]: tn }))}
+                          >
+                            {tn}
+                          </Button>
+                        ))}
+                      </>
+                    )}
                   </div>
-                )}
+                  <Button size="sm" onClick={() => openMaintDialog(group.type)}>
+                    <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                    Registrar Manutenção
+                  </Button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {group.components.map(comp => {
                     const taskStatuses = uniquePlans.map(plan => {
