@@ -9,6 +9,7 @@ import { EquipmentCard } from '@/components/equipment/EquipmentCard';
 
 const Dashboard = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardType, setWizardType] = useState<string>('gerador');
   const { equipments, oilTypes } = useEquipmentStore();
 
   const registeredEquipments = equipments.data || [];
