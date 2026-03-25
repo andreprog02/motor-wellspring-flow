@@ -1384,6 +1384,36 @@ export default function EquipmentDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Quick Counter Dialog */}
+      <Dialog open={quickCounterOpen} onOpenChange={setQuickCounterOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Atualizar Contadores</DialogTitle>
+            <DialogDescription>Atualize rapidamente o horímetro e arranques.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Horímetro</Label>
+              <Input type="number" value={quickHorimeter} onChange={e => setQuickHorimeter(Number(e.target.value))} />
+            </div>
+            <div>
+              <Label>Arranques</Label>
+              <Input type="number" value={quickStarts} onChange={e => setQuickStarts(Number(e.target.value))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickCounterOpen(false)}>Cancelar</Button>
+            <Button disabled={updateEquipment.isPending} onClick={async () => {
+              try {
+                await updateEquipment.mutateAsync({ id: equipment.id, updates: { total_horimeter: quickHorimeter, total_starts: quickStarts } });
+                toast.success('Contadores atualizados!');
+                setQuickCounterOpen(false);
+              } catch { toast.error('Erro ao atualizar'); }
+            }}>Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
