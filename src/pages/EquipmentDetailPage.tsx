@@ -374,6 +374,13 @@ export default function EquipmentDetailPage() {
   // Helper: get worst status for a component across its plans, considering component install horimeter
   // Count each task independently per component (not worst-per-component)
   // Get the correct counter value based on trigger_type
+  const getDaysElapsed = (dateStr: string | null): number => {
+    if (!dateStr) return 0;
+    const d = new Date(dateStr + 'T12:00:00');
+    const now = new Date();
+    return Math.max(0, Math.round((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24)));
+  };
+
   const getMonthsElapsed = (dateStr: string | null): number => {
     if (!dateStr) return 0;
     const d = new Date(dateStr + 'T12:00:00');
@@ -382,9 +389,21 @@ export default function EquipmentDetailPage() {
     return Math.max(0, Math.round(months));
   };
 
+  const getWeeksElapsed = (dateStr: string | null): number => {
+    if (!dateStr) return 0;
+    const days = getDaysElapsed(dateStr);
+    return Math.max(0, Math.round(days / 7));
+  };
+
   const getUsageForPlan = (plan: MaintenancePlan, compInstallValue?: number) => {
     if (plan.trigger_type === 'months') {
       return getMonthsElapsed(plan.last_execution_date);
+    }
+    if (plan.trigger_type === 'weeks') {
+      return getWeeksElapsed(plan.last_execution_date);
+    }
+    if (plan.trigger_type === 'days') {
+      return getDaysElapsed(plan.last_execution_date);
     }
     if (plan.trigger_type === 'starts') {
       const baseline = plan.last_execution_value;
@@ -400,6 +419,8 @@ export default function EquipmentDetailPage() {
   const getCounterUnit = (triggerType: string) => {
     if (triggerType === 'starts') return 'arr.';
     if (triggerType === 'months') return 'meses';
+    if (triggerType === 'weeks') return 'sem.';
+    if (triggerType === 'days') return 'dias';
     return 'h';
   };
 
