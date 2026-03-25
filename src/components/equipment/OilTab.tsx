@@ -899,18 +899,30 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
               </div>
             </div>
             {genericMaintenanceType === 'oil_change' && (
-              <div>
-                <Label>Tipo de Óleo</Label>
-                {renderOilCombobox(
-                  oilChangeTypeId,
-                  setOilChangeTypeId,
-                  oilChangeComboOpen,
-                  setOilChangeComboOpen,
-                  oilChangeSearch,
-                  setOilChangeSearch,
-                  filteredOilTypesChange
-                )}
-              </div>
+              <>
+                <div>
+                  <Label>Tipo de Óleo</Label>
+                  {renderOilCombobox(
+                    oilChangeTypeId,
+                    setOilChangeTypeId,
+                    oilChangeComboOpen,
+                    setOilChangeComboOpen,
+                    oilChangeSearch,
+                    setOilChangeSearch,
+                    filteredOilTypesChange
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="also-replace-filter"
+                    checked={alsoReplaceFilter}
+                    onCheckedChange={(checked) => setAlsoReplaceFilter(checked === true)}
+                  />
+                  <label htmlFor="also-replace-filter" className="text-sm cursor-pointer">
+                    Filtros de óleo também foram substituídos?
+                  </label>
+                </div>
+              </>
             )}
             <div>
               <Label>Observações</Label>
