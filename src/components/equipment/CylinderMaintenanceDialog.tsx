@@ -167,7 +167,7 @@ export function CylinderMaintenanceDialog({
             .eq('equipment_id', equipmentId)
             .eq('component_type', componentType)
             .eq('component_id', compId)
-            .eq('task', taskLabel);
+            .eq('task', planTaskLabel);
         }
       }
 
