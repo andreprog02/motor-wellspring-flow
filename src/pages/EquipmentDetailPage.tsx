@@ -450,8 +450,12 @@ export default function EquipmentDetailPage() {
     });
   };
 
+  const isOtherAsset = equipment.equipment_type === 'outro';
+
   // Determine default tab
-  const defaultTab = cylByType.length > 0 ? cylByType[0].type : subCompByType.length > 0 ? subCompByType[0].type : 'oil';
+  const defaultTab = isOtherAsset
+    ? (subCompByType.length > 0 ? subCompByType[0].type : 'none')
+    : (cylByType.length > 0 ? cylByType[0].type : subCompByType.length > 0 ? subCompByType[0].type : 'oil');
 
   return (
     <AppLayout>
@@ -490,33 +494,39 @@ export default function EquipmentDetailPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-2 text-sm">
-              <Zap className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Arranques</p>
-                <p className="font-bold">{fmtNum(equipment.total_starts)}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-2 text-sm">
-              <Cylinder className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Cilindros</p>
-                <p className="font-bold">{equipment.cylinders}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-2 text-sm">
-              <Fuel className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Combustível</p>
-                <p className="font-bold">{fuelLabels[equipment.fuel_type] || equipment.fuel_type}</p>
-              </div>
-            </CardContent>
-          </Card>
+          {!isOtherAsset && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-2 text-sm">
+                <Zap className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Arranques</p>
+                  <p className="font-bold">{fmtNum(equipment.total_starts)}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {!isOtherAsset && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-2 text-sm">
+                <Cylinder className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Cilindros</p>
+                  <p className="font-bold">{equipment.cylinders}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {!isOtherAsset && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-2 text-sm">
+                <Fuel className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Combustível</p>
+                  <p className="font-bold">{fuelLabels[equipment.fuel_type] || equipment.fuel_type}</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {equipment.installation_date && (
             <Card>
               <CardContent className="p-4 flex items-center gap-2 text-sm">
@@ -581,8 +591,8 @@ export default function EquipmentDetailPage() {
         {/* Tabs */}
         <Tabs defaultValue={defaultTab}>
           <TabsList className="flex-wrap h-auto gap-1">
-            {/* Cylinder component tabs */}
-            {cylByType.map(group => {
+            {/* Cylinder component tabs - only for generators */}
+            {!isOtherAsset && cylByType.map(group => {
               const groupStatuses = countStatuses(
                 group.components.flatMap(comp => getTaskStatuses(getPlansForComponent(group.type, comp.id), comp.horimeter_at_install))
               );
@@ -605,8 +615,8 @@ export default function EquipmentDetailPage() {
               );
             })}
 
-            {/* Oil tab */}
-            {(() => {
+            {/* Oil tab - only for generators */}
+            {!isOtherAsset && (() => {
               const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
               const oilCritical = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'critical').length;
               const oilWarning = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'warning').length;
@@ -628,17 +638,21 @@ export default function EquipmentDetailPage() {
               );
             })()}
 
-            {/* Cylinder Heads tab */}
-            <TabsTrigger value="cylinder_heads" className="gap-1.5">
-              <Cog className="h-3.5 w-3.5" />
-              Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
-            </TabsTrigger>
+            {/* Cylinder Heads tab - only for generators */}
+            {!isOtherAsset && (
+              <TabsTrigger value="cylinder_heads" className="gap-1.5">
+                <Cog className="h-3.5 w-3.5" />
+                Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
+              </TabsTrigger>
+            )}
 
-            {/* Turbos tab */}
-            <TabsTrigger value="turbos" className="gap-1.5">
-              <Wind className="h-3.5 w-3.5" />
-              Turbos {activeTurbos.length > 0 && `(${activeTurbos.length})`}
-            </TabsTrigger>
+            {/* Turbos tab - only for generators */}
+            {!isOtherAsset && (
+              <TabsTrigger value="turbos" className="gap-1.5">
+                <Wind className="h-3.5 w-3.5" />
+                Turbos {activeTurbos.length > 0 && `(${activeTurbos.length})`}
+              </TabsTrigger>
+            )}
 
             {/* Sub-component tabs */}
             {subCompByType.map(group => {
@@ -667,8 +681,8 @@ export default function EquipmentDetailPage() {
             })}
           </TabsList>
 
-          {/* One tab per cylinder component type */}
-          {cylByType.map(group => {
+          {/* One tab per cylinder component type - only for generators */}
+          {!isOtherAsset && cylByType.map(group => {
             const allTypePlans = getPlansForType(group.type);
             const uniqueTaskNames = [...new Set(allTypePlans.map(p => p.task))];
             const activeFilter = taskFilter[group.type] || '_all';
@@ -836,88 +850,91 @@ export default function EquipmentDetailPage() {
             );
           })}
 
-          {/* Oil Tab */}
-          <TabsContent value="oil" className="mt-4">
-            <OilTab
-              equipmentId={id!}
-              equipmentHorimeter={equipment.total_horimeter}
-              oilName={oilName}
-              oilTypeId={equipment.oil_type_id}
-            />
-          </TabsContent>
+          {/* Oil Tab - only for generators */}
+          {!isOtherAsset && (
+            <TabsContent value="oil" className="mt-4">
+              <OilTab
+                equipmentId={id!}
+                equipmentHorimeter={equipment.total_horimeter}
+                oilName={oilName}
+                oilTypeId={equipment.oil_type_id}
+              />
+            </TabsContent>
+          )}
 
-          {/* Cylinder Heads Tab */}
-          <TabsContent value="cylinder_heads" className="mt-4">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-muted-foreground">Cabeçotes montados neste equipamento</p>
-              <Button size="sm" onClick={() => setInstallChOpen(true)} disabled={inStockHeads.length === 0}>
-                <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
-                Montar Cabeçote
-              </Button>
-            </div>
-            {activeHeads.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  Nenhum cabeçote montado. Clique em "Montar Cabeçote" para associar um do estoque.
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {activeHeads.map(head => {
-                  const inst = activeInstallations.find(i => i.cylinder_head_id === head.id)!;
-                  const hoursOnThisEquip = equipment.total_horimeter - inst.install_equipment_horimeter;
-                  return (
-                    <CylinderHeadCard
-                      key={head.id}
-                      head={head}
-                      installation={inst}
-                      hoursOnEquipment={hoursOnThisEquip}
-                      equipmentHorimeter={equipment.total_horimeter}
-                      onRemove={() => handleRemoveHead(inst.id, head.id)}
-                      getMetrics={chStore.getMetrics}
-                    />
-                  );
-                })}
+          {!isOtherAsset && (
+            <TabsContent value="cylinder_heads" className="mt-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-muted-foreground">Cabeçotes montados neste equipamento</p>
+                <Button size="sm" onClick={() => setInstallChOpen(true)} disabled={inStockHeads.length === 0}>
+                  <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Montar Cabeçote
+                </Button>
               </div>
-            )}
-          </TabsContent>
+              {activeHeads.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center text-muted-foreground">
+                    Nenhum cabeçote montado. Clique em "Montar Cabeçote" para associar um do estoque.
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {activeHeads.map(head => {
+                    const inst = activeInstallations.find(i => i.cylinder_head_id === head.id)!;
+                    const hoursOnThisEquip = equipment.total_horimeter - inst.install_equipment_horimeter;
+                    return (
+                      <CylinderHeadCard
+                        key={head.id}
+                        head={head}
+                        installation={inst}
+                        hoursOnEquipment={hoursOnThisEquip}
+                        equipmentHorimeter={equipment.total_horimeter}
+                        onRemove={() => handleRemoveHead(inst.id, head.id)}
+                        getMetrics={chStore.getMetrics}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          )}
 
-          {/* Turbos Tab */}
-          <TabsContent value="turbos" className="mt-4">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-sm text-muted-foreground">Turbos montados neste equipamento</p>
-              <Button size="sm" onClick={() => setInstallTurboOpen(true)} disabled={inStockTurbos.length === 0}>
-                <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
-                Montar Turbo
-              </Button>
-            </div>
-            {activeTurbos.length === 0 ? (
-              <Card>
-                <CardContent className="p-8 text-center text-muted-foreground">
-                  Nenhum turbo montado. Clique em "Montar Turbo" para associar um do estoque.
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {activeTurbos.map(turbo => {
-                  const inst = activeTurboInstallations.find(i => i.turbo_id === turbo.id)!;
-                  const hoursOnThisEquip = equipment.total_horimeter - inst.install_equipment_horimeter;
-                  return (
-                    <TurboCard
-                      key={turbo.id}
-                      turbo={turbo}
-                      installation={inst}
-                      hoursOnEquipment={hoursOnThisEquip}
-                      onRemove={() => handleRemoveTurbo(inst.id, turbo.id)}
-                      getMetrics={turboStore.getMetrics}
-                    />
-                  );
-                })}
+          {!isOtherAsset && (
+            <TabsContent value="turbos" className="mt-4">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-sm text-muted-foreground">Turbos montados neste equipamento</p>
+                <Button size="sm" onClick={() => setInstallTurboOpen(true)} disabled={inStockTurbos.length === 0}>
+                  <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Montar Turbo
+                </Button>
               </div>
-            )}
-          </TabsContent>
+              {activeTurbos.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center text-muted-foreground">
+                    Nenhum turbo montado. Clique em "Montar Turbo" para associar um do estoque.
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {activeTurbos.map(turbo => {
+                    const inst = activeTurboInstallations.find(i => i.turbo_id === turbo.id)!;
+                    const hoursOnThisEquip = equipment.total_horimeter - inst.install_equipment_horimeter;
+                    return (
+                      <TurboCard
+                        key={turbo.id}
+                        turbo={turbo}
+                        installation={inst}
+                        hoursOnEquipment={hoursOnThisEquip}
+                        onRemove={() => handleRemoveTurbo(inst.id, turbo.id)}
+                        getMetrics={turboStore.getMetrics}
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          )}
 
-          {/* Sub-component tabs */}
           {subCompByType.map(group => {
             const uniquePlans = group.plans.reduce<MaintenancePlan[]>((acc, p) => {
               if (!acc.find(a => a.task === p.task)) acc.push(p);
