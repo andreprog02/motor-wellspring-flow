@@ -32,6 +32,9 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
   const [deletePassword, setDeletePassword] = useState('');
   const [oilComboOpen, setOilComboOpen] = useState(false);
   const [oilSearch, setOilSearch] = useState('');
+  const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [quickHorimeter, setQuickHorimeter] = useState(equipment.total_horimeter);
+  const [quickStarts, setQuickStarts] = useState(equipment.total_starts);
   const [editData, setEditData] = useState({
     name: equipment.name,
     serial_number: equipment.serial_number,
