@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Separator } from '@/components/ui/separator';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowLeft, Clock, Zap, Cylinder, Fuel, CalendarDays, Droplets, CheckCircle2, AlertTriangle, XCircle, Wrench, PlusCircle, History, ChevronDown, Cog, Gauge, Wind, Thermometer, Fan, Disc, Battery, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
@@ -129,7 +129,7 @@ export default function EquipmentDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const tenantId = useTenantId();
-  const { equipments, oilTypes } = useEquipmentStore();
+  const { equipments, oilTypes, updateEquipment } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
   const planTemplates = useMaintenancePlanTemplates();
 
@@ -175,6 +175,9 @@ export default function EquipmentDetailPage() {
   const [newCompUseEquipDate, setNewCompUseEquipDate] = useState(false);
   const [newCompHorimeter, setNewCompHorimeter] = useState('0');
   const [addingComp, setAddingComp] = useState(false);
+  const [quickCounterOpen, setQuickCounterOpen] = useState(false);
+  const [quickHorimeter, setQuickHorimeter] = useState(0);
+  const [quickStarts, setQuickStarts] = useState(0);
 
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
@@ -537,6 +540,16 @@ export default function EquipmentDetailPage() {
             <p className="text-sm text-muted-foreground">{equipment.serial_number || 'Sem S/N'}</p>
           </div>
           <div className="flex items-center gap-2">
+            {!isOtherAsset && (
+              <Button variant="outline" size="sm" onClick={() => {
+                setQuickHorimeter(equipment.total_horimeter);
+                setQuickStarts(equipment.total_starts);
+                setQuickCounterOpen(true);
+              }}>
+                <Clock className="h-3.5 w-3.5 mr-1.5" />
+                Atualizar Contadores
+              </Button>
+            )}
             {currentTemplateName && (
               <Badge variant="secondary" className="text-xs gap-1">
                 <ClipboardList className="h-3 w-3" />
@@ -1368,6 +1381,36 @@ export default function EquipmentDetailPage() {
             <Button onClick={handleAddComponent} disabled={!newCompName.trim() || addingComp}>
               {addingComp ? 'Adicionando...' : 'Adicionar'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Quick Counter Dialog */}
+      <Dialog open={quickCounterOpen} onOpenChange={setQuickCounterOpen}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Atualizar Contadores</DialogTitle>
+            <DialogDescription>Atualize rapidamente o horímetro e arranques.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label>Horímetro</Label>
+              <Input type="number" value={quickHorimeter} onChange={e => setQuickHorimeter(Number(e.target.value))} />
+            </div>
+            <div>
+              <Label>Arranques</Label>
+              <Input type="number" value={quickStarts} onChange={e => setQuickStarts(Number(e.target.value))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuickCounterOpen(false)}>Cancelar</Button>
+            <Button disabled={updateEquipment.isPending} onClick={async () => {
+              try {
+                await updateEquipment.mutateAsync({ id: equipment.id, updates: { total_horimeter: quickHorimeter, total_starts: quickStarts } });
+                toast.success('Contadores atualizados!');
+                setQuickCounterOpen(false);
+              } catch { toast.error('Erro ao atualizar'); }
+            }}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
