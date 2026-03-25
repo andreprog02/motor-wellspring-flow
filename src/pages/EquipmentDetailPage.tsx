@@ -129,7 +129,7 @@ export default function EquipmentDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const tenantId = useTenantId();
-  const { equipments, oilTypes } = useEquipmentStore();
+  const { equipments, oilTypes, updateEquipment } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
   const planTemplates = useMaintenancePlanTemplates();
 
