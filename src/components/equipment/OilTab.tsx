@@ -1006,6 +1006,27 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
               </div>
             </div>
             <div>
+              <Label>Status</Label>
+              <div className="flex gap-2 mt-1">
+                {[
+                  { value: 'Boa', color: 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' },
+                  { value: 'Atenção', color: 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' },
+                  { value: 'Ruim', color: 'bg-destructive text-destructive-foreground' },
+                ].map(s => (
+                  <Button
+                    key={s.value}
+                    type="button"
+                    size="sm"
+                    variant={analysisStatus === s.value ? 'default' : 'outline'}
+                    className={cn('flex-1', analysisStatus === s.value ? s.color : '')}
+                    onClick={() => setAnalysisStatus(s.value)}
+                  >
+                    {s.value}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
               <Label>Resultado</Label>
               <Textarea value={analysisResult} onChange={e => setAnalysisResult(e.target.value)} placeholder="Resultado da análise..." />
             </div>
