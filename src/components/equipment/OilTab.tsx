@@ -955,8 +955,6 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
               }}
               disabled={addOilMaintenance.isPending}
             >
-              disabled={addOilMaintenance.isPending}
-            >
               {addOilMaintenance.isPending ? 'Salvando...' : 'Salvar'}
             </Button>
           </DialogFooter>
