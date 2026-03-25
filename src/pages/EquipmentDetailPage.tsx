@@ -1339,11 +1339,28 @@ export default function EquipmentDetailPage() {
             </div>
             <div className="space-y-2">
               <Label>Data de Instalação</Label>
-              <Input
-                type="date"
-                value={newCompDate}
-                onChange={(e) => setNewCompDate(e.target.value)}
-              />
+              {equipment?.installation_date && (
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="useEquipDate"
+                    checked={newCompUseEquipDate}
+                    onCheckedChange={(checked) => {
+                      setNewCompUseEquipDate(!!checked);
+                      if (checked) setNewCompDate('');
+                    }}
+                  />
+                  <label htmlFor="useEquipDate" className="text-sm text-muted-foreground cursor-pointer">
+                    Usar data do equipamento ({format(new Date(equipment.installation_date + 'T12:00:00'), 'dd/MM/yyyy')})
+                  </label>
+                </div>
+              )}
+              {!newCompUseEquipDate && (
+                <Input
+                  type="date"
+                  value={newCompDate}
+                  onChange={(e) => setNewCompDate(e.target.value)}
+                />
+              )}
             </div>
           </div>
           <DialogFooter>
