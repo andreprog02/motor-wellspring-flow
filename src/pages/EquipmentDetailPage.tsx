@@ -162,6 +162,13 @@ export default function EquipmentDetailPage() {
     plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null; trigger_type: string; last_execution_date: string | null }>;
   }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null, plans: [] });
 
+  const [addCompOpen, setAddCompOpen] = useState(false);
+  const [newCompName, setNewCompName] = useState('');
+  const [newCompSerial, setNewCompSerial] = useState('');
+  const [newCompDate, setNewCompDate] = useState('');
+  const [newCompHorimeter, setNewCompHorimeter] = useState('0');
+  const [addingComp, setAddingComp] = useState(false);
+
   const equipment = equipments.data?.find(e => e.id === id);
   const oils = oilTypes.data || [];
 
