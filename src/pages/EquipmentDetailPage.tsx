@@ -681,8 +681,8 @@ export default function EquipmentDetailPage() {
             })}
           </TabsList>
 
-          {/* One tab per cylinder component type */}
-          {cylByType.map(group => {
+          {/* One tab per cylinder component type - only for generators */}
+          {!isOtherAsset && cylByType.map(group => {
             const allTypePlans = getPlansForType(group.type);
             const uniqueTaskNames = [...new Set(allTypePlans.map(p => p.task))];
             const activeFilter = taskFilter[group.type] || '_all';
