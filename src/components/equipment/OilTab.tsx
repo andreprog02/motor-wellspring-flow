@@ -936,13 +936,25 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOilChangeDialogOpen(false)}>Cancelar</Button>
             <Button
-              onClick={() => addOilMaintenance.mutate({
-                maintenanceType: genericMaintenanceType || 'oil_change',
-                horimeter: Number(oilChangeHorimeter),
-                date: oilChangeDate,
-                notes: oilChangeNotes,
-                oilTypeId: oilChangeTypeId,
-              })}
+              onClick={async () => {
+                await addOilMaintenance.mutateAsync({
+                  maintenanceType: genericMaintenanceType || 'oil_change',
+                  horimeter: Number(oilChangeHorimeter),
+                  date: oilChangeDate,
+                  notes: oilChangeNotes,
+                  oilTypeId: oilChangeTypeId,
+                });
+                if (alsoReplaceFilter && genericMaintenanceType === 'oil_change') {
+                  await addOilMaintenance.mutateAsync({
+                    maintenanceType: 'oil_filter',
+                    horimeter: Number(oilChangeHorimeter),
+                    date: oilChangeDate,
+                    notes: 'Substituído junto com troca de óleo',
+                  });
+                }
+              }}
+              disabled={addOilMaintenance.isPending}
+            >
               disabled={addOilMaintenance.isPending}
             >
               {addOilMaintenance.isPending ? 'Salvando...' : 'Salvar'}
