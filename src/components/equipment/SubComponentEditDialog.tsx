@@ -83,12 +83,15 @@ export function SubComponentEditDialog({
       setInstallDate(currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined);
       const vals: Record<string, number> = {};
       const dates: Record<string, Date | undefined> = {};
+      const triggers: Record<string, string> = {};
       plans.forEach(p => {
         vals[p.id] = p.last_execution_value;
         dates[p.id] = p.last_execution_date ? new Date(p.last_execution_date + 'T12:00:00') : undefined;
+        triggers[p.id] = p.trigger_type;
       });
       setPlanValues(vals);
       setPlanDates(dates);
+      setPlanTriggerTypes(triggers);
     }
   }, [open, currentHorimeter, currentInstallationDate, plans, componentType]);
 
