@@ -464,7 +464,8 @@ export default function EquipmentDetailPage() {
     // Sub-components - each task for each component counted independently
     subCompByType.forEach(group => {
       group.components.forEach(comp => {
-        allStatuses.push(...getTaskStatuses(group.plans, comp.horimeter));
+        const compPlans = group.plans.filter(p => p.component_id === comp.id);
+        allStatuses.push(...getTaskStatuses(compPlans, comp.horimeter));
       });
     });
 
