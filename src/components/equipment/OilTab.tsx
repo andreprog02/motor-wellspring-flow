@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { formatLocalDate } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -81,6 +82,10 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
   const [oilChangeTypeId, setOilChangeTypeId] = useState(oilTypeId || '');
   const [oilChangeComboOpen, setOilChangeComboOpen] = useState(false);
   const [oilChangeSearch, setOilChangeSearch] = useState('');
+  const [alsoReplaceFilter, setAlsoReplaceFilter] = useState(false);
+
+  // Analysis status
+  const [analysisStatus, setAnalysisStatus] = useState<string>('');
 
   // Oil type edit state
   const [oilTypeDialogOpen, setOilTypeDialogOpen] = useState(false);
@@ -245,7 +250,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         equipment_id: equipmentId,
         analysis_date: analysisDate,
         horimeter_at_analysis: Number(analysisHorimeter),
-        result: analysisResult,
+        result: analysisStatus ? `[${analysisStatus}] ${analysisResult}` : analysisResult,
         attachment_url,
         notes: analysisNotes,
         collection_id: analysisCollectionId || null,
@@ -258,6 +263,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       toast.success('Análise de óleo registrada!');
       setAnalysisDialogOpen(false);
       setAnalysisResult('');
+      setAnalysisStatus('');
       setAnalysisNotes('');
       setAnalysisFile(null);
       setAnalysisCollectionId('');
@@ -561,7 +567,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground font-medium">Última Troca de Filtro</span>
+              <span className="text-xs text-muted-foreground font-medium">Última Troca de Filtro de Óleo</span>
             </div>
             {lastFilterChange ? (
               <>
@@ -639,6 +645,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           setOilChangeDate(formatLocalDate());
           setOilChangeTypeId(oilTypeId || '');
           setOilChangeNotes('');
+          setAlsoReplaceFilter(false);
           setOilChangeDialogOpen(true);
         }}>
           <Droplets className="h-3.5 w-3.5 mr-1.5" />
@@ -660,6 +667,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           setAnalysisDate(formatLocalDate());
           setAnalysisCollectionId('');
           setAnalysisResult('');
+          setAnalysisStatus('');
           setAnalysisNotes('');
           setAnalysisFile(null);
           setAnalysisDialogOpen(true);
@@ -686,17 +694,17 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
             <Droplets className="h-3.5 w-3.5 mr-1" />
             Trocas de Óleo ({oilLogs.data?.length || 0})
           </TabsTrigger>
-          <TabsTrigger value="analyses">
-            <FlaskConical className="h-3.5 w-3.5 mr-1" />
-            Análises ({analyses.data?.length || 0})
+          <TabsTrigger value="filters">
+            <Filter className="h-3.5 w-3.5 mr-1" />
+            Filtros de Óleo ({filterLogs.data?.length || 0})
           </TabsTrigger>
           <TabsTrigger value="collections">
             <TestTubes className="h-3.5 w-3.5 mr-1" />
             Coletas ({collections.data?.length || 0})
           </TabsTrigger>
-          <TabsTrigger value="filters">
-            <Filter className="h-3.5 w-3.5 mr-1" />
-            Filtros ({filterLogs.data?.length || 0})
+          <TabsTrigger value="analyses">
+            <FlaskConical className="h-3.5 w-3.5 mr-1" />
+            Análises ({analyses.data?.length || 0})
           </TabsTrigger>
         </TabsList>
 
@@ -756,6 +764,18 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
                         )}
                         <span className="font-mono text-xs">{format(new Date(a.analysis_date), 'dd/MM/yyyy')}</span>
                         <Badge variant="secondary" className="font-mono text-xs">{fmtNum(a.horimeter_at_analysis)}h</Badge>
+                        {(() => {
+                          const statusMatch = a.result?.match(/^\[(Boa|Atenção|Ruim)\]/);
+                          if (!statusMatch) return null;
+                          const st = statusMatch[1];
+                          return (
+                            <Badge className={cn('text-[10px] px-1.5 py-0',
+                              st === 'Boa' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
+                              st === 'Atenção' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' :
+                              'bg-destructive text-destructive-foreground'
+                            )}>{st}</Badge>
+                          );
+                        })()}
                       </div>
                       {a.attachment_url && (
                         <a href={a.attachment_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
@@ -763,7 +783,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
                         </a>
                       )}
                     </div>
-                    {a.result && <p className="text-xs font-medium">{a.result}</p>}
+                    {a.result && <p className="text-xs font-medium">{a.result.replace(/^\[(Boa|Atenção|Ruim)\]\s*/, '')}</p>}
                     {a.notes && <p className="text-xs text-muted-foreground mt-0.5">{a.notes}</p>}
                   </CardContent>
                 </Card>
@@ -893,18 +913,30 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
               </div>
             </div>
             {genericMaintenanceType === 'oil_change' && (
-              <div>
-                <Label>Tipo de Óleo</Label>
-                {renderOilCombobox(
-                  oilChangeTypeId,
-                  setOilChangeTypeId,
-                  oilChangeComboOpen,
-                  setOilChangeComboOpen,
-                  oilChangeSearch,
-                  setOilChangeSearch,
-                  filteredOilTypesChange
-                )}
-              </div>
+              <>
+                <div>
+                  <Label>Tipo de Óleo</Label>
+                  {renderOilCombobox(
+                    oilChangeTypeId,
+                    setOilChangeTypeId,
+                    oilChangeComboOpen,
+                    setOilChangeComboOpen,
+                    oilChangeSearch,
+                    setOilChangeSearch,
+                    filteredOilTypesChange
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="also-replace-filter"
+                    checked={alsoReplaceFilter}
+                    onCheckedChange={(checked) => setAlsoReplaceFilter(checked === true)}
+                  />
+                  <label htmlFor="also-replace-filter" className="text-sm cursor-pointer">
+                    Filtros de óleo também foram substituídos?
+                  </label>
+                </div>
+              </>
             )}
             <div>
               <Label>Observações</Label>
@@ -918,13 +950,23 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOilChangeDialogOpen(false)}>Cancelar</Button>
             <Button
-              onClick={() => addOilMaintenance.mutate({
-                maintenanceType: genericMaintenanceType || 'oil_change',
-                horimeter: Number(oilChangeHorimeter),
-                date: oilChangeDate,
-                notes: oilChangeNotes,
-                oilTypeId: oilChangeTypeId,
-              })}
+              onClick={async () => {
+                await addOilMaintenance.mutateAsync({
+                  maintenanceType: genericMaintenanceType || 'oil_change',
+                  horimeter: Number(oilChangeHorimeter),
+                  date: oilChangeDate,
+                  notes: oilChangeNotes,
+                  oilTypeId: oilChangeTypeId,
+                });
+                if (alsoReplaceFilter && genericMaintenanceType === 'oil_change') {
+                  await addOilMaintenance.mutateAsync({
+                    maintenanceType: 'oil_filter',
+                    horimeter: Number(oilChangeHorimeter),
+                    date: oilChangeDate,
+                    notes: 'Substituído junto com troca de óleo',
+                  });
+                }
+              }}
               disabled={addOilMaintenance.isPending}
             >
               {addOilMaintenance.isPending ? 'Salvando...' : 'Salvar'}
@@ -973,6 +1015,27 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
               <div>
                 <Label>Horímetro</Label>
                 <Input type="number" value={analysisHorimeter} onChange={e => setAnalysisHorimeter(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <div className="flex gap-2 mt-1">
+                {[
+                  { value: 'Boa', color: 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' },
+                  { value: 'Atenção', color: 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' },
+                  { value: 'Ruim', color: 'bg-destructive text-destructive-foreground' },
+                ].map(s => (
+                  <Button
+                    key={s.value}
+                    type="button"
+                    size="sm"
+                    variant={analysisStatus === s.value ? 'default' : 'outline'}
+                    className={cn('flex-1', analysisStatus === s.value ? s.color : '')}
+                    onClick={() => setAnalysisStatus(s.value)}
+                  >
+                    {s.value}
+                  </Button>
+                ))}
               </div>
             </div>
             <div>
