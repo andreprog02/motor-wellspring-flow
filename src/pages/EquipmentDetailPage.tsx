@@ -615,8 +615,8 @@ export default function EquipmentDetailPage() {
               );
             })}
 
-            {/* Oil tab */}
-            {(() => {
+            {/* Oil tab - only for generators */}
+            {!isOtherAsset && (() => {
               const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
               const oilCritical = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'critical').length;
               const oilWarning = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'warning').length;
@@ -638,17 +638,21 @@ export default function EquipmentDetailPage() {
               );
             })()}
 
-            {/* Cylinder Heads tab */}
-            <TabsTrigger value="cylinder_heads" className="gap-1.5">
-              <Cog className="h-3.5 w-3.5" />
-              Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
-            </TabsTrigger>
+            {/* Cylinder Heads tab - only for generators */}
+            {!isOtherAsset && (
+              <TabsTrigger value="cylinder_heads" className="gap-1.5">
+                <Cog className="h-3.5 w-3.5" />
+                Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
+              </TabsTrigger>
+            )}
 
-            {/* Turbos tab */}
-            <TabsTrigger value="turbos" className="gap-1.5">
-              <Wind className="h-3.5 w-3.5" />
-              Turbos {activeTurbos.length > 0 && `(${activeTurbos.length})`}
-            </TabsTrigger>
+            {/* Turbos tab - only for generators */}
+            {!isOtherAsset && (
+              <TabsTrigger value="turbos" className="gap-1.5">
+                <Wind className="h-3.5 w-3.5" />
+                Turbos {activeTurbos.length > 0 && `(${activeTurbos.length})`}
+              </TabsTrigger>
+            )}
 
             {/* Sub-component tabs */}
             {subCompByType.map(group => {
