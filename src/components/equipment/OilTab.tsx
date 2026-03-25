@@ -551,12 +551,24 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
               <FlaskConical className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground font-medium">Última Análise</span>
             </div>
-            {lastAnalysis ? (
-              <>
-                <p className="font-bold text-sm">{format(new Date(lastAnalysis.analysis_date), 'dd/MM/yyyy')}</p>
-                <p className="text-xs text-muted-foreground font-mono">{fmtNum(lastAnalysis.horimeter_at_analysis)}h</p>
-              </>
-            ) : (
+            {lastAnalysis ? (() => {
+              const statusMatch = lastAnalysis.result?.match(/^\[(Boa|Atenção|Ruim)\]/);
+              const analysisStatusLabel = statusMatch?.[1] || null;
+              const statusColor = analysisStatusLabel === 'Boa' ? 'bg-green-500' : analysisStatusLabel === 'Atenção' ? 'bg-yellow-500' : analysisStatusLabel === 'Ruim' ? 'bg-red-500' : '';
+              return (
+                <>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-sm">{format(new Date(lastAnalysis.analysis_date), 'dd/MM/yyyy')}</p>
+                    {analysisStatusLabel && (
+                      <Badge className={cn('text-[10px] h-5 text-white border-0', statusColor)}>
+                        {analysisStatusLabel}
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono">{fmtNum(lastAnalysis.horimeter_at_analysis)}h</p>
+                </>
+              );
+            })() : (
               <p className="text-sm text-muted-foreground">Nenhuma análise</p>
             )}
           </CardContent>
