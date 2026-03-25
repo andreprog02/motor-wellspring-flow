@@ -73,6 +73,7 @@ export function SubComponentEditDialog({
   );
   const [planValues, setPlanValues] = useState<Record<string, number>>({});
   const [planDates, setPlanDates] = useState<Record<string, Date | undefined>>({});
+  const [planTriggerTypes, setPlanTriggerTypes] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
