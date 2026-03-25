@@ -59,6 +59,9 @@ interface CustomComponentData {
   manufacturer_id: string;
   model_id: string;
   installation_date: Date | undefined;
+  useEquipmentDate: boolean;
+  horimeter: number;
+  hasHorimeter: boolean;
 }
 
 const GENERATOR_STEPS = [
