@@ -644,6 +644,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           setOilChangeDate(formatLocalDate());
           setOilChangeTypeId(oilTypeId || '');
           setOilChangeNotes('');
+          setAlsoReplaceFilter(false);
           setOilChangeDialogOpen(true);
         }}>
           <Droplets className="h-3.5 w-3.5 mr-1.5" />
