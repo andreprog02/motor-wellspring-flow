@@ -739,7 +739,10 @@ export default function EquipmentDetailPage() {
             {subCompByType.map(group => {
               const Icon = subComponentIcons[group.type] || Cog;
               const scStatuses = countStatuses(
-                group.components.flatMap(comp => getTaskStatuses(group.plans, comp.horimeter))
+                group.components.flatMap(comp => {
+                  const compPlans = group.plans.filter(p => p.component_id === comp.id);
+                  return getTaskStatuses(compPlans, comp.horimeter);
+                })
               );
               const scCritical = scStatuses.critical;
               const scWarning = scStatuses.warning;
