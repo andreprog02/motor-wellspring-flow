@@ -667,6 +667,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
           setAnalysisDate(formatLocalDate());
           setAnalysisCollectionId('');
           setAnalysisResult('');
+          setAnalysisStatus('');
           setAnalysisNotes('');
           setAnalysisFile(null);
           setAnalysisDialogOpen(true);
