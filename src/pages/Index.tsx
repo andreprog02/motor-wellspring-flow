@@ -104,7 +104,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      <EquipmentWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+      <EquipmentWizard open={wizardOpen} onOpenChange={setWizardOpen} initialType={wizardType} />
     </AppLayout>
   );
 };
