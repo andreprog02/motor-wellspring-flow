@@ -9,6 +9,7 @@ import { EquipmentCard } from '@/components/equipment/EquipmentCard';
 
 const Dashboard = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardType, setWizardType] = useState<string>('gerador');
   const { equipments, oilTypes } = useEquipmentStore();
 
   const registeredEquipments = equipments.data || [];
@@ -52,8 +53,12 @@ const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="flex items-center justify-end">
-          <Button onClick={() => setWizardOpen(true)}>
+        <div className="flex items-center justify-end gap-2">
+          <Button onClick={() => { setWizardType('gerador'); setWizardOpen(true); }}>
+            <PlusCircle className="h-4 w-4 mr-2" />
+            Cadastrar Gerador
+          </Button>
+          <Button variant="outline" onClick={() => { setWizardType('outro'); setWizardOpen(true); }}>
             <PlusCircle className="h-4 w-4 mr-2" />
             Cadastrar Equipamento
           </Button>
@@ -99,7 +104,7 @@ const Dashboard = () => {
         )}
       </div>
 
-      <EquipmentWizard open={wizardOpen} onOpenChange={setWizardOpen} />
+      <EquipmentWizard open={wizardOpen} onOpenChange={setWizardOpen} initialType={wizardType} />
     </AppLayout>
   );
 };

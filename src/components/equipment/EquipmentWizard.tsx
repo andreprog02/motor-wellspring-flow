@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialType?: string;
 }
 
 interface BasicData {
@@ -78,13 +79,13 @@ const OTHER_STEPS = [
   { label: 'Revisão', icon: ClipboardCheck },
 ];
 
-export function EquipmentWizard({ open, onOpenChange }: Props) {
+export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   const { addEquipment, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel, oilTypes, addOilType } = useEquipmentStore();
   const { templates: planTemplates, applyTemplateToEquipment } = useMaintenancePlanTemplates();
 
   const [step, setStep] = useState(0);
   const [basic, setBasic] = useState<BasicData>({
-    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: 'gerador',
+    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador',
   });
 
   const emptySubComp = (): SubComponentData => ({
@@ -123,11 +124,18 @@ export function EquipmentWizard({ open, onOpenChange }: Props) {
 
   const reset = () => {
     setStep(0);
-    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: 'gerador' });
+    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador' });
     setTurbine(emptySubComp()); setIntercooler(emptySubComp()); setOilExchanger(emptySubComp());
     setBlowby(emptyMultiComp()); setDamper(emptyMultiComp()); setStarterMotor(emptyMultiComp()); setBattery(emptyMultiComp());
     setCustomComponents([]);
   };
+
+  useEffect(() => {
+    if (open && initialType) {
+      setBasic(p => ({ ...p, equipment_type: initialType }));
+      setStep(0);
+    }
+  }, [open, initialType]);
 
   const handleClose = () => { reset(); onOpenChange(false); };
 
