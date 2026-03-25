@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Equipment, OilType, useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight, Check, ChevronsUpDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
