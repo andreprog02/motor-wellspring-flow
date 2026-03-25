@@ -79,7 +79,7 @@ const OTHER_STEPS = [
   { label: 'Revisão', icon: ClipboardCheck },
 ];
 
-export function EquipmentWizard({ open, onOpenChange }: Props) {
+export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   const { addEquipment, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel, oilTypes, addOilType } = useEquipmentStore();
   const { templates: planTemplates, applyTemplateToEquipment } = useMaintenancePlanTemplates();
 
