@@ -159,7 +159,7 @@ export function CylinderMaintenanceDialog({
       // 3. Update maintenance plan last_execution_value ONLY for selected cylinders' plans
       // First try per-component plans (component_id matches)
       if (selectedCompIds.length > 0) {
-        const taskLabel = task || (serviceType === 'replacement' ? 'Substituição' : 'Inspeção');
+        const planTaskLabel = serviceTypeToLabel[serviceType] || serviceType;
         for (const compId of selectedCompIds) {
           await (supabase as any)
             .from('component_maintenance_plans')
