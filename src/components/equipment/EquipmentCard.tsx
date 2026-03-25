@@ -91,15 +91,21 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <Clock className="h-3.5 w-3.5" /> <span>{equipment.total_horimeter}h</span>
             </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Zap className="h-3.5 w-3.5" /> <span>{equipment.total_starts} arranques</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Cylinder className="h-3.5 w-3.5" /> <span>{equipment.cylinders} cilindros</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-muted-foreground">
-              <Fuel className="h-3.5 w-3.5" /> <span>{fuelLabels[equipment.fuel_type] || equipment.fuel_type}</span>
-            </div>
+            {equipment.equipment_type !== 'outro' && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Zap className="h-3.5 w-3.5" /> <span>{equipment.total_starts} arranques</span>
+              </div>
+            )}
+            {equipment.equipment_type !== 'outro' && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Cylinder className="h-3.5 w-3.5" /> <span>{equipment.cylinders} cilindros</span>
+              </div>
+            )}
+            {equipment.equipment_type !== 'outro' && equipment.fuel_type && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Fuel className="h-3.5 w-3.5" /> <span>{fuelLabels[equipment.fuel_type] || equipment.fuel_type}</span>
+              </div>
+            )}
             {equipment.installation_date && (
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <CalendarDays className="h-3.5 w-3.5" /> <span>{format(new Date(equipment.installation_date), 'dd/MM/yyyy')}</span>
@@ -108,6 +114,11 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
             {oilName && (
               <div className="flex items-center gap-1.5 text-muted-foreground">
                 <Droplets className="h-3.5 w-3.5" /> <span>{oilName}</span>
+              </div>
+            )}
+            {equipment.equipment_type === 'outro' && (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <Badge variant="secondary" className="text-[10px] h-5">Outro Ativo</Badge>
               </div>
             )}
           </div>

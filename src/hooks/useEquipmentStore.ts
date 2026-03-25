@@ -145,7 +145,7 @@ export function useEquipmentStore() {
       }
 
       const cylinders = data.equipment.cylinders;
-      if (cylinders > 0) {
+      if (cylinders > 0 && data.equipment.equipment_type !== 'outro') {
         const cylinderRows: Array<{
           equipment_id: string; cylinder_number: number; component_type: string; horimeter_at_install: number; tenant_id: string | null;
         }> = [];
