@@ -450,8 +450,12 @@ export default function EquipmentDetailPage() {
     });
   };
 
+  const isOtherAsset = equipment.equipment_type === 'outro';
+
   // Determine default tab
-  const defaultTab = cylByType.length > 0 ? cylByType[0].type : subCompByType.length > 0 ? subCompByType[0].type : 'oil';
+  const defaultTab = isOtherAsset
+    ? (subCompByType.length > 0 ? subCompByType[0].type : 'none')
+    : (cylByType.length > 0 ? cylByType[0].type : subCompByType.length > 0 ? subCompByType[0].type : 'oil');
 
   return (
     <AppLayout>
