@@ -193,14 +193,17 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
       // Custom components for "outro" type
       customComponents.forEach(cc => {
         if (cc.name.trim()) {
+          const installDate = cc.useEquipmentDate
+            ? (basic.installation_date ? format(basic.installation_date, 'yyyy-MM-dd') : null)
+            : (cc.installation_date ? format(cc.installation_date, 'yyyy-MM-dd') : null);
           subComponents.push({
             component_type: cc.name.trim(),
             serial_number: cc.serial_number,
             manufacturer_id: cc.manufacturer_id || null,
             model_id: cc.model_id || null,
-            horimeter: basic.total_horimeter,
-            use_equipment_hours: true,
-            installation_date: cc.installation_date ? format(cc.installation_date, 'yyyy-MM-dd') : null,
+            horimeter: cc.hasHorimeter ? cc.horimeter : basic.total_horimeter,
+            use_equipment_hours: !cc.hasHorimeter,
+            installation_date: installDate,
           });
         }
       });
