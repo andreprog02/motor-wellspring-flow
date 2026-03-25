@@ -71,6 +71,16 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
     } catch { toast.error('Erro ao excluir'); }
   };
 
+  const handleQuickSave = async () => {
+    try {
+      const updates: any = { total_horimeter: quickHorimeter };
+      if (equipment.equipment_type !== 'outro') updates.total_starts = quickStarts;
+      await updateEquipment.mutateAsync({ id: equipment.id, updates });
+      toast.success('Contadores atualizados!');
+      setQuickEditOpen(false);
+    } catch { toast.error('Erro ao atualizar'); }
+  };
+
   return (
     <>
       <Card className="group hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/equipment/${equipment.id}`)}>
