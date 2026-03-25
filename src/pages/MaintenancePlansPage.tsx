@@ -81,7 +81,18 @@ export default function MaintenancePlansPage() {
     },
   });
 
+  // Fetch all sub-components to discover model-specific component types
+  const allSubComponentsQuery = useQuery({
+    queryKey: ['all_equipment_sub_components'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('equipment_sub_components').select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const allActivePlans = activePlans.data ?? [];
+  const allSubComponents = allSubComponentsQuery.data ?? [];
 
   // Helper: get status for a plan on an equipment
   const getStatus = (equipmentHorimeter: number, lastExecution: number, interval: number) => {
