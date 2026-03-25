@@ -34,6 +34,7 @@ interface Props {
   currentInstallationDate: string | null;
   equipmentTotalStarts: number;
   plans: MaintenancePlan[];
+  isOtherAsset?: boolean;
 }
 
 const typeLabels: Record<string, string> = {
