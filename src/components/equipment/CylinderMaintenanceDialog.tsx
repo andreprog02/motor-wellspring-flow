@@ -258,27 +258,33 @@ export function CylinderMaintenanceDialog({
   };
 
   const label = componentTypeLabels[componentType] || componentType;
+  const totalItems = isCylinderMode ? allComponents.length : subs.length;
+  const allSelected = isCylinderMode
+    ? selectedCylinders.length === allComponents.length
+    : selectedSubIds.length === subs.length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Registrar Manutenção — {label}s</DialogTitle>
+          <DialogTitle>Registrar Manutenção — {label}{totalItems > 1 ? 's' : ''}</DialogTitle>
           <DialogDescription>
-            Selecione os cilindros e o tipo de serviço.
+            {isCylinderMode ? 'Selecione os cilindros e o tipo de serviço.' : 'Selecione os componentes e o tipo de serviço.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-          {/* Cylinder selection */}
+          {/* Component selection */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label>Cilindros</Label>
-              <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAll}>
-                {selectedCylinders.length === allComponents.length ? 'Desmarcar todos' : 'Selecionar todos'}
-              </Button>
+              <Label>{isCylinderMode ? 'Cilindros' : 'Componentes'}</Label>
+              {totalItems > 1 && (
+                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAll}>
+                  {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+                </Button>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
-              {allComponents.map(comp => (
+              {isCylinderMode ? allComponents.map(comp => (
                 <label
                   key={comp.id}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border cursor-pointer text-sm transition-colors ${
@@ -294,10 +300,25 @@ export function CylinderMaintenanceDialog({
                   />
                   {label} {comp.cylinder_number}
                 </label>
+              )) : subs.map((sub, idx) => (
+                <label
+                  key={sub.id}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border cursor-pointer text-sm transition-colors ${
+                    selectedSubIds.includes(sub.id)
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-card hover:bg-accent'
+                  }`}
+                >
+                  <Checkbox
+                    checked={selectedSubIds.includes(sub.id)}
+                    onCheckedChange={() => toggleSub(sub.id)}
+                    className="sr-only"
+                  />
+                  {sub.serial_number || `${label} ${idx + 1}`}
+                </label>
               ))}
             </div>
           </div>
-
 
           {/* Service type */}
           <div>
@@ -342,8 +363,8 @@ export function CylinderMaintenanceDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={saving || selectedCylinders.length === 0}>
-            {saving ? 'Salvando...' : `Registrar (${selectedCylinders.length} cil.)`}
+          <Button onClick={handleSubmit} disabled={saving || !hasSelection}>
+            {saving ? 'Salvando...' : `Registrar (${selectionCount})`}
           </Button>
         </DialogFooter>
       </DialogContent>
