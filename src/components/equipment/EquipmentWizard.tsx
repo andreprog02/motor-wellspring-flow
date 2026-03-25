@@ -506,7 +506,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
         </div>
         <Button
           size="sm"
-          onClick={() => setCustomComponents(prev => [...prev, { name: '', serial_number: '', manufacturer_id: '', model_id: '', installation_date: undefined }])}
+          onClick={() => setCustomComponents(prev => [...prev, { name: '', serial_number: '', manufacturer_id: '', model_id: '', installation_date: undefined, useEquipmentDate: true, horimeter: 0, hasHorimeter: false }])}
         >
           <Plus className="h-3.5 w-3.5 mr-1" />
           Adicionar
