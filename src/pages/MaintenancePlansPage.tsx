@@ -93,8 +93,19 @@ export default function MaintenancePlansPage() {
     },
   });
 
+  // Fetch all cylinder components to discover standard component types per equipment
+  const allCylinderComponentsQuery = useQuery({
+    queryKey: ['all_cylinder_components'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('cylinder_components').select('*');
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const allActivePlans = activePlans.data ?? [];
   const allSubComponents = allSubComponentsQuery.data ?? [];
+  const allCylinderComponents = allCylinderComponentsQuery.data ?? [];
 
   // Helper: get status for a plan on an equipment
   const getStatus = (equipmentHorimeter: number, lastExecution: number, interval: number) => {
