@@ -1277,6 +1277,55 @@ export default function EquipmentDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add Component Dialog */}
+      <Dialog open={addCompOpen} onOpenChange={setAddCompOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Adicionar Componente</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Nome do Componente *</Label>
+              <Input
+                placeholder="Ex: Correia, Filtro, Bomba..."
+                value={newCompName}
+                onChange={(e) => setNewCompName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Número de Série</Label>
+              <Input
+                placeholder="S/N (opcional)"
+                value={newCompSerial}
+                onChange={(e) => setNewCompSerial(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Horímetro na Instalação</Label>
+              <Input
+                type="number"
+                value={newCompHorimeter}
+                onChange={(e) => setNewCompHorimeter(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Data de Instalação</Label>
+              <Input
+                type="date"
+                value={newCompDate}
+                onChange={(e) => setNewCompDate(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddCompOpen(false)}>Cancelar</Button>
+            <Button onClick={handleAddComponent} disabled={!newCompName.trim() || addingComp}>
+              {addingComp ? 'Adicionando...' : 'Adicionar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 }
