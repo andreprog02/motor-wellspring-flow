@@ -263,6 +263,7 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
       toast.success('Análise de óleo registrada!');
       setAnalysisDialogOpen(false);
       setAnalysisResult('');
+      setAnalysisStatus('');
       setAnalysisNotes('');
       setAnalysisFile(null);
       setAnalysisCollectionId('');
