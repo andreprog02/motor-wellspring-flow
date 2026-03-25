@@ -462,6 +462,34 @@ export default function EquipmentDetailPage() {
     });
   };
 
+  const handleAddComponent = async () => {
+    if (!newCompName.trim() || !id) return;
+    setAddingComp(true);
+    try {
+      const { error } = await supabase.from('equipment_sub_components').insert({
+        equipment_id: id,
+        component_type: newCompName.trim(),
+        serial_number: newCompSerial.trim(),
+        horimeter: parseFloat(newCompHorimeter) || 0,
+        installation_date: newCompDate || null,
+        use_equipment_hours: true,
+        tenant_id: tenantId,
+      });
+      if (error) throw error;
+      queryClient.invalidateQueries({ queryKey: ['equipment_sub_components', id] });
+      toast.success('Componente adicionado com sucesso!');
+      setNewCompName('');
+      setNewCompSerial('');
+      setNewCompDate('');
+      setNewCompHorimeter('0');
+      setAddCompOpen(false);
+    } catch {
+      toast.error('Erro ao adicionar componente.');
+    } finally {
+      setAddingComp(false);
+    }
+  };
+
   const isOtherAsset = equipment.equipment_type === 'outro';
 
   // Determine default tab
