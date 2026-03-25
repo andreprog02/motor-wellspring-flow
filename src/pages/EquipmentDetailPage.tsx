@@ -719,6 +719,15 @@ export default function EquipmentDetailPage() {
                 </TabsTrigger>
               );
             })}
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-2 text-xs h-8"
+              onClick={() => setAddCompOpen(true)}
+            >
+              <PlusCircle className="h-3.5 w-3.5 mr-1" />
+              Adicionar Componente
+            </Button>
           </TabsList>
 
           {/* One tab per cylinder component type - only for generators */}
