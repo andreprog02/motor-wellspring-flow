@@ -125,6 +125,10 @@ export function SubComponentEditDialog({
         if (dateStr !== plan.last_execution_date) {
           updates.last_execution_date = dateStr;
         }
+        const newTrigger = planTriggerTypes[plan.id];
+        if (newTrigger && newTrigger !== plan.trigger_type) {
+          updates.trigger_type = newTrigger;
+        }
         if (Object.keys(updates).length > 0) {
           await (supabase as any)
             .from('component_maintenance_plans')
