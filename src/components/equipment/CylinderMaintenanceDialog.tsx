@@ -69,12 +69,17 @@ export function CylinderMaintenanceDialog({
   const qc = useQueryClient();
   const tenantId = useTenantId();
   const [selectedCylinders, setSelectedCylinders] = useState<number[]>(preSelectedCylinders || []);
+  const [selectedSubIds, setSelectedSubIds] = useState<string[]>([]);
   const [task, setTask] = useState('');
   const [serviceType, setServiceType] = useState('inspection');
   const [horimeter, setHorimeter] = useState(equipmentHorimeter);
   const [serviceDate, setServiceDate] = useState(formatLocalDate());
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const isCylinderMode = allComponents.length > 0;
+  const isSubMode = !isCylinderMode && (subComponents || []).length > 0;
+  const subs = subComponents || [];
 
   // Fetch maintenance plans for this equipment + component type to get task options
   const plansQuery = useQuery({
@@ -92,13 +97,12 @@ export function CylinderMaintenanceDialog({
   });
 
   const planTasks = plansQuery.data || [];
-  // Get unique tasks from plans
   const uniqueTasks = [...new Set(planTasks.map(p => p.task))];
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setSelectedCylinders(preSelectedCylinders || []);
+      setSelectedSubIds([]);
       setHorimeter(equipmentHorimeter);
       setServiceDate(formatLocalDate());
       setNotes('');
@@ -107,7 +111,6 @@ export function CylinderMaintenanceDialog({
     }
   }, [open, preSelectedCylinders, equipmentHorimeter]);
 
-  // Update task when plans load
   useEffect(() => {
     if (uniqueTasks.length > 0 && !task) {
       setTask(uniqueTasks[0]);
@@ -121,9 +124,22 @@ export function CylinderMaintenanceDialog({
   };
 
   const selectAll = () => {
-    const allNums = allComponents.map(c => c.cylinder_number);
-    setSelectedCylinders(prev => prev.length === allNums.length ? [] : allNums);
+    if (isCylinderMode) {
+      const allNums = allComponents.map(c => c.cylinder_number);
+      setSelectedCylinders(prev => prev.length === allNums.length ? [] : allNums);
+    } else {
+      setSelectedSubIds(prev => prev.length === subs.length ? [] : subs.map(s => s.id));
+    }
   };
+
+  const toggleSub = (id: string) => {
+    setSelectedSubIds(prev =>
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
+
+  const hasSelection = isCylinderMode ? selectedCylinders.length > 0 : selectedSubIds.length > 0;
+  const selectionCount = isCylinderMode ? selectedCylinders.length : selectedSubIds.length;
 
   const handleSubmit = async () => {
     if (selectedCylinders.length === 0) {
