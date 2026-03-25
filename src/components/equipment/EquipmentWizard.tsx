@@ -343,28 +343,6 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   // ── Step: Basic ──
   const renderBasicStep = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
-      {/* Equipment Type Selector */}
-      <div className="grid grid-cols-2 gap-3 mb-2">
-        <Button
-          type="button"
-          variant={basic.equipment_type === 'gerador' ? 'default' : 'outline'}
-          className="h-16 flex flex-col gap-1"
-          onClick={() => { setBasic(p => ({ ...p, equipment_type: 'gerador' })); setStep(0); }}
-        >
-          <Zap className="h-5 w-5" />
-          <span className="text-xs">Gerador</span>
-        </Button>
-        <Button
-          type="button"
-          variant={basic.equipment_type === 'outro' ? 'default' : 'outline'}
-          className="h-16 flex flex-col gap-1"
-          onClick={() => { setBasic(p => ({ ...p, equipment_type: 'outro' })); setStep(0); }}
-        >
-          <Package className="h-5 w-5" />
-          <span className="text-xs">Outro Ativo</span>
-        </Button>
-      </div>
-
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
           <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -910,7 +888,9 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">Cadastrar Equipamento</DialogTitle>
+          <DialogTitle className="text-xl font-bold">
+            {isOtherAsset ? 'Cadastrar Equipamento' : 'Cadastrar Gerador'}
+          </DialogTitle>
         </DialogHeader>
 
         {renderStepper()}
