@@ -130,6 +130,13 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
     setCustomComponents([]);
   };
 
+  useEffect(() => {
+    if (open && initialType) {
+      setBasic(p => ({ ...p, equipment_type: initialType }));
+      setStep(0);
+    }
+  }, [open, initialType]);
+
   const handleClose = () => { reset(); onOpenChange(false); };
 
   const handleAddOil = async () => {
