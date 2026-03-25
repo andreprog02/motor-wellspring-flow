@@ -94,12 +94,16 @@ export function SubComponentEditDialog({
   const handleSave = async () => {
     setSaving(true);
     try {
+      const updateData: any = {
+        horimeter,
+        installation_date: installDate ? format(installDate, 'yyyy-MM-dd') : null,
+      };
+      if (isOtherAsset && compName.trim() && compName.trim() !== componentType) {
+        updateData.component_type = compName.trim();
+      }
       const { error } = await supabase
         .from('equipment_sub_components')
-        .update({
-          horimeter,
-          installation_date: installDate ? format(installDate, 'yyyy-MM-dd') : null,
-        } as any)
+        .update(updateData)
         .eq('id', componentId);
 
       if (error) throw error;
