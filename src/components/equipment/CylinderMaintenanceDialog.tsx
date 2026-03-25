@@ -40,31 +40,46 @@ interface CylComp {
   horimeter_at_install: number;
 }
 
+interface SubComp {
+  id: string;
+  equipment_id: string;
+  component_type: string;
+  serial_number: string;
+  horimeter: number;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   equipmentId: string;
   equipmentHorimeter: number;
   componentType: string;
-  /** All cylinder components of this type for this equipment */
+  /** Cylinder components (for generators) */
   allComponents: CylComp[];
+  /** Sub-components (for battery, damper, etc.) */
+  subComponents?: SubComp[];
   /** Pre-selected cylinder numbers (optional, for single-click) */
   preSelectedCylinders?: number[];
 }
 
 export function CylinderMaintenanceDialog({
   open, onOpenChange, equipmentId, equipmentHorimeter,
-  componentType, allComponents, preSelectedCylinders,
+  componentType, allComponents, subComponents, preSelectedCylinders,
 }: Props) {
   const qc = useQueryClient();
   const tenantId = useTenantId();
   const [selectedCylinders, setSelectedCylinders] = useState<number[]>(preSelectedCylinders || []);
+  const [selectedSubIds, setSelectedSubIds] = useState<string[]>([]);
   const [task, setTask] = useState('');
   const [serviceType, setServiceType] = useState('inspection');
   const [horimeter, setHorimeter] = useState(equipmentHorimeter);
   const [serviceDate, setServiceDate] = useState(formatLocalDate());
   const [notes, setNotes] = useState('');
   const [saving, setSaving] = useState(false);
+
+  const isCylinderMode = allComponents.length > 0;
+  const isSubMode = !isCylinderMode && (subComponents || []).length > 0;
+  const subs = subComponents || [];
 
   // Fetch maintenance plans for this equipment + component type to get task options
   const plansQuery = useQuery({
@@ -82,13 +97,12 @@ export function CylinderMaintenanceDialog({
   });
 
   const planTasks = plansQuery.data || [];
-  // Get unique tasks from plans
   const uniqueTasks = [...new Set(planTasks.map(p => p.task))];
 
-  // Reset state when dialog opens
   useEffect(() => {
     if (open) {
       setSelectedCylinders(preSelectedCylinders || []);
+      setSelectedSubIds([]);
       setHorimeter(equipmentHorimeter);
       setServiceDate(formatLocalDate());
       setNotes('');
@@ -97,7 +111,6 @@ export function CylinderMaintenanceDialog({
     }
   }, [open, preSelectedCylinders, equipmentHorimeter]);
 
-  // Update task when plans load
   useEffect(() => {
     if (uniqueTasks.length > 0 && !task) {
       setTask(uniqueTasks[0]);
@@ -111,67 +124,118 @@ export function CylinderMaintenanceDialog({
   };
 
   const selectAll = () => {
-    const allNums = allComponents.map(c => c.cylinder_number);
-    setSelectedCylinders(prev => prev.length === allNums.length ? [] : allNums);
+    if (isCylinderMode) {
+      const allNums = allComponents.map(c => c.cylinder_number);
+      setSelectedCylinders(prev => prev.length === allNums.length ? [] : allNums);
+    } else {
+      setSelectedSubIds(prev => prev.length === subs.length ? [] : subs.map(s => s.id));
+    }
   };
 
+  const toggleSub = (id: string) => {
+    setSelectedSubIds(prev =>
+      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
+    );
+  };
+
+  const hasSelection = isCylinderMode ? selectedCylinders.length > 0 : selectedSubIds.length > 0;
+  const selectionCount = isCylinderMode ? selectedCylinders.length : selectedSubIds.length;
+
   const handleSubmit = async () => {
-    if (selectedCylinders.length === 0) {
-      toast.error('Selecione pelo menos um cilindro');
+    if (!hasSelection) {
+      toast.error(isCylinderMode ? 'Selecione pelo menos um cilindro' : 'Selecione pelo menos um componente');
       return;
     }
     setSaving(true);
     try {
-      const cylLabel = selectedCylinders.map(n => n.toString()).join(', ');
       const taskLabel = serviceTypeToLabel[serviceType] || serviceType;
 
-      // 1. Create maintenance log
-      const { data: log, error: logErr } = await (supabase as any)
-        .from('maintenance_logs')
-        .insert({
-          equipment_id: equipmentId,
-          maintenance_type: componentType,
-          horimeter_at_service: horimeter,
-          notes: `Cil. ${cylLabel} - ${componentTypeLabels[componentType]} - ${taskLabel}${notes ? ` - ${notes}` : ''}`,
-          service_date: serviceDate,
-          tenant_id: tenantId,
-        })
-        .select()
-        .single();
-      if (logErr) throw logErr;
+      if (isCylinderMode) {
+        const cylLabel = selectedCylinders.map(n => n.toString()).join(', ');
 
-      // 2. For each selected cylinder
-      const selectedCompIds: string[] = [];
-      for (const cylNum of selectedCylinders) {
-        const comp = allComponents.find(c => c.cylinder_number === cylNum);
-        if (!comp) continue;
-        selectedCompIds.push(comp.id);
+        const { data: log, error: logErr } = await (supabase as any)
+          .from('maintenance_logs')
+          .insert({
+            equipment_id: equipmentId,
+            maintenance_type: componentType,
+            horimeter_at_service: horimeter,
+            notes: `Cil. ${cylLabel} - ${componentTypeLabels[componentType] || componentType} - ${taskLabel}${notes ? ` - ${notes}` : ''}`,
+            service_date: serviceDate,
+            tenant_id: tenantId,
+          })
+          .select()
+          .single();
+        if (logErr) throw logErr;
 
-        // If replacement, update cylinder component horimeter
-        if (serviceType === 'replacement') {
-          await (supabase as any)
-            .from('cylinder_components')
-            .update({ horimeter_at_install: horimeter })
-            .eq('id', comp.id);
+        const selectedCompIds: string[] = [];
+        for (const cylNum of selectedCylinders) {
+          const comp = allComponents.find(c => c.cylinder_number === cylNum);
+          if (!comp) continue;
+          selectedCompIds.push(comp.id);
+          if (serviceType === 'replacement') {
+            await (supabase as any)
+              .from('cylinder_components')
+              .update({ horimeter_at_install: horimeter })
+              .eq('id', comp.id);
+          }
         }
-      }
 
-      // 3. Update maintenance plan last_execution_value ONLY for selected cylinders' plans
-      // First try per-component plans (component_id matches)
-      if (selectedCompIds.length > 0) {
+        if (selectedCompIds.length > 0) {
+          const planTaskLabel = serviceTypeToLabel[serviceType] || serviceType;
+          for (const compId of selectedCompIds) {
+            await (supabase as any)
+              .from('component_maintenance_plans')
+              .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
+              .eq('equipment_id', equipmentId)
+              .eq('component_type', componentType)
+              .eq('component_id', compId)
+              .eq('task', planTaskLabel);
+          }
+        }
+
+        toast.success(`Manutenção registrada — ${componentTypeLabels[componentType] || componentType} — Cil. ${cylLabel}`);
+      } else {
+        // Sub-component mode
+        const selectedNames = subs.filter(s => selectedSubIds.includes(s.id)).map((s, i) => s.serial_number || `${componentType} ${i + 1}`);
+        const subLabel = selectedNames.join(', ');
+
+        const { error: logErr } = await (supabase as any)
+          .from('maintenance_logs')
+          .insert({
+            equipment_id: equipmentId,
+            maintenance_type: componentType,
+            horimeter_at_service: horimeter,
+            notes: `${subLabel} - ${taskLabel}${notes ? ` - ${notes}` : ''}`,
+            service_date: serviceDate,
+            tenant_id: tenantId,
+          })
+          .select()
+          .single();
+        if (logErr) throw logErr;
+
+        // Update plans for selected sub-components
         const planTaskLabel = serviceTypeToLabel[serviceType] || serviceType;
-        for (const compId of selectedCompIds) {
+        for (const subId of selectedSubIds) {
           await (supabase as any)
             .from('component_maintenance_plans')
-            .update({ last_execution_value: horimeter })
+            .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
             .eq('equipment_id', equipmentId)
             .eq('component_type', componentType)
-            .eq('component_id', compId)
+            .eq('component_id', subId)
             .eq('task', planTaskLabel);
+
+          if (serviceType === 'replacement') {
+            await (supabase as any)
+              .from('equipment_sub_components')
+              .update({ horimeter })
+              .eq('id', subId);
+          }
         }
+
+        toast.success(`Manutenção registrada — ${subLabel}`);
       }
 
-      // 4. Update equipment horimeter if higher
+      // Update equipment horimeter if higher
       if (horimeter > equipmentHorimeter) {
         await (supabase as any)
           .from('equipments')
@@ -181,10 +245,10 @@ export function CylinderMaintenanceDialog({
 
       qc.invalidateQueries({ queryKey: ['maintenance_logs'] });
       qc.invalidateQueries({ queryKey: ['cylinder_components'] });
+      qc.invalidateQueries({ queryKey: ['equipment_sub_components'] });
       qc.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
       qc.invalidateQueries({ queryKey: ['equipments'] });
 
-      toast.success(`Manutenção registrada — ${componentTypeLabels[componentType]} — Cil. ${cylLabel}`);
       onOpenChange(false);
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);
@@ -194,27 +258,33 @@ export function CylinderMaintenanceDialog({
   };
 
   const label = componentTypeLabels[componentType] || componentType;
+  const totalItems = isCylinderMode ? allComponents.length : subs.length;
+  const allSelected = isCylinderMode
+    ? selectedCylinders.length === allComponents.length
+    : selectedSubIds.length === subs.length;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Registrar Manutenção — {label}s</DialogTitle>
+          <DialogTitle>Registrar Manutenção — {label}{totalItems > 1 ? 's' : ''}</DialogTitle>
           <DialogDescription>
-            Selecione os cilindros e o tipo de serviço.
+            {isCylinderMode ? 'Selecione os cilindros e o tipo de serviço.' : 'Selecione os componentes e o tipo de serviço.'}
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 max-h-[65vh] overflow-y-auto pr-1">
-          {/* Cylinder selection */}
+          {/* Component selection */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <Label>Cilindros</Label>
-              <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAll}>
-                {selectedCylinders.length === allComponents.length ? 'Desmarcar todos' : 'Selecionar todos'}
-              </Button>
+              <Label>{isCylinderMode ? 'Cilindros' : 'Componentes'}</Label>
+              {totalItems > 1 && (
+                <Button variant="ghost" size="sm" className="text-xs h-6" onClick={selectAll}>
+                  {allSelected ? 'Desmarcar todos' : 'Selecionar todos'}
+                </Button>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
-              {allComponents.map(comp => (
+              {isCylinderMode ? allComponents.map(comp => (
                 <label
                   key={comp.id}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border cursor-pointer text-sm transition-colors ${
@@ -230,10 +300,25 @@ export function CylinderMaintenanceDialog({
                   />
                   {label} {comp.cylinder_number}
                 </label>
+              )) : subs.map((sub, idx) => (
+                <label
+                  key={sub.id}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border cursor-pointer text-sm transition-colors ${
+                    selectedSubIds.includes(sub.id)
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-card hover:bg-accent'
+                  }`}
+                >
+                  <Checkbox
+                    checked={selectedSubIds.includes(sub.id)}
+                    onCheckedChange={() => toggleSub(sub.id)}
+                    className="sr-only"
+                  />
+                  {sub.serial_number || `${label} ${idx + 1}`}
+                </label>
               ))}
             </div>
           </div>
-
 
           {/* Service type */}
           <div>
@@ -278,8 +363,8 @@ export function CylinderMaintenanceDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={saving || selectedCylinders.length === 0}>
-            {saving ? 'Salvando...' : `Registrar (${selectedCylinders.length} cil.)`}
+          <Button onClick={handleSubmit} disabled={saving || !hasSelection}>
+            {saving ? 'Salvando...' : `Registrar (${selectionCount})`}
           </Button>
         </DialogFooter>
       </DialogContent>

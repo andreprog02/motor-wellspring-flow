@@ -1191,6 +1191,7 @@ export default function EquipmentDetailPage() {
           equipmentHorimeter={equipment.total_horimeter}
           componentType={maintDialog.componentType}
           allComponents={allCylComps.filter(c => c.component_type === maintDialog.componentType)}
+          subComponents={(subComponents.data || []).filter(s => s.component_type === maintDialog.componentType)}
           preSelectedCylinders={maintDialog.preSelectedCylinders}
         />
       )}
