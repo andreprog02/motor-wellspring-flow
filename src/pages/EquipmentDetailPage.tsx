@@ -507,6 +507,7 @@ export default function EquipmentDetailPage() {
       setNewCompName('');
       setNewCompSerial('');
       setNewCompDate('');
+      setNewCompUseEquipDate(false);
       setNewCompHorimeter('0');
       setAddCompOpen(false);
     } catch {
