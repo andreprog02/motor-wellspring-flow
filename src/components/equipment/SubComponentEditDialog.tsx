@@ -52,12 +52,16 @@ const triggerLabels: Record<string, string> = {
   hours: 'Horas',
   months: 'Meses',
   starts: 'Arranques',
+  weeks: 'Semanas',
+  days: 'Dias',
 };
 
 const triggerUnits: Record<string, string> = {
   hours: 'h',
   months: 'meses',
   starts: 'arr.',
+  weeks: 'sem.',
+  days: 'dias',
 };
 
 export function SubComponentEditDialog({
