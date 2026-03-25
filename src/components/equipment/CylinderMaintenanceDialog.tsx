@@ -40,21 +40,31 @@ interface CylComp {
   horimeter_at_install: number;
 }
 
+interface SubComp {
+  id: string;
+  equipment_id: string;
+  component_type: string;
+  serial_number: string;
+  horimeter: number;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   equipmentId: string;
   equipmentHorimeter: number;
   componentType: string;
-  /** All cylinder components of this type for this equipment */
+  /** Cylinder components (for generators) */
   allComponents: CylComp[];
+  /** Sub-components (for battery, damper, etc.) */
+  subComponents?: SubComp[];
   /** Pre-selected cylinder numbers (optional, for single-click) */
   preSelectedCylinders?: number[];
 }
 
 export function CylinderMaintenanceDialog({
   open, onOpenChange, equipmentId, equipmentHorimeter,
-  componentType, allComponents, preSelectedCylinders,
+  componentType, allComponents, subComponents, preSelectedCylinders,
 }: Props) {
   const qc = useQueryClient();
   const tenantId = useTenantId();
