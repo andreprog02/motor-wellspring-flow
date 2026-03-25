@@ -126,6 +126,8 @@ const triggerLabels: Record<string, string> = {
 export default function EquipmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const tenantId = useTenantId();
   const { equipments, oilTypes } = useEquipmentStore();
   const { logs, logItems } = useMaintenanceStore();
   const planTemplates = useMaintenancePlanTemplates();
