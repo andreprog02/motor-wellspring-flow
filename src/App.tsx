@@ -27,6 +27,7 @@ import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import TeamPage from "./pages/TeamPage";
+import SuperAdminPage from "./pages/SuperAdminPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -65,6 +66,7 @@ const App = () => (
             <Route path="/turbos" element={<P><TurbosPage /></P>} />
             <Route path="/reports" element={<P><ReportsPage /></P>} />
             <Route path="/team" element={<P><TeamPage /></P>} />
+            <Route path="/super-admin" element={<P><SuperAdminPage /></P>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

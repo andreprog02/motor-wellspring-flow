@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, Circle, ClipboardList, Cog, Wind, FileText, PanelLeftClose, PanelLeft, ChevronDown, DatabaseBackup, LogOut, UserCircle, Users } from 'lucide-react';
+import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, Circle, ClipboardList, Cog, Wind, FileText, PanelLeftClose, PanelLeft, ChevronDown, DatabaseBackup, LogOut, UserCircle, Users, ShieldCheck } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BackupDialog } from '@/components/BackupDialog';
 import { useAuth } from '@/hooks/useAuth';
@@ -35,6 +35,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   const [backupOpen, setBackupOpen] = useState(false);
   const showLabels = !collapsed || isMobile;
   const isAdmin = profile?.role === 'admin';
+  const isSuperAdmin = profile?.email === 'andre_santos_02@yahoo.com.br';
 
   const renderNavLink = (item: { to: string; label: string; icon: React.ElementType }, indent = false) => {
     const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
@@ -134,6 +135,23 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           >
             <Users className="h-4 w-4 shrink-0" />
             {showLabels && 'Equipe'}
+          </Link>
+        )}
+        {isSuperAdmin && (
+          <Link
+            to="/super-admin"
+            onClick={isMobile ? onMobileClose : undefined}
+            title={!showLabels ? 'Super Admin' : undefined}
+            className={cn(
+              'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
+              !showLabels ? 'justify-center px-2' : '',
+              location.pathname === '/super-admin'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+            )}
+          >
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            {showLabels && 'Super Admin'}
           </Link>
         )}
         <button
