@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, Circle, ClipboardList, Cog, Wind, FileText, PanelLeftClose, PanelLeft, ChevronDown, DatabaseBackup, LogOut, UserCircle, Users } from 'lucide-react';
+import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, Cylinder, CircleDot, Zap, Circle, ClipboardList, Cog, Wind, FileText, PanelLeftClose, PanelLeft, ChevronDown, DatabaseBackup, LogOut, UserCircle, Users, ShieldCheck } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BackupDialog } from '@/components/BackupDialog';
 import { useAuth } from '@/hooks/useAuth';
