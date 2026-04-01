@@ -137,6 +137,23 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             {showLabels && 'Equipe'}
           </Link>
         )}
+        {isSuperAdmin && (
+          <Link
+            to="/super-admin"
+            onClick={isMobile ? onMobileClose : undefined}
+            title={!showLabels ? 'Super Admin' : undefined}
+            className={cn(
+              'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
+              !showLabels ? 'justify-center px-2' : '',
+              location.pathname === '/super-admin'
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground'
+            )}
+          >
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            {showLabels && 'Super Admin'}
+          </Link>
+        )}
         <button
           onClick={() => setBackupOpen(true)}
           title={!showLabels ? 'Backup' : undefined}

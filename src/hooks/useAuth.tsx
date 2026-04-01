@@ -65,6 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (sess?.user) {
           // Use setTimeout to avoid Supabase deadlock during auth callback
           setTimeout(() => fetchProfile(sess.user.id), 0);
+          // Record sign-in time
+          if (_event === 'SIGNED_IN') {
+            supabase.rpc('record_sign_in').then();
+          }
         } else {
           setProfile(null);
           setTenant(null);
