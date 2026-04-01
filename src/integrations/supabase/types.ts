@@ -1142,6 +1142,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          last_sign_in_at: string | null
           role: string
           tenant_id: string
         }
@@ -1150,6 +1151,7 @@ export type Database = {
           email?: string
           full_name?: string
           id: string
+          last_sign_in_at?: string | null
           role?: string
           tenant_id: string
         }
@@ -1158,6 +1160,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          last_sign_in_at?: string | null
           role?: string
           tenant_id?: string
         }
@@ -1397,6 +1400,9 @@ export type Database = {
       get_turbo_metrics: { Args: { p_turbo_id: string }; Returns: Json }
       get_user_tenant_id: { Args: never; Returns: string }
       is_admin: { Args: never; Returns: boolean }
+      is_super_admin: { Args: never; Returns: boolean }
+      record_sign_in: { Args: never; Returns: undefined }
+      super_admin_get_all_accounts: { Args: never; Returns: Json }
     }
     Enums: {
       [_ in never]: never
