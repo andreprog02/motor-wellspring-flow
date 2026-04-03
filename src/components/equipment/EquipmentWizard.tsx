@@ -411,14 +411,30 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           <>
             <div>
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Combustível *</Label>
-              <Select value={basic.fuel_type} onValueChange={v => setBasic(p => ({ ...p, fuel_type: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="biogas">Biogás</SelectItem>
-                  <SelectItem value="landfill_gas">Gás de Aterro</SelectItem>
-                  <SelectItem value="natural_gas">Gás Natural</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2 mt-1">
+                <Select value={basic.fuel_type} onValueChange={v => setBasic(p => ({ ...p, fuel_type: v }))}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {fuels.map(f => <SelectItem key={f.id} value={f.slug}>{f.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-1">
+                  <Input className="w-28" placeholder="Novo..." value={newFuelName} onChange={e => setNewFuelName(e.target.value)} />
+                  <Button size="icon" variant="outline" onClick={async () => {
+                    if (!newFuelName.trim()) return;
+                    setAddingFuel(true);
+                    try {
+                      const f = await addFuelType.mutateAsync(newFuelName.trim());
+                      setBasic(p => ({ ...p, fuel_type: f.slug }));
+                      setNewFuelName('');
+                      toast.success('Combustível adicionado!');
+                    } catch { toast.error('Erro ao adicionar'); }
+                    setAddingFuel(false);
+                  }} disabled={addingFuel}>
+                    {addingFuel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
             </div>
             <div>
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Óleo Utilizado</Label>
