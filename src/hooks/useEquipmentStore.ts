@@ -35,6 +35,12 @@ export interface ComponentModel {
   name: string;
 }
 
+export interface FuelType {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface EquipmentSubComponent {
   id: string;
   equipment_id: string;
@@ -95,11 +101,21 @@ export function useEquipmentStore() {
     },
   });
 
+  const fuelTypes = useQuery({
+    queryKey: ['fuel_types'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fuel_types').select('*').order('name');
+      if (error) throw error;
+      return data as FuelType[];
+    },
+  });
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['equipments'] });
     queryClient.invalidateQueries({ queryKey: ['component_manufacturers'] });
     queryClient.invalidateQueries({ queryKey: ['component_models'] });
     queryClient.invalidateQueries({ queryKey: ['oil_types'] });
+    queryClient.invalidateQueries({ queryKey: ['fuel_types'] });
   };
 
   const addEquipment = useMutation({
@@ -210,9 +226,19 @@ export function useEquipmentStore() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['component_models'] }),
   });
 
+  const addFuelType = useMutation({
+    mutationFn: async (name: string) => {
+      const slug = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+      const { data, error } = await supabase.from('fuel_types').insert({ name, slug, tenant_id: tenantId }).select().single();
+      if (error) throw error;
+      return data as FuelType;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['fuel_types'] }),
+  });
+
   return {
-    equipments, oilTypes, componentManufacturers, componentModels,
+    equipments, oilTypes, componentManufacturers, componentModels, fuelTypes,
     addEquipment, updateEquipment, deleteEquipment,
-    addOilType, addComponentManufacturer, addComponentModel,
+    addOilType, addComponentManufacturer, addComponentModel, addFuelType,
   };
 }

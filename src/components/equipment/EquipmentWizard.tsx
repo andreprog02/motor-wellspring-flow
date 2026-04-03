@@ -83,12 +83,12 @@ const OTHER_STEPS = [
 ];
 
 export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
-  const { addEquipment, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel, oilTypes, addOilType } = useEquipmentStore();
+  const { addEquipment, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel, oilTypes, addOilType, fuelTypes, addFuelType } = useEquipmentStore();
   const { templates: planTemplates, applyTemplateToEquipment } = useMaintenancePlanTemplates();
 
   const [step, setStep] = useState(0);
   const [basic, setBasic] = useState<BasicData>({
-    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador',
+    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: '', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador',
   });
 
   const emptySubComp = (): SubComponentData => ({
@@ -113,21 +113,24 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   const [newManufName, setNewManufName] = useState('');
   const [newModelName, setNewModelName] = useState('');
   const [newOilName, setNewOilName] = useState('');
+  const [newFuelName, setNewFuelName] = useState('');
   const [addingManuf, setAddingManuf] = useState(false);
   const [addingModel, setAddingModel] = useState(false);
   const [addingOil, setAddingOil] = useState(false);
+  const [addingFuel, setAddingFuel] = useState(false);
   const [manufContext, setManufContext] = useState<string>('turbine');
 
   const manufacturers = componentManufacturers.data || [];
   const models = componentModels.data || [];
   const oils = oilTypes.data || [];
+  const fuels = (fuelTypes.data || []).sort((a, b) => a.name.localeCompare(b.name));
 
   const isOtherAsset = basic.equipment_type === 'outro';
   const STEPS = isOtherAsset ? OTHER_STEPS : GENERATOR_STEPS;
 
   const reset = () => {
     setStep(0);
-    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: 'biogas', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador' });
+    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: '', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador' });
     setTurbine(emptySubComp()); setIntercooler(emptySubComp()); setOilExchanger(emptySubComp());
     setBlowby(emptyMultiComp()); setDamper(emptyMultiComp()); setStarterMotor(emptyMultiComp()); setBattery(emptyMultiComp());
     setCustomComponents([]);
@@ -300,7 +303,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
 
   const getFilteredModels = (manufacturerId: string) => models.filter(m => m.manufacturer_id === manufacturerId);
   const filteredEquipModels = getFilteredModels(basic.manufacturer_id);
-  const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
+  const fuelLabelMap = fuels.reduce((acc, f) => { acc[f.slug] = f.name; return acc; }, {} as Record<string, string>);
   const allPlanTemplates = planTemplates.data ?? [];
 
   // ── Stepper ──
@@ -398,7 +401,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={basic.installation_date} onSelect={d => setBasic(p => ({ ...p, installation_date: d }))} initialFocus className="p-3 pointer-events-auto" />
+              <Calendar mode="single" selected={basic.installation_date} onSelect={d => setBasic(p => ({ ...p, installation_date: d }))} initialFocus className="p-3 pointer-events-auto" captionLayout="dropdown-buttons" fromYear={2000} toYear={new Date().getFullYear() + 1} />
             </PopoverContent>
           </Popover>
         </div>
@@ -408,14 +411,30 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           <>
             <div>
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Combustível *</Label>
-              <Select value={basic.fuel_type} onValueChange={v => setBasic(p => ({ ...p, fuel_type: v }))}>
-                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="biogas">Biogás</SelectItem>
-                  <SelectItem value="landfill_gas">Gás de Aterro</SelectItem>
-                  <SelectItem value="natural_gas">Gás Natural</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2 mt-1">
+                <Select value={basic.fuel_type} onValueChange={v => setBasic(p => ({ ...p, fuel_type: v }))}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                  <SelectContent>
+                    {fuels.map(f => <SelectItem key={f.id} value={f.slug}>{f.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                <div className="flex gap-1">
+                  <Input className="w-28" placeholder="Novo..." value={newFuelName} onChange={e => setNewFuelName(e.target.value)} />
+                  <Button size="icon" variant="outline" onClick={async () => {
+                    if (!newFuelName.trim()) return;
+                    setAddingFuel(true);
+                    try {
+                      const f = await addFuelType.mutateAsync(newFuelName.trim());
+                      setBasic(p => ({ ...p, fuel_type: f.slug }));
+                      setNewFuelName('');
+                      toast.success('Combustível adicionado!');
+                    } catch { toast.error('Erro ao adicionar'); }
+                    setAddingFuel(false);
+                  }} disabled={addingFuel}>
+                    {addingFuel ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </div>
             </div>
             <div>
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Óleo Utilizado</Label>
@@ -840,7 +859,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
             <span>Horímetro: <span className="text-foreground font-medium">{basic.total_horimeter}h</span></span>
             <span>Arranques: <span className="text-foreground font-medium">{basic.total_starts}</span></span>
             <span>Cilindros: <span className="text-foreground font-medium">{basic.cylinders}</span></span>
-            <span>Combustível: <span className="text-foreground font-medium">{fuelLabels[basic.fuel_type]}</span></span>
+            <span>Combustível: <span className="text-foreground font-medium">{fuelLabelMap[basic.fuel_type] || basic.fuel_type}</span></span>
             <span className="col-span-2">Plano de Manutenção: <span className="text-foreground font-medium">{planName}</span></span>
           </div>
         </div>

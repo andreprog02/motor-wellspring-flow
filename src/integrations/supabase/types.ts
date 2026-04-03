@@ -541,6 +541,38 @@ export type Database = {
           },
         ]
       }
+      fuel_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fuel_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_items: {
         Row: {
           aplicacao: string
