@@ -69,7 +69,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           </div>
           {showLabels && (
             <div>
-              <h1 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">MotorGuard</h1>
+              <h1 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">Hub Engine</h1>
               <p className="text-[10px] text-sidebar-foreground">Asset Management</p>
             </div>
           )}
