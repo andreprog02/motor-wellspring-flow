@@ -966,6 +966,17 @@ export default function EquipmentDetailPage() {
             </TabsContent>
           )}
 
+
+          {/* Air Filter Tab - only for generators */}
+          {!isOtherAsset && (
+            <TabsContent value="air_filter" className="mt-4">
+              <AirFilterTab
+                equipmentId={id!}
+                equipmentHorimeter={equipment.total_horimeter}
+              />
+            </TabsContent>
+          )}
+
           {!isOtherAsset && (
             <TabsContent value="cylinder_heads" className="mt-4">
               <div className="flex items-center justify-between mb-4">
