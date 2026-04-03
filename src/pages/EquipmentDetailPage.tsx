@@ -385,6 +385,10 @@ export default function EquipmentDetailPage() {
   const airFilterComps = allSubComps.filter(sc => sc.component_type === 'air_filter');
   const airFilterPlansAll = getPlansForType('air_filter');
 
+  // Fuel filter sub-components (separate group for dedicated tab)
+  const fuelFilterComps = allSubComps.filter(sc => sc.component_type === 'fuel_filter');
+  const fuelFilterPlansAll = getPlansForType('fuel_filter');
+
   // Calculate status counts across ALL component types
   // Helper: get worst status for a component across its plans, considering component install horimeter
   // Count each task independently per component (not worst-per-component)
