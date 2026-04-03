@@ -23,6 +23,7 @@ const COMPONENT_TYPES = [
   { value: 'blowby', label: 'Blowby' },
   { value: 'liner', label: 'Camisa' },
   { value: 'damper', label: 'Damper' },
+  { value: 'air_filter', label: 'Filtro de Ar' },
   { value: 'intercooler', label: 'Intercooler' },
   { value: 'starter_motor', label: 'Motor de Arranque' },
   { value: 'oil', label: 'Óleo' },

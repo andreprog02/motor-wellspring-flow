@@ -25,7 +25,6 @@ import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMainte
 import { CylinderComponentEditDialog } from '@/components/equipment/CylinderComponentEditDialog';
 import { SubComponentEditDialog } from '@/components/equipment/SubComponentEditDialog';
 import { OilTab } from '@/components/equipment/OilTab';
-import { AirFilterTab } from '@/components/equipment/AirFilterTab';
 import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
@@ -116,6 +115,7 @@ const subComponentIcons: Record<string, typeof Cog> = {
   damper: Disc,
   starter_motor: Zap,
   battery: Battery,
+  air_filter: Wind,
 };
 
 const cylinderComponentTypes = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
@@ -730,13 +730,8 @@ export default function EquipmentDetailPage() {
               );
             })()}
 
-            {/* Air Filter tab - only for generators */}
-            {!isOtherAsset && (
-              <TabsTrigger value="air_filter" className="gap-1.5">
-                <Wind className="h-3.5 w-3.5" />
-                Filtros de Ar
-              </TabsTrigger>
-            )}
+
+
 
             {/* Cylinder Heads tab - only for generators */}
             {!isOtherAsset && (
@@ -975,15 +970,8 @@ export default function EquipmentDetailPage() {
           )}
 
 
-          {/* Air Filter Tab - only for generators */}
-          {!isOtherAsset && (
-            <TabsContent value="air_filter" className="mt-4">
-              <AirFilterTab
-                equipmentId={id!}
-                equipmentHorimeter={equipment.total_horimeter}
-              />
-            </TabsContent>
-          )}
+
+
 
           {!isOtherAsset && (
             <TabsContent value="cylinder_heads" className="mt-4">

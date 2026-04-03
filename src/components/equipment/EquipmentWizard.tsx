@@ -73,6 +73,7 @@ const GENERATOR_STEPS = [
   { label: 'Damper', icon: Disc },
   { label: 'Motor Arranque', icon: Zap },
   { label: 'Baterias', icon: Battery },
+  { label: 'Filtro de Ar', icon: Wind },
   { label: 'Revisão', icon: ClipboardCheck },
 ];
 
@@ -106,6 +107,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   const [damper, setDamper] = useState<MultiComponentData>(emptyMultiComp());
   const [starterMotor, setStarterMotor] = useState<MultiComponentData>(emptyMultiComp());
   const [battery, setBattery] = useState<MultiComponentData>(emptyMultiComp());
+  const [airFilter, setAirFilter] = useState<MultiComponentData>(emptyMultiComp());
 
   // Custom components for "outro" type
   const [customComponents, setCustomComponents] = useState<CustomComponentData[]>([]);
@@ -266,6 +268,15 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
             component_type: 'battery', serial_number: `Bateria ${i + 1}`,
             manufacturer_id: battery.manufacturer_id || null, model_id: battery.model_id || null,
             horimeter: basic.total_starts, use_equipment_hours: false,
+          });
+        }
+      }
+      if (airFilter.enabled && airFilter.quantity > 0) {
+        for (let i = 0; i < airFilter.quantity; i++) {
+          subComponents.push({
+            component_type: 'air_filter', serial_number: `Filtro de Ar ${i + 1}`,
+            manufacturer_id: null, model_id: null,
+            horimeter: airFilter.use_equipment_hours ? basic.total_horimeter : airFilter.horimeter, use_equipment_hours: airFilter.use_equipment_hours,
           });
         }
       }
@@ -872,6 +883,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           <p className="text-sm text-muted-foreground">Damper: {damper.enabled ? `✅ Qtd: ${damper.quantity}` : '❌ Não'}</p>
           <p className="text-sm text-muted-foreground">Motor de Arranque: {starterMotor.enabled ? `✅ Qtd: ${starterMotor.quantity} | ${manufName(starterMotor.manufacturer_id)} / ${modelName(starterMotor.model_id)}` : '❌ Não'}</p>
           <p className="text-sm text-muted-foreground">Baterias: {battery.enabled ? `✅ Qtd: ${battery.quantity} | ${manufName(battery.manufacturer_id)} / ${modelName(battery.model_id)}` : '❌ Não'}</p>
+          <p className="text-sm text-muted-foreground">Filtro de Ar: {airFilter.enabled ? `✅ Qtd: ${airFilter.quantity}` : '❌ Não'}</p>
         </div>
         <div className="border rounded-lg p-4 bg-muted/30">
           <h4 className="font-semibold text-sm mb-1">⚙️ Auto-criação</h4>
@@ -898,7 +910,8 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
         case 5: return renderMultiHoursStep('Damper', damper, setDamper);
         case 6: return renderMultiStartsStep('Motor de Arranque', starterMotor, setStarterMotor);
         case 7: return renderMultiStartsStep('Baterias', battery, setBattery);
-        case 8: return renderReviewStep();
+        case 8: return renderMultiHoursStep('Filtro de Ar', airFilter, setAirFilter);
+        case 9: return renderReviewStep();
       }
     }
   };
