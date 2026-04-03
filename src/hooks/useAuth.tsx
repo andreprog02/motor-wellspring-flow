@@ -75,8 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             supabase.rpc('record_sign_in').then();
           }
         } else {
-          setProfile(null);
+        setProfile(null);
           setTenant(null);
+          setIsSuperAdmin(false);
         }
         setLoading(false);
       }
