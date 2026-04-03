@@ -369,7 +369,7 @@ export default function EquipmentDetailPage() {
 
   // Group sub-components by type (excluding cylinder types, oil, and air_filter which has its own tab)
   const subCompByType = Object.entries(
-    allSubComps.filter(sc => sc.component_type !== 'air_filter').reduce<Record<string, EquipmentSubComponent[]>>((acc, sc) => {
+    allSubComps.filter(sc => sc.component_type !== 'air_filter' && sc.component_type !== 'fuel_filter').reduce<Record<string, EquipmentSubComponent[]>>((acc, sc) => {
       if (!acc[sc.component_type]) acc[sc.component_type] = [];
       acc[sc.component_type].push(sc);
       return acc;
