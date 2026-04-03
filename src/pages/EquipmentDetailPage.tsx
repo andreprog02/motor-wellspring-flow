@@ -97,6 +97,7 @@ const componentTypeLabels: Record<string, string> = {
   damper: 'Damper',
   starter_motor: 'Motor de Arranque',
   battery: 'Bateria',
+  air_filter: 'Filtro de Ar',
 };
 
 const componentTypePluralLabels: Record<string, string> = {
