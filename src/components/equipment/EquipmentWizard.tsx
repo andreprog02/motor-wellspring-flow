@@ -107,6 +107,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   const [damper, setDamper] = useState<MultiComponentData>(emptyMultiComp());
   const [starterMotor, setStarterMotor] = useState<MultiComponentData>(emptyMultiComp());
   const [battery, setBattery] = useState<MultiComponentData>(emptyMultiComp());
+  const [airFilter, setAirFilter] = useState<MultiComponentData>(emptyMultiComp());
 
   // Custom components for "outro" type
   const [customComponents, setCustomComponents] = useState<CustomComponentData[]>([]);
