@@ -479,6 +479,13 @@ export default function EquipmentDetailPage() {
       allStatuses.push(getStatus(usage, p.interval_value));
     });
 
+    // Air filter plans
+    const airFilterPlans = allPlans.filter(p => p.component_type === 'air_filter');
+    airFilterPlans.forEach(p => {
+      const usage = getUsageForPlan(p);
+      allStatuses.push(getStatus(usage, p.interval_value));
+    });
+
     return countStatuses(allStatuses);
   };
 
