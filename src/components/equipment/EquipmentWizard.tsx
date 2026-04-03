@@ -401,7 +401,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar mode="single" selected={basic.installation_date} onSelect={d => setBasic(p => ({ ...p, installation_date: d }))} initialFocus className="p-3 pointer-events-auto" />
+              <Calendar mode="single" selected={basic.installation_date} onSelect={d => setBasic(p => ({ ...p, installation_date: d }))} initialFocus className="p-3 pointer-events-auto" captionLayout="dropdown-buttons" fromYear={2000} toYear={new Date().getFullYear() + 1} />
             </PopoverContent>
           </Popover>
         </div>
