@@ -34,7 +34,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-2 h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
             <Shield className="h-6 w-6 text-primary" />
           </div>
-          <CardTitle className="text-2xl">MotorGuard</CardTitle>
+          <CardTitle className="text-2xl">Hub Engine</CardTitle>
           <CardDescription>Entre na sua conta para continuar</CardDescription>
         </CardHeader>
         <CardContent>
