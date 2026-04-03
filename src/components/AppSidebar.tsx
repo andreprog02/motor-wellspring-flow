@@ -29,7 +29,7 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { profile, tenant, signOut } = useAuth();
+  const { profile, tenant, isSuperAdmin, signOut } = useAuth();
   const isMaintenanceActive = location.pathname.startsWith('/maintenance');
   const [maintenanceOpen, setMaintenanceOpen] = useState(isMaintenanceActive);
   const [backupOpen, setBackupOpen] = useState(false);
