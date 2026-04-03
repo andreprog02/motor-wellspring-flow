@@ -129,7 +129,9 @@ export default function EquipmentDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const tenantId = useTenantId();
-  const { equipments, oilTypes, updateEquipment } = useEquipmentStore();
+  const { equipments, oilTypes, updateEquipment, fuelTypes } = useEquipmentStore();
+  const fuels = fuelTypes.data || [];
+  const fuelLabels = fuels.reduce((acc: Record<string, string>, f: any) => { acc[f.slug] = f.name; return acc; }, {} as Record<string, string>);
   const { logs, logItems } = useMaintenanceStore();
   const planTemplates = useMaintenancePlanTemplates();
 
