@@ -998,9 +998,120 @@ export default function EquipmentDetailPage() {
             </TabsContent>
           )}
 
+          {/* Air Filter Tab - only for generators */}
+          {!isOtherAsset && (
+            <TabsContent value="air_filter" className="mt-4">
+              {airFilterComps.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center text-muted-foreground space-y-3">
+                    <p>Nenhum filtro de ar cadastrado para este gerador.</p>
+                    <Button size="sm" onClick={async () => {
+                      try {
+                        await supabase.from('equipment_sub_components').insert({
+                          equipment_id: id!,
+                          component_type: 'air_filter',
+                          serial_number: 'Filtro de Ar 1',
+                          horimeter: equipment.total_horimeter,
+                          use_equipment_hours: true,
+                          tenant_id: tenantId,
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['equipment_sub_components', id] });
+                        toast.success('Filtro de ar adicionado!');
+                      } catch {
+                        toast.error('Erro ao adicionar filtro de ar.');
+                      }
+                    }}>
+                      <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Adicionar Filtro de Ar
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(() => {
+                        const uniqueTaskNames = [...new Set(airFilterPlansAll.map(p => p.task))];
+                        const activeFilter = taskFilter['air_filter'] || '_all';
+                        if (uniqueTaskNames.length <= 1) return null;
+                        return (
+                          <>
+                            <Button size="sm" variant={activeFilter === '_all' ? 'default' : 'outline'} className="text-xs h-7 px-3"
+                              onClick={() => setTaskFilter(prev => ({ ...prev, air_filter: '_all' }))}>Todos</Button>
+                            {uniqueTaskNames.map(tn => (
+                              <Button key={tn} size="sm" variant={activeFilter === tn ? 'default' : 'outline'} className="text-xs h-7 px-3"
+                                onClick={() => setTaskFilter(prev => ({ ...prev, air_filter: tn }))}>{tn}</Button>
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <Button size="sm" onClick={() => openMaintDialog('air_filter')}>
+                      <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Registrar Manutenção
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {airFilterComps.map(comp => {
+                      const compPlans = airFilterPlansAll.filter(p => p.component_id === comp.id);
+                      const compUniquePlans = compPlans.reduce<MaintenancePlan[]>((acc, p) => {
+                        if (!acc.find(a => a.task === p.task)) acc.push(p);
+                        return acc;
+                      }, []);
+                      const activeFilter = taskFilter['air_filter'] || '_all';
+                      const taskStatuses = compUniquePlans.map(plan => {
+                        const unit = getCounterUnit(plan.trigger_type);
+                        const usage = getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined);
+                        const st = getStatus(usage, plan.interval_value);
+                        const pct = getPercent(usage, plan.interval_value);
+                        return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate: plan.last_execution_date };
+                      });
+                      const filteredStatuses = activeFilter === '_all' ? taskStatuses : taskStatuses.filter(ts => ts.task === activeFilter);
+                      const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
+                        : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
 
-
-
+                      return (
+                        <Card key={comp.id} className={cn(
+                          'cursor-pointer transition-shadow hover:shadow-md',
+                          overallStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+                          overallStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+                        )}
+                        onClick={() => setEditSubComp({
+                          open: true, componentId: comp.id, componentType: comp.component_type,
+                          horimeter: comp.horimeter, installationDate: comp.installation_date ?? null,
+                          plans: airFilterPlansAll.filter(p => p.component_id === comp.id),
+                        })}>
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Wind className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium text-sm">{comp.serial_number || `Filtro de Ar`}</span>
+                              </div>
+                            </div>
+                            {filteredStatuses.length > 0 ? filteredStatuses.map((ts, i) => (
+                              <div key={i} className="space-y-1 mt-2">
+                                <div className="flex justify-between text-xs">
+                                  <span>{ts.task}</span>
+                                  <span>{fmtNum(ts.usage)}{ts.unit} / {fmtNum(ts.interval)}{ts.unit}</span>
+                                </div>
+                                <Progress value={ts.percent} className={cn('h-1.5',
+                                  ts.status === 'critical' ? '[&>div]:bg-[hsl(var(--status-critical))]' :
+                                  ts.status === 'warning' ? '[&>div]:bg-[hsl(var(--status-warning))]' : '[&>div]:bg-[hsl(var(--status-ok))]'
+                                )} />
+                                {ts.lastDate && <p className="text-[10px] text-muted-foreground">Último: {format(new Date(ts.lastDate + 'T12:00:00'), 'dd/MM/yyyy')}</p>}
+                              </div>
+                            )) : (
+                              <p className="text-xs text-muted-foreground mt-1">Sem plano vinculado</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </TabsContent>
+          )}
 
           {!isOtherAsset && (
             <TabsContent value="cylinder_heads" className="mt-4">
