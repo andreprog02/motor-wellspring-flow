@@ -859,7 +859,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
             <span>Horímetro: <span className="text-foreground font-medium">{basic.total_horimeter}h</span></span>
             <span>Arranques: <span className="text-foreground font-medium">{basic.total_starts}</span></span>
             <span>Cilindros: <span className="text-foreground font-medium">{basic.cylinders}</span></span>
-            <span>Combustível: <span className="text-foreground font-medium">{fuelLabels[basic.fuel_type]}</span></span>
+            <span>Combustível: <span className="text-foreground font-medium">{fuelLabelMap[basic.fuel_type] || basic.fuel_type}</span></span>
             <span className="col-span-2">Plano de Manutenção: <span className="text-foreground font-medium">{planName}</span></span>
           </div>
         </div>
