@@ -25,6 +25,7 @@ import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMainte
 import { CylinderComponentEditDialog } from '@/components/equipment/CylinderComponentEditDialog';
 import { SubComponentEditDialog } from '@/components/equipment/SubComponentEditDialog';
 import { OilTab } from '@/components/equipment/OilTab';
+import { AirFilterTab } from '@/components/equipment/AirFilterTab';
 import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
@@ -96,6 +97,7 @@ const componentTypeLabels: Record<string, string> = {
   damper: 'Damper',
   starter_motor: 'Motor de Arranque',
   battery: 'Bateria',
+  air_filter: 'Filtro de Ar',
 };
 
 const componentTypePluralLabels: Record<string, string> = {
@@ -478,6 +480,13 @@ export default function EquipmentDetailPage() {
       allStatuses.push(getStatus(usage, p.interval_value));
     });
 
+    // Air filter plans
+    const airFilterPlans = allPlans.filter(p => p.component_type === 'air_filter');
+    airFilterPlans.forEach(p => {
+      const usage = getUsageForPlan(p);
+      allStatuses.push(getStatus(usage, p.interval_value));
+    });
+
     return countStatuses(allStatuses);
   };
 
@@ -721,6 +730,14 @@ export default function EquipmentDetailPage() {
               );
             })()}
 
+            {/* Air Filter tab - only for generators */}
+            {!isOtherAsset && (
+              <TabsTrigger value="air_filter" className="gap-1.5">
+                <Wind className="h-3.5 w-3.5" />
+                Filtros de Ar
+              </TabsTrigger>
+            )}
+
             {/* Cylinder Heads tab - only for generators */}
             {!isOtherAsset && (
               <TabsTrigger value="cylinder_heads" className="gap-1.5">
@@ -953,6 +970,17 @@ export default function EquipmentDetailPage() {
                 equipmentHorimeter={equipment.total_horimeter}
                 oilName={oilName}
                 oilTypeId={equipment.oil_type_id}
+              />
+            </TabsContent>
+          )}
+
+
+          {/* Air Filter Tab - only for generators */}
+          {!isOtherAsset && (
+            <TabsContent value="air_filter" className="mt-4">
+              <AirFilterTab
+                equipmentId={id!}
+                equipmentHorimeter={equipment.total_horimeter}
               />
             </TabsContent>
           )}
