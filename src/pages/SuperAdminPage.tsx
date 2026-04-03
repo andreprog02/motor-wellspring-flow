@@ -27,13 +27,11 @@ interface TenantAccount {
   users: TenantUser[] | null;
 }
 
-const SUPER_ADMIN_EMAIL = 'andre_santos_02@yahoo.com.br';
-
 export default function SuperAdminPage() {
-  const { profile } = useAuth();
+  const { isSuperAdmin } = useAuth();
   const [expandedTenants, setExpandedTenants] = useState<Set<string>>(new Set());
 
-  if (profile?.email !== SUPER_ADMIN_EMAIL) {
+  if (!isSuperAdmin) {
     return <Navigate to="/" replace />;
   }
 

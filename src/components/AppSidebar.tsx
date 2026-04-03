@@ -29,13 +29,12 @@ interface AppSidebarProps {
 export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: AppSidebarProps) {
   const location = useLocation();
   const isMobile = useIsMobile();
-  const { profile, tenant, signOut } = useAuth();
+  const { profile, tenant, isSuperAdmin, signOut } = useAuth();
   const isMaintenanceActive = location.pathname.startsWith('/maintenance');
   const [maintenanceOpen, setMaintenanceOpen] = useState(isMaintenanceActive);
   const [backupOpen, setBackupOpen] = useState(false);
   const showLabels = !collapsed || isMobile;
   const isAdmin = profile?.role === 'admin';
-  const isSuperAdmin = profile?.email === 'andre_santos_02@yahoo.com.br';
 
   const renderNavLink = (item: { to: string; label: string; icon: React.ElementType }, indent = false) => {
     const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));

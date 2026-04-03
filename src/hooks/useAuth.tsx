@@ -20,6 +20,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   tenant: Tenant | null;
+  isSuperAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -29,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   profile: null,
   tenant: null,
+  isSuperAdmin: false,
   loading: true,
   signOut: async () => {},
 });
@@ -38,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = async (userId: string) => {
@@ -55,6 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
       if (t) setTenant(t as unknown as Tenant);
     }
+    const { data: superAdmin } = await supabase.rpc('is_super_admin');
+    setIsSuperAdmin(!!superAdmin);
   };
 
   useEffect(() => {
@@ -70,8 +75,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             supabase.rpc('record_sign_in').then();
           }
         } else {
-          setProfile(null);
+        setProfile(null);
           setTenant(null);
+          setIsSuperAdmin(false);
         }
         setLoading(false);
       }
@@ -95,10 +101,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setTenant(null);
+    setIsSuperAdmin(false);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, tenant, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, tenant, isSuperAdmin, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
