@@ -73,6 +73,7 @@ const GENERATOR_STEPS = [
   { label: 'Damper', icon: Disc },
   { label: 'Motor Arranque', icon: Zap },
   { label: 'Baterias', icon: Battery },
+  { label: 'Filtro de Ar', icon: Wind },
   { label: 'Revisão', icon: ClipboardCheck },
 ];
 
