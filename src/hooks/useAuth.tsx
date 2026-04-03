@@ -20,6 +20,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   tenant: Tenant | null;
+  isSuperAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 }
