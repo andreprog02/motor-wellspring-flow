@@ -83,7 +83,7 @@ const OTHER_STEPS = [
 ];
 
 export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
-  const { addEquipment, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel, oilTypes, addOilType } = useEquipmentStore();
+  const { addEquipment, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel, oilTypes, addOilType, fuelTypes, addFuelType } = useEquipmentStore();
   const { templates: planTemplates, applyTemplateToEquipment } = useMaintenancePlanTemplates();
 
   const [step, setStep] = useState(0);
