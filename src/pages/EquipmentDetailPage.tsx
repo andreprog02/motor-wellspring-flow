@@ -497,6 +497,13 @@ export default function EquipmentDetailPage() {
       allStatuses.push(getStatus(usage, p.interval_value));
     });
 
+    // Fuel filter plans
+    const fuelFilterPlans = allPlans.filter(p => p.component_type === 'fuel_filter');
+    fuelFilterPlans.forEach(p => {
+      const usage = getUsageForPlan(p);
+      allStatuses.push(getStatus(usage, p.interval_value));
+    });
+
     return countStatuses(allStatuses);
   };
 
