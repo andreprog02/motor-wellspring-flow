@@ -282,6 +282,15 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           });
         }
       }
+      if (fuelFilter.enabled && fuelFilter.quantity > 0) {
+        for (let i = 0; i < fuelFilter.quantity; i++) {
+          subComponents.push({
+            component_type: 'fuel_filter', serial_number: `Filtro de Combustível ${i + 1}`,
+            manufacturer_id: null, model_id: null,
+            horimeter: fuelFilter.use_equipment_hours ? basic.total_horimeter : fuelFilter.horimeter, use_equipment_hours: fuelFilter.use_equipment_hours,
+          });
+        }
+      }
     }
 
     try {
