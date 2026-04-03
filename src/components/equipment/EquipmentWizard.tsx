@@ -123,6 +123,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   const manufacturers = componentManufacturers.data || [];
   const models = componentModels.data || [];
   const oils = oilTypes.data || [];
+  const fuels = (fuelTypes.data || []).sort((a, b) => a.name.localeCompare(b.name));
 
   const isOtherAsset = basic.equipment_type === 'outro';
   const STEPS = isOtherAsset ? OTHER_STEPS : GENERATOR_STEPS;
