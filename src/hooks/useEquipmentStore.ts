@@ -101,6 +101,15 @@ export function useEquipmentStore() {
     },
   });
 
+  const fuelTypes = useQuery({
+    queryKey: ['fuel_types'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('fuel_types').select('*').order('name');
+      if (error) throw error;
+      return data as FuelType[];
+    },
+  });
+
   const invalidateAll = () => {
     queryClient.invalidateQueries({ queryKey: ['equipments'] });
     queryClient.invalidateQueries({ queryKey: ['component_manufacturers'] });
