@@ -97,6 +97,7 @@ const componentTypeLabels: Record<string, string> = {
   starter_motor: 'Motor de Arranque',
   battery: 'Bateria',
   air_filter: 'Filtro de Ar',
+  fuel_filter: 'Filtro de Combustível',
 };
 
 const componentTypePluralLabels: Record<string, string> = {
@@ -116,6 +117,7 @@ const subComponentIcons: Record<string, typeof Cog> = {
   starter_motor: Zap,
   battery: Battery,
   air_filter: Wind,
+  fuel_filter: Fuel,
 };
 
 const cylinderComponentTypes = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
@@ -367,7 +369,7 @@ export default function EquipmentDetailPage() {
 
   // Group sub-components by type (excluding cylinder types, oil, and air_filter which has its own tab)
   const subCompByType = Object.entries(
-    allSubComps.filter(sc => sc.component_type !== 'air_filter').reduce<Record<string, EquipmentSubComponent[]>>((acc, sc) => {
+    allSubComps.filter(sc => sc.component_type !== 'air_filter' && sc.component_type !== 'fuel_filter').reduce<Record<string, EquipmentSubComponent[]>>((acc, sc) => {
       if (!acc[sc.component_type]) acc[sc.component_type] = [];
       acc[sc.component_type].push(sc);
       return acc;
@@ -382,6 +384,10 @@ export default function EquipmentDetailPage() {
   // Air filter sub-components (separate group for dedicated tab)
   const airFilterComps = allSubComps.filter(sc => sc.component_type === 'air_filter');
   const airFilterPlansAll = getPlansForType('air_filter');
+
+  // Fuel filter sub-components (separate group for dedicated tab)
+  const fuelFilterComps = allSubComps.filter(sc => sc.component_type === 'fuel_filter');
+  const fuelFilterPlansAll = getPlansForType('fuel_filter');
 
   // Calculate status counts across ALL component types
   // Helper: get worst status for a component across its plans, considering component install horimeter
@@ -487,6 +493,13 @@ export default function EquipmentDetailPage() {
     // Air filter plans
     const airFilterPlans = allPlans.filter(p => p.component_type === 'air_filter');
     airFilterPlans.forEach(p => {
+      const usage = getUsageForPlan(p);
+      allStatuses.push(getStatus(usage, p.interval_value));
+    });
+
+    // Fuel filter plans
+    const fuelFilterPlans = allPlans.filter(p => p.component_type === 'fuel_filter');
+    fuelFilterPlans.forEach(p => {
       const usage = getUsageForPlan(p);
       allStatuses.push(getStatus(usage, p.interval_value));
     });
@@ -756,6 +769,31 @@ export default function EquipmentDetailPage() {
                   {afStatuses.warning > 0 && (
                     <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
                       {afStatuses.warning}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })()}
+
+            {!isOtherAsset && (() => {
+              const ffStatuses = countStatuses(
+                fuelFilterComps.flatMap(comp => {
+                  const compPlans = fuelFilterPlansAll.filter(p => p.component_id === comp.id);
+                  return getTaskStatuses(compPlans, comp.horimeter);
+                })
+              );
+              return (
+                <TabsTrigger value="fuel_filter" className="gap-1.5">
+                  <Fuel className="h-3.5 w-3.5" />
+                  Filtros de Combustível {fuelFilterComps.length > 0 && `(${fuelFilterComps.length})`}
+                  {ffStatuses.critical > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
+                      {ffStatuses.critical}
+                    </span>
+                  )}
+                  {ffStatuses.warning > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
+                      {ffStatuses.warning}
                     </span>
                   )}
                 </TabsTrigger>
@@ -1086,6 +1124,121 @@ export default function EquipmentDetailPage() {
                               <div className="flex items-center gap-2">
                                 <Wind className="h-4 w-4 text-muted-foreground" />
                                 <span className="font-medium text-sm">{comp.serial_number || `Filtro de Ar`}</span>
+                              </div>
+                            </div>
+                            {filteredStatuses.length > 0 ? filteredStatuses.map((ts, i) => (
+                              <div key={i} className="space-y-1 mt-2">
+                                <div className="flex justify-between text-xs">
+                                  <span>{ts.task}</span>
+                                  <span>{fmtNum(ts.usage)}{ts.unit} / {fmtNum(ts.interval)}{ts.unit}</span>
+                                </div>
+                                <Progress value={ts.percent} className={cn('h-1.5',
+                                  ts.status === 'critical' ? '[&>div]:bg-[hsl(var(--status-critical))]' :
+                                  ts.status === 'warning' ? '[&>div]:bg-[hsl(var(--status-warning))]' : '[&>div]:bg-[hsl(var(--status-ok))]'
+                                )} />
+                                {ts.lastDate && <p className="text-[10px] text-muted-foreground">Último: {format(new Date(ts.lastDate + 'T12:00:00'), 'dd/MM/yyyy')}</p>}
+                              </div>
+                            )) : (
+                              <p className="text-xs text-muted-foreground mt-1">Sem plano vinculado</p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </TabsContent>
+          )}
+
+          {/* Fuel Filter Tab - only for generators */}
+          {!isOtherAsset && (
+            <TabsContent value="fuel_filter" className="mt-4">
+              {fuelFilterComps.length === 0 ? (
+                <Card>
+                  <CardContent className="p-8 text-center text-muted-foreground space-y-3">
+                    <p>Nenhum filtro de combustível cadastrado para este gerador.</p>
+                    <Button size="sm" onClick={async () => {
+                      try {
+                        await supabase.from('equipment_sub_components').insert({
+                          equipment_id: id!,
+                          component_type: 'fuel_filter',
+                          serial_number: 'Filtro de Combustível 1',
+                          horimeter: equipment.total_horimeter,
+                          use_equipment_hours: true,
+                          tenant_id: tenantId,
+                        });
+                        queryClient.invalidateQueries({ queryKey: ['equipment_sub_components', id] });
+                        toast.success('Filtro de combustível adicionado!');
+                      } catch {
+                        toast.error('Erro ao adicionar filtro de combustível.');
+                      }
+                    }}>
+                      <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Adicionar Filtro de Combustível
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(() => {
+                        const uniqueTaskNames = [...new Set(fuelFilterPlansAll.map(p => p.task))];
+                        const activeFilter = taskFilter['fuel_filter'] || '_all';
+                        if (uniqueTaskNames.length <= 1) return null;
+                        return (
+                          <>
+                            <Button size="sm" variant={activeFilter === '_all' ? 'default' : 'outline'} className="text-xs h-7 px-3"
+                              onClick={() => setTaskFilter(prev => ({ ...prev, fuel_filter: '_all' }))}>Todos</Button>
+                            {uniqueTaskNames.map(tn => (
+                              <Button key={tn} size="sm" variant={activeFilter === tn ? 'default' : 'outline'} className="text-xs h-7 px-3"
+                                onClick={() => setTaskFilter(prev => ({ ...prev, fuel_filter: tn }))}>{tn}</Button>
+                            ))}
+                          </>
+                        );
+                      })()}
+                    </div>
+                    <Button size="sm" onClick={() => openMaintDialog('fuel_filter')}>
+                      <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
+                      Registrar Manutenção
+                    </Button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {fuelFilterComps.map(comp => {
+                      const compPlans = fuelFilterPlansAll.filter(p => p.component_id === comp.id);
+                      const compUniquePlans = compPlans.reduce<MaintenancePlan[]>((acc, p) => {
+                        if (!acc.find(a => a.task === p.task)) acc.push(p);
+                        return acc;
+                      }, []);
+                      const activeFilter = taskFilter['fuel_filter'] || '_all';
+                      const taskStatuses = compUniquePlans.map(plan => {
+                        const unit = getCounterUnit(plan.trigger_type);
+                        const usage = getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined);
+                        const st = getStatus(usage, plan.interval_value);
+                        const pct = getPercent(usage, plan.interval_value);
+                        return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate: plan.last_execution_date };
+                      });
+                      const filteredStatuses = activeFilter === '_all' ? taskStatuses : taskStatuses.filter(ts => ts.task === activeFilter);
+                      const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
+                        : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
+
+                      return (
+                        <Card key={comp.id} className={cn(
+                          'cursor-pointer transition-shadow hover:shadow-md',
+                          overallStatus === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
+                          overallStatus === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
+                        )}
+                        onClick={() => setEditSubComp({
+                          open: true, componentId: comp.id, componentType: comp.component_type,
+                          horimeter: comp.horimeter, installationDate: comp.installation_date ?? null,
+                          plans: fuelFilterPlansAll.filter(p => p.component_id === comp.id),
+                        })}>
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <Fuel className="h-4 w-4 text-muted-foreground" />
+                                <span className="font-medium text-sm">{comp.serial_number || `Filtro de Combustível`}</span>
                               </div>
                             </div>
                             {filteredStatuses.length > 0 ? filteredStatuses.map((ts, i) => (

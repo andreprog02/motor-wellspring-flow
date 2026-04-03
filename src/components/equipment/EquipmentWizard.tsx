@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
 import { useMaintenancePlanTemplates } from '@/hooks/useMaintenancePlanTemplates';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Plus, Loader2, CalendarIcon, Check, Settings, Wind, Thermometer, Droplets, ClipboardCheck, Fan, Disc, Zap, Battery, Trash2, Cog, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Loader2, CalendarIcon, Check, Settings, Wind, Thermometer, Droplets, ClipboardCheck, Fan, Disc, Zap, Battery, Trash2, Cog, Package, Fuel } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
@@ -74,6 +74,7 @@ const GENERATOR_STEPS = [
   { label: 'Motor Arranque', icon: Zap },
   { label: 'Baterias', icon: Battery },
   { label: 'Filtro de Ar', icon: Wind },
+  { label: 'Filtro de Combustível', icon: Fuel },
   { label: 'Revisão', icon: ClipboardCheck },
 ];
 
@@ -108,6 +109,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   const [starterMotor, setStarterMotor] = useState<MultiComponentData>(emptyMultiComp());
   const [battery, setBattery] = useState<MultiComponentData>(emptyMultiComp());
   const [airFilter, setAirFilter] = useState<MultiComponentData>(emptyMultiComp());
+  const [fuelFilter, setFuelFilter] = useState<MultiComponentData>(emptyMultiComp());
 
   // Custom components for "outro" type
   const [customComponents, setCustomComponents] = useState<CustomComponentData[]>([]);
@@ -134,7 +136,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
     setStep(0);
     setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: '', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador' });
     setTurbine(emptySubComp()); setIntercooler(emptySubComp()); setOilExchanger(emptySubComp());
-    setBlowby(emptyMultiComp()); setDamper(emptyMultiComp()); setStarterMotor(emptyMultiComp()); setBattery(emptyMultiComp());
+    setBlowby(emptyMultiComp()); setDamper(emptyMultiComp()); setStarterMotor(emptyMultiComp()); setBattery(emptyMultiComp()); setAirFilter(emptyMultiComp()); setFuelFilter(emptyMultiComp());
     setCustomComponents([]);
   };
 
@@ -277,6 +279,15 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
             component_type: 'air_filter', serial_number: `Filtro de Ar ${i + 1}`,
             manufacturer_id: null, model_id: null,
             horimeter: airFilter.use_equipment_hours ? basic.total_horimeter : airFilter.horimeter, use_equipment_hours: airFilter.use_equipment_hours,
+          });
+        }
+      }
+      if (fuelFilter.enabled && fuelFilter.quantity > 0) {
+        for (let i = 0; i < fuelFilter.quantity; i++) {
+          subComponents.push({
+            component_type: 'fuel_filter', serial_number: `Filtro de Combustível ${i + 1}`,
+            manufacturer_id: null, model_id: null,
+            horimeter: fuelFilter.use_equipment_hours ? basic.total_horimeter : fuelFilter.horimeter, use_equipment_hours: fuelFilter.use_equipment_hours,
           });
         }
       }
@@ -884,6 +895,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           <p className="text-sm text-muted-foreground">Motor de Arranque: {starterMotor.enabled ? `✅ Qtd: ${starterMotor.quantity} | ${manufName(starterMotor.manufacturer_id)} / ${modelName(starterMotor.model_id)}` : '❌ Não'}</p>
           <p className="text-sm text-muted-foreground">Baterias: {battery.enabled ? `✅ Qtd: ${battery.quantity} | ${manufName(battery.manufacturer_id)} / ${modelName(battery.model_id)}` : '❌ Não'}</p>
           <p className="text-sm text-muted-foreground">Filtro de Ar: {airFilter.enabled ? `✅ Qtd: ${airFilter.quantity}` : '❌ Não'}</p>
+          <p className="text-sm text-muted-foreground">Filtro de Combustível: {fuelFilter.enabled ? `✅ Qtd: ${fuelFilter.quantity}` : '❌ Não'}</p>
         </div>
         <div className="border rounded-lg p-4 bg-muted/30">
           <h4 className="font-semibold text-sm mb-1">⚙️ Auto-criação</h4>
@@ -911,7 +923,8 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
         case 6: return renderMultiStartsStep('Motor de Arranque', starterMotor, setStarterMotor);
         case 7: return renderMultiStartsStep('Baterias', battery, setBattery);
         case 8: return renderMultiHoursStep('Filtro de Ar', airFilter, setAirFilter);
-        case 9: return renderReviewStep();
+        case 9: return renderMultiHoursStep('Filtro de Combustível', fuelFilter, setFuelFilter);
+        case 10: return renderReviewStep();
       }
     }
   };
