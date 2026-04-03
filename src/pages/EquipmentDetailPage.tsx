@@ -365,9 +365,9 @@ export default function EquipmentDetailPage() {
     components: allCylComps.filter(c => c.component_type === type).sort((a, b) => a.cylinder_number - b.cylinder_number),
   })).filter(g => g.components.length > 0);
 
-  // Group sub-components by type (excluding cylinder types and oil)
+  // Group sub-components by type (excluding cylinder types, oil, and air_filter which has its own tab)
   const subCompByType = Object.entries(
-    allSubComps.reduce<Record<string, EquipmentSubComponent[]>>((acc, sc) => {
+    allSubComps.filter(sc => sc.component_type !== 'air_filter').reduce<Record<string, EquipmentSubComponent[]>>((acc, sc) => {
       if (!acc[sc.component_type]) acc[sc.component_type] = [];
       acc[sc.component_type].push(sc);
       return acc;
@@ -378,6 +378,10 @@ export default function EquipmentDetailPage() {
     components: comps,
     plans: getPlansForType(type),
   }));
+
+  // Air filter sub-components (separate group for dedicated tab)
+  const airFilterComps = allSubComps.filter(sc => sc.component_type === 'air_filter');
+  const airFilterPlansAll = getPlansForType('air_filter');
 
   // Calculate status counts across ALL component types
   // Helper: get worst status for a component across its plans, considering component install horimeter
