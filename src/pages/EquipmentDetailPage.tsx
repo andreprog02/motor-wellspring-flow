@@ -25,7 +25,6 @@ import { CylinderMaintenanceDialog } from '@/components/equipment/CylinderMainte
 import { CylinderComponentEditDialog } from '@/components/equipment/CylinderComponentEditDialog';
 import { SubComponentEditDialog } from '@/components/equipment/SubComponentEditDialog';
 import { OilTab } from '@/components/equipment/OilTab';
-import { AirFilterTab } from '@/components/equipment/AirFilterTab';
 import { CylinderLogHistory } from '@/components/equipment/CylinderLogHistory';
 import { toast } from 'sonner';
 import type { CylinderHeadMetrics } from '@/hooks/useCylinderHeadStore';
