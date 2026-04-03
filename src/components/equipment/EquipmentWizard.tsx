@@ -923,7 +923,8 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
         case 6: return renderMultiStartsStep('Motor de Arranque', starterMotor, setStarterMotor);
         case 7: return renderMultiStartsStep('Baterias', battery, setBattery);
         case 8: return renderMultiHoursStep('Filtro de Ar', airFilter, setAirFilter);
-        case 9: return renderReviewStep();
+        case 9: return renderMultiHoursStep('Filtro de Combustível', fuelFilter, setFuelFilter);
+        case 10: return renderReviewStep();
       }
     }
   };
