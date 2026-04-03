@@ -7,12 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/LanguageSelector';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,7 +25,7 @@ export default function ForgotPasswordPage() {
     });
     setLoading(false);
     if (error) {
-      toast({ title: 'Erro', description: error.message, variant: 'destructive' });
+      toast({ title: t('forgot.error'), description: error.message, variant: 'destructive' });
     } else {
       setSent(true);
     }
@@ -30,14 +33,17 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+        <div className="absolute top-4 right-4">
+          <LanguageSelector />
+        </div>
         <Card className="w-full max-w-md text-center">
           <CardHeader>
-            <CardTitle>Email enviado</CardTitle>
-            <CardDescription>Verifique sua caixa de entrada para redefinir sua senha.</CardDescription>
+            <CardTitle>{t('forgot.sent_title')}</CardTitle>
+            <CardDescription>{t('forgot.sent_desc')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Link to="/login"><Button variant="outline">Voltar ao Login</Button></Link>
+            <Link to="/login"><Button variant="outline">{t('forgot.back')}</Button></Link>
           </CardContent>
         </Card>
       </div>
@@ -45,25 +51,28 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      <div className="absolute top-4 right-4">
+        <LanguageSelector />
+      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Recuperar Senha</CardTitle>
-          <CardDescription>Informe seu email para receber um link de redefinição</CardDescription>
+          <CardTitle>{t('forgot.title')}</CardTitle>
+          <CardDescription>{t('forgot.subtitle')}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t('login.email')}</Label>
               <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Enviar link
+              {t('forgot.submit')}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm">
-            <Link to="/login" className="text-primary hover:underline">Voltar ao Login</Link>
+            <Link to="/login" className="text-primary hover:underline">{t('forgot.back')}</Link>
           </div>
         </CardContent>
       </Card>

@@ -5,18 +5,29 @@ import { LayoutDashboard, Package, Settings, Wrench, Factory, MapPin, Droplets, 
 import { useIsMobile } from '@/hooks/use-mobile';
 import { BackupDialog } from '@/components/BackupDialog';
 import { useAuth } from '@/hooks/useAuth';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { LanguageSelector } from '@/components/LanguageSelector';
+
+const navKeys: Record<string, string> = {
+  '/': 'nav.dashboard',
+  '/inventory': 'nav.inventory',
+  '/tools': 'nav.tools',
+  '/cylinder-heads': 'nav.cylinder_heads',
+  '/turbos': 'nav.turbos',
+  '/reports': 'nav.reports',
+};
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/inventory', label: 'Estoque', icon: Package },
-  { to: '/tools', label: 'Ferramentas', icon: Wrench },
-  { to: '/cylinder-heads', label: 'Cabeçotes', icon: Cog },
-  { to: '/turbos', label: 'Turbos', icon: Wind },
-  { to: '/reports', label: 'Relatórios', icon: FileText },
+  { to: '/', icon: LayoutDashboard },
+  { to: '/inventory', icon: Package },
+  { to: '/tools', icon: Wrench },
+  { to: '/cylinder-heads', icon: Cog },
+  { to: '/turbos', icon: Wind },
+  { to: '/reports', icon: FileText },
 ];
 
 const maintenanceSubItems = [
-  { to: '/maintenance/plans', label: 'Planos', icon: ClipboardList },
+  { to: '/maintenance/plans', key: 'nav.plans', icon: ClipboardList },
 ];
 
 interface AppSidebarProps {
@@ -30,20 +41,22 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   const location = useLocation();
   const isMobile = useIsMobile();
   const { profile, tenant, isSuperAdmin, signOut } = useAuth();
+  const { t } = useLanguage();
   const isMaintenanceActive = location.pathname.startsWith('/maintenance');
   const [maintenanceOpen, setMaintenanceOpen] = useState(isMaintenanceActive);
   const [backupOpen, setBackupOpen] = useState(false);
   const showLabels = !collapsed || isMobile;
   const isAdmin = profile?.role === 'admin';
 
-  const renderNavLink = (item: { to: string; label: string; icon: React.ElementType }, indent = false) => {
+  const renderNavLink = (item: { to: string; icon: React.ElementType; key?: string }, indent = false) => {
+    const label = t(item.key || navKeys[item.to] || item.to);
     const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
     return (
       <Link
         key={item.to}
         to={item.to}
         onClick={isMobile ? onMobileClose : undefined}
-        title={!showLabels ? item.label : undefined}
+        title={!showLabels ? label : undefined}
         className={cn(
           'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors',
           !showLabels ? 'justify-center px-2' : '',
@@ -54,7 +67,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         )}
       >
         <item.icon className="h-4 w-4 shrink-0" />
-        {showLabels && item.label}
+        {showLabels && label}
       </Link>
     );
   };
@@ -86,7 +99,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
         {/* Manutenção group */}
         <button
           onClick={() => setMaintenanceOpen(o => !o)}
-          title={!showLabels ? 'Manutenção' : undefined}
+          title={!showLabels ? t('nav.maintenance') : undefined}
           className={cn(
             'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
             !showLabels ? 'justify-center px-2' : '',
@@ -98,7 +111,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           <Wrench className="h-4 w-4 shrink-0" />
           {showLabels && (
             <>
-              <span className="flex-1 text-left">Manutenção</span>
+              <span className="flex-1 text-left">{t('nav.maintenance')}</span>
               <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", maintenanceOpen && "rotate-180")} />
             </>
           )}
@@ -123,7 +136,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           <Link
             to="/team"
             onClick={isMobile ? onMobileClose : undefined}
-            title={!showLabels ? 'Equipe' : undefined}
+            title={!showLabels ? t('nav.team') : undefined}
             className={cn(
               'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
               !showLabels ? 'justify-center px-2' : '',
@@ -133,14 +146,14 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             )}
           >
             <Users className="h-4 w-4 shrink-0" />
-            {showLabels && 'Equipe'}
+            {showLabels && t('nav.team')}
           </Link>
         )}
         {isSuperAdmin && (
           <Link
             to="/super-admin"
             onClick={isMobile ? onMobileClose : undefined}
-            title={!showLabels ? 'Super Admin' : undefined}
+            title={!showLabels ? t('nav.super_admin') : undefined}
             className={cn(
               'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
               !showLabels ? 'justify-center px-2' : '',
@@ -150,12 +163,18 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
             )}
           >
             <ShieldCheck className="h-4 w-4 shrink-0" />
-            {showLabels && 'Super Admin'}
+            {showLabels && t('nav.super_admin')}
           </Link>
         )}
+
+        {/* Language selector */}
+        <div className={cn("px-3 py-1", !showLabels && "px-1 flex justify-center")}>
+          <LanguageSelector compact={!showLabels} />
+        </div>
+
         <button
           onClick={() => setBackupOpen(true)}
-          title={!showLabels ? 'Backup' : undefined}
+          title={!showLabels ? t('nav.backup') : undefined}
           className={cn(
             'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
             !showLabels ? 'justify-center px-2' : '',
@@ -163,11 +182,11 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           )}
         >
           <DatabaseBackup className="h-4 w-4 shrink-0" />
-          {showLabels && 'Backup'}
+          {showLabels && t('nav.backup')}
         </button>
         <button
           onClick={signOut}
-          title={!showLabels ? 'Sair' : undefined}
+          title={!showLabels ? t('nav.logout') : undefined}
           className={cn(
             'flex items-center gap-2.5 px-3 py-2 rounded-md text-sm font-medium transition-colors w-full',
             !showLabels ? 'justify-center px-2' : '',
@@ -175,7 +194,7 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
           )}
         >
           <LogOut className="h-4 w-4 shrink-0" />
-          {showLabels && 'Sair'}
+          {showLabels && t('nav.logout')}
         </button>
         <div className={cn("px-2 pt-1", !showLabels && "text-center")}>
           <p className="text-[10px] text-sidebar-foreground">v1.0 · Multi-tenant SaaS</p>
