@@ -115,6 +115,7 @@ const subComponentIcons: Record<string, typeof Cog> = {
   damper: Disc,
   starter_motor: Zap,
   battery: Battery,
+  air_filter: Wind,
 };
 
 const cylinderComponentTypes = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
