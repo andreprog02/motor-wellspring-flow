@@ -895,6 +895,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           <p className="text-sm text-muted-foreground">Motor de Arranque: {starterMotor.enabled ? `✅ Qtd: ${starterMotor.quantity} | ${manufName(starterMotor.manufacturer_id)} / ${modelName(starterMotor.model_id)}` : '❌ Não'}</p>
           <p className="text-sm text-muted-foreground">Baterias: {battery.enabled ? `✅ Qtd: ${battery.quantity} | ${manufName(battery.manufacturer_id)} / ${modelName(battery.model_id)}` : '❌ Não'}</p>
           <p className="text-sm text-muted-foreground">Filtro de Ar: {airFilter.enabled ? `✅ Qtd: ${airFilter.quantity}` : '❌ Não'}</p>
+          <p className="text-sm text-muted-foreground">Filtro de Combustível: {fuelFilter.enabled ? `✅ Qtd: ${fuelFilter.quantity}` : '❌ Não'}</p>
         </div>
         <div className="border rounded-lg p-4 bg-muted/30">
           <h4 className="font-semibold text-sm mb-1">⚙️ Auto-criação</h4>
