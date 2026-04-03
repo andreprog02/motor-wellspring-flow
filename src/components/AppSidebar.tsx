@@ -35,7 +35,6 @@ export function AppSidebar({ collapsed, onToggle, mobileOpen, onMobileClose }: A
   const [backupOpen, setBackupOpen] = useState(false);
   const showLabels = !collapsed || isMobile;
   const isAdmin = profile?.role === 'admin';
-  const isSuperAdmin = profile?.email === 'andre_santos_02@yahoo.com.br';
 
   const renderNavLink = (item: { to: string; label: string; icon: React.ElementType }, indent = false) => {
     const isActive = location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
