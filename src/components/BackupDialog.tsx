@@ -80,7 +80,7 @@ export function BackupDialog({ open, onOpenChange }: Props) {
         backup[table] = data ?? [];
       }
       const json = JSON.stringify({ version: 1, exported_at: new Date().toISOString(), tables: backup }, null, 2);
-      downloadBlob(json, `motorguard_backup_${formatDate()}.json`, 'application/json');
+      downloadBlob(json, `hubengine_backup_${formatDate()}.json`, 'application/json');
       toast({ title: 'Backup exportado com sucesso!' });
     } catch (e: any) {
       toast({ title: 'Erro ao exportar', description: e.message, variant: 'destructive' });
