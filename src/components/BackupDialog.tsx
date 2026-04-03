@@ -106,7 +106,7 @@ export function BackupDialog({ open, onOpenChange }: Props) {
         sections.push(`##TABLE:${table}\n${csvRows.join('\n')}`);
       }
       const csv = sections.join('\n\n');
-      downloadBlob(csv, `motorguard_backup_${formatDate()}.csv`, 'text/csv;charset=utf-8;');
+      downloadBlob(csv, `hubengine_backup_${formatDate()}.csv`, 'text/csv;charset=utf-8;');
       toast({ title: 'Backup CSV exportado com sucesso!' });
     } catch (e: any) {
       toast({ title: 'Erro ao exportar', description: e.message, variant: 'destructive' });
