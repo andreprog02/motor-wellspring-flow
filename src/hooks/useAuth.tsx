@@ -58,6 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
       if (t) setTenant(t as unknown as Tenant);
     }
+    const { data: superAdmin } = await supabase.rpc('is_super_admin');
+    setIsSuperAdmin(!!superAdmin);
   };
 
   useEffect(() => {
