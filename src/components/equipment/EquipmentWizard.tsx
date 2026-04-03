@@ -271,6 +271,15 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           });
         }
       }
+      if (airFilter.enabled && airFilter.quantity > 0) {
+        for (let i = 0; i < airFilter.quantity; i++) {
+          subComponents.push({
+            component_type: 'air_filter', serial_number: `Filtro de Ar ${i + 1}`,
+            manufacturer_id: null, model_id: null,
+            horimeter: airFilter.use_equipment_hours ? basic.total_horimeter : airFilter.horimeter, use_equipment_hours: airFilter.use_equipment_hours,
+          });
+        }
+      }
     }
 
     try {
