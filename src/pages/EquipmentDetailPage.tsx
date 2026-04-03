@@ -736,6 +736,31 @@ export default function EquipmentDetailPage() {
 
 
 
+            {/* Air Filter tab - only for generators */}
+            {!isOtherAsset && (() => {
+              const afStatuses = countStatuses(
+                airFilterComps.flatMap(comp => {
+                  const compPlans = airFilterPlansAll.filter(p => p.component_id === comp.id);
+                  return getTaskStatuses(compPlans, comp.horimeter);
+                })
+              );
+              return (
+                <TabsTrigger value="air_filter" className="gap-1.5">
+                  <Wind className="h-3.5 w-3.5" />
+                  Filtros de Ar {airFilterComps.length > 0 && `(${airFilterComps.length})`}
+                  {afStatuses.critical > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
+                      {afStatuses.critical}
+                    </span>
+                  )}
+                  {afStatuses.warning > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
+                      {afStatuses.warning}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })()}
 
             {/* Cylinder Heads tab - only for generators */}
             {!isOtherAsset && (
