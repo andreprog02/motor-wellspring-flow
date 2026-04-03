@@ -115,6 +115,7 @@ export function useEquipmentStore() {
     queryClient.invalidateQueries({ queryKey: ['component_manufacturers'] });
     queryClient.invalidateQueries({ queryKey: ['component_models'] });
     queryClient.invalidateQueries({ queryKey: ['oil_types'] });
+    queryClient.invalidateQueries({ queryKey: ['fuel_types'] });
   };
 
   const addEquipment = useMutation({
