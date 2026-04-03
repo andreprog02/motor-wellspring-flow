@@ -303,7 +303,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
 
   const getFilteredModels = (manufacturerId: string) => models.filter(m => m.manufacturer_id === manufacturerId);
   const filteredEquipModels = getFilteredModels(basic.manufacturer_id);
-  const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
+  const fuelLabelMap = fuels.reduce((acc, f) => { acc[f.slug] = f.name; return acc; }, {} as Record<string, string>);
   const allPlanTemplates = planTemplates.data ?? [];
 
   // ── Stepper ──
