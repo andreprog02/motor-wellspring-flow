@@ -35,6 +35,12 @@ export interface ComponentModel {
   name: string;
 }
 
+export interface FuelType {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface EquipmentSubComponent {
   id: string;
   equipment_id: string;
