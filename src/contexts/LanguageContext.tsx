@@ -15,8 +15,6 @@ function detectLanguage(): Language {
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved === 'pt' || saved === 'en' || saved === 'es') return saved;
   const nav = navigator.language || '';
-  if (nav.startsWith('pt')) return 'pt';
-  if (nav.startsWith('es')) return 'es';
   return 'en';
 }
 
