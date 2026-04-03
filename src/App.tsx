@@ -26,6 +26,7 @@ import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import TermsPage from "./pages/TermsPage";
 import TeamPage from "./pages/TeamPage";
 import SuperAdminPage from "./pages/SuperAdminPage";
 import NotFound from "./pages/NotFound";
@@ -48,6 +49,7 @@ const App = () => (
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route path="/" element={<P><Index /></P>} />
             <Route path="/motor/:id" element={<P><MotorDetail /></P>} />
             <Route path="/inventory" element={<P><InventoryPage /></P>} />

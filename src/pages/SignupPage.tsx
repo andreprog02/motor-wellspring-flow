@@ -88,6 +88,10 @@ export default function SignupPage() {
             Já tem uma conta?{' '}
             <Link to="/login" className="text-primary hover:underline">Entrar</Link>
           </div>
+          <p className="mt-3 text-center text-xs text-muted-foreground">
+            Ao se cadastrar, você concorda com nossos{' '}
+            <Link to="/terms" className="text-primary hover:underline">Termos de Uso e Política de Privacidade</Link>.
+          </p>
         </CardContent>
       </Card>
     </div>

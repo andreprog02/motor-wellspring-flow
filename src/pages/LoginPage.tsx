@@ -59,6 +59,9 @@ export default function LoginPage() {
             Não tem conta?{' '}
             <Link to="/signup" className="text-primary hover:underline">Cadastre-se</Link>
           </div>
+          <div className="mt-3 text-center">
+            <Link to="/terms" className="text-xs text-muted-foreground hover:text-primary hover:underline">Termos de Uso e Política de Privacidade</Link>
+          </div>
         </CardContent>
       </Card>
     </div>
