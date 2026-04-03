@@ -730,13 +730,8 @@ export default function EquipmentDetailPage() {
               );
             })()}
 
-            {/* Air Filter tab - only for generators */}
-            {!isOtherAsset && (
-              <TabsTrigger value="air_filter" className="gap-1.5">
-                <Wind className="h-3.5 w-3.5" />
-                Filtros de Ar
-              </TabsTrigger>
-            )}
+
+
 
             {/* Cylinder Heads tab - only for generators */}
             {!isOtherAsset && (
