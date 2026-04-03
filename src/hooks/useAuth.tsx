@@ -30,6 +30,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   profile: null,
   tenant: null,
+  isSuperAdmin: false,
   loading: true,
   signOut: async () => {},
 });
