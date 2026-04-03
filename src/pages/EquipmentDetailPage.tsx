@@ -775,6 +775,31 @@ export default function EquipmentDetailPage() {
               );
             })()}
 
+            {!isOtherAsset && (() => {
+              const ffStatuses = countStatuses(
+                fuelFilterComps.flatMap(comp => {
+                  const compPlans = fuelFilterPlansAll.filter(p => p.component_id === comp.id);
+                  return getTaskStatuses(compPlans, comp.horimeter);
+                })
+              );
+              return (
+                <TabsTrigger value="fuel_filter" className="gap-1.5">
+                  <Fuel className="h-3.5 w-3.5" />
+                  Filtros de Combustível {fuelFilterComps.length > 0 && `(${fuelFilterComps.length})`}
+                  {ffStatuses.critical > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
+                      {ffStatuses.critical}
+                    </span>
+                  )}
+                  {ffStatuses.warning > 0 && (
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
+                      {ffStatuses.warning}
+                    </span>
+                  )}
+                </TabsTrigger>
+              );
+            })()}
+
             {/* Cylinder Heads tab - only for generators */}
             {!isOtherAsset && (
               <TabsTrigger value="cylinder_heads" className="gap-1.5">
