@@ -21,11 +21,11 @@ interface Props {
   oilTypes: OilType[];
 }
 
-const fuelLabels: Record<string, string> = { biogas: 'Biogás', landfill_gas: 'Gás de Aterro', natural_gas: 'Gás Natural' };
-
 export function EquipmentCard({ equipment, oilTypes }: Props) {
   const navigate = useNavigate();
-  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery, addOilType } = useEquipmentStore();
+  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery, addOilType, fuelTypes } = useEquipmentStore();
+  const fuels = fuelTypes.data || [];
+  const fuelLabels = fuels.reduce((acc, f) => { acc[f.slug] = f.name; return acc; }, {} as Record<string, string>);
   const allOilTypes = oilTypesQuery.data || oilTypes;
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
