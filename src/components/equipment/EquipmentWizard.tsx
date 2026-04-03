@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
 import { useMaintenancePlanTemplates } from '@/hooks/useMaintenancePlanTemplates';
 import { toast } from 'sonner';
-import { ChevronLeft, ChevronRight, Plus, Loader2, CalendarIcon, Check, Settings, Wind, Thermometer, Droplets, ClipboardCheck, Fan, Disc, Zap, Battery, Trash2, Cog, Package } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Loader2, CalendarIcon, Check, Settings, Wind, Thermometer, Droplets, ClipboardCheck, Fan, Disc, Zap, Battery, Trash2, Cog, Package, Fuel } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
