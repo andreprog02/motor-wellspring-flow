@@ -113,9 +113,11 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
   const [newManufName, setNewManufName] = useState('');
   const [newModelName, setNewModelName] = useState('');
   const [newOilName, setNewOilName] = useState('');
+  const [newFuelName, setNewFuelName] = useState('');
   const [addingManuf, setAddingManuf] = useState(false);
   const [addingModel, setAddingModel] = useState(false);
   const [addingOil, setAddingOil] = useState(false);
+  const [addingFuel, setAddingFuel] = useState(false);
   const [manufContext, setManufContext] = useState<string>('turbine');
 
   const manufacturers = componentManufacturers.data || [];
