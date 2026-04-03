@@ -27,7 +27,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           >
             <PanelLeft className="h-5 w-5" />
           </button>
-          <span className="ml-3 text-sm font-bold text-foreground">MotorGuard</span>
+          <span className="ml-3 text-sm font-bold text-foreground">Hub Engine</span>
         </header>
       )}
 

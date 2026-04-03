@@ -63,7 +63,7 @@ export default function SignupPage() {
             <Shield className="h-6 w-6 text-primary" />
           </div>
           <CardTitle className="text-2xl">Criar Conta</CardTitle>
-          <CardDescription>Cadastre-se para usar o MotorGuard</CardDescription>
+          <CardDescription>Cadastre-se para usar o Hub Engine</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignup} className="space-y-4">

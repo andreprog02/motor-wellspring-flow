@@ -80,7 +80,7 @@ export function BackupDialog({ open, onOpenChange }: Props) {
         backup[table] = data ?? [];
       }
       const json = JSON.stringify({ version: 1, exported_at: new Date().toISOString(), tables: backup }, null, 2);
-      downloadBlob(json, `motorguard_backup_${formatDate()}.json`, 'application/json');
+      downloadBlob(json, `hubengine_backup_${formatDate()}.json`, 'application/json');
       toast({ title: 'Backup exportado com sucesso!' });
     } catch (e: any) {
       toast({ title: 'Erro ao exportar', description: e.message, variant: 'destructive' });
@@ -106,7 +106,7 @@ export function BackupDialog({ open, onOpenChange }: Props) {
         sections.push(`##TABLE:${table}\n${csvRows.join('\n')}`);
       }
       const csv = sections.join('\n\n');
-      downloadBlob(csv, `motorguard_backup_${formatDate()}.csv`, 'text/csv;charset=utf-8;');
+      downloadBlob(csv, `hubengine_backup_${formatDate()}.csv`, 'text/csv;charset=utf-8;');
       toast({ title: 'Backup CSV exportado com sucesso!' });
     } catch (e: any) {
       toast({ title: 'Erro ao exportar', description: e.message, variant: 'destructive' });
