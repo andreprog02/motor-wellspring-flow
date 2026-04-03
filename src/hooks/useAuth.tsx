@@ -101,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSession(null);
     setProfile(null);
     setTenant(null);
+    setIsSuperAdmin(false);
   };
 
   return (
