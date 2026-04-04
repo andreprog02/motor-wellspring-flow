@@ -959,8 +959,8 @@ export default function EquipmentDetailPage() {
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1 mb-2">
                             <div className="flex justify-between">
-                              <span>Instalado em:</span>
-                              <span className="font-mono">{fmtNum(comp.horimeter_at_install)}h</span>
+                              <span>Horas em operação:</span>
+                              <span className="font-mono">{fmtNum(equipment.total_horimeter - comp.horimeter_at_install)}h</span>
                             </div>
                           </div>
 
@@ -1443,8 +1443,8 @@ export default function EquipmentDetailPage() {
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1 mb-2">
                             <div className="flex justify-between">
-                              <span>{group.type === 'starter_motor' ? 'Arranques na instalação:' : 'Horímetro instalação:'}</span>
-                              <span className="font-mono">{fmtNum(comp.horimeter)}{group.type === 'starter_motor' ? ' arr.' : 'h'}</span>
+                              <span>{group.type === 'starter_motor' ? 'Arranques totais:' : 'Horas em operação:'}</span>
+                              <span className="font-mono">{group.type === 'starter_motor' ? fmtNum(equipment.total_starts - comp.horimeter) + ' arr.' : fmtNum(equipment.total_horimeter - comp.horimeter) + 'h'}</span>
                             </div>
                             {comp.installation_date && (
                               <div className="flex justify-between">
