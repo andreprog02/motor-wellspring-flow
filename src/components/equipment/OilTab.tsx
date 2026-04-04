@@ -595,59 +595,6 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
         );
       })()}
 
-      {/* Maintenance Plan Status */}
-      {allPlans.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {allPlans.map(plan => {
-            const status = getStatus(equipmentHorimeter, plan.last_execution_value, plan.interval_value);
-            const percent = getPercent(equipmentHorimeter, plan.last_execution_value, plan.interval_value);
-            const usage = equipmentHorimeter - plan.last_execution_value;
-            const Icon = componentTypeIcons[plan.component_type] || Filter;
-            return (
-              <Card
-                key={plan.id}
-                className={cn(
-                  'cursor-pointer hover:border-primary/50 transition-colors',
-                  status === 'critical' ? 'border-[hsl(var(--status-critical))]/40' :
-                  status === 'warning' ? 'border-[hsl(var(--status-warning))]/40' : ''
-                )}
-                onClick={() => {
-                  setGenericMaintenanceType(plan.component_type);
-                  setOilChangeHorimeter(String(equipmentHorimeter));
-                  setOilChangeDate(formatLocalDate());
-                  setOilChangeTypeId(oilTypeId || '');
-                  setOilChangeNotes('');
-                  setOilChangeDialogOpen(true);
-                }}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-semibold text-sm">{componentTypeLabels[plan.component_type] || plan.component_type}</span>
-                    </div>
-                    <Badge
-                      variant={status === 'critical' ? 'destructive' : status === 'warning' ? 'secondary' : 'default'}
-                      className={
-                        status === 'ok' ? 'bg-[hsl(var(--status-ok))] text-[hsl(var(--status-ok-foreground))]' :
-                        status === 'warning' ? 'bg-[hsl(var(--status-warning))] text-[hsl(var(--status-warning-foreground))]' : ''
-                      }
-                    >
-                      {status === 'ok' ? 'Em dia' : status === 'warning' ? 'Atenção' : 'Vencida'}
-                    </Badge>
-                  </div>
-                  <Progress value={percent} className="h-2 mb-1" />
-                  <div className="flex justify-between text-xs text-muted-foreground font-mono">
-                    <span>{fmtNum(usage)} / {fmtNum(plan.interval_value)} {triggerLabels[plan.trigger_type]?.toLowerCase()}</span>
-                    <span>{percent}%</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">Tarefa: {plan.task}</p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
 
       {/* Actions */}
       <div className="flex flex-wrap gap-2">
