@@ -169,8 +169,8 @@ export function OilTab({ equipmentId, equipmentHorimeter, oilName, oilTypeId }: 
     },
   });
 
-  // Fetch ALL oil-related maintenance plans
-  const OIL_COMPONENT_TYPES = ['oil_change', 'oil_filter', 'air_filter', 'fuel_filter', 'oil'];
+  // Fetch only oil-specific maintenance plans (exclude air_filter, fuel_filter, oil_change which have their own tabs/cards)
+  const OIL_COMPONENT_TYPES = ['oil_filter', 'oil'];
   const oilPlans = useQuery({
     queryKey: ['oil_plans', equipmentId],
     queryFn: async () => {
