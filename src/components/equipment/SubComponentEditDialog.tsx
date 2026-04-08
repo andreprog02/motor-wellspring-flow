@@ -70,11 +70,13 @@ const triggerUnits: Record<string, string> = {
 export function SubComponentEditDialog({
   open, onOpenChange, componentId, componentType,
   currentHorimeter, currentInstallationDate, equipmentTotalStarts, plans,
-  isOtherAsset = false,
+  isOtherAsset = false, currentUseEquipmentHours = true, equipmentInstallationDate,
 }: Props) {
   const qc = useQueryClient();
   const [horimeter, setHorimeter] = useState(currentHorimeter);
   const [compName, setCompName] = useState(componentType);
+  const [useEquipmentHours, setUseEquipmentHours] = useState(currentUseEquipmentHours);
+  const [useEquipDate, setUseEquipDate] = useState(false);
   const [installDate, setInstallDate] = useState<Date | undefined>(
     currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined
   );
@@ -87,6 +89,11 @@ export function SubComponentEditDialog({
     if (open) {
       setHorimeter(currentHorimeter);
       setCompName(componentType);
+      setUseEquipmentHours(currentUseEquipmentHours);
+      const equipDateStr = equipmentInstallationDate;
+      const compDateStr = currentInstallationDate;
+      const sameDate = !!(equipDateStr && compDateStr && equipDateStr === compDateStr);
+      setUseEquipDate(sameDate);
       setInstallDate(currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined);
       const vals: Record<string, number> = {};
       const dates: Record<string, Date | undefined> = {};
@@ -100,7 +107,7 @@ export function SubComponentEditDialog({
       setPlanDates(dates);
       setPlanTriggerTypes(triggers);
     }
-  }, [open, currentHorimeter, currentInstallationDate, plans, componentType]);
+  }, [open, currentHorimeter, currentInstallationDate, plans, componentType, currentUseEquipmentHours, equipmentInstallationDate]);
 
   const handleSave = async () => {
     setSaving(true);
