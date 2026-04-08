@@ -278,14 +278,26 @@ export default function MaintenancePlansPage() {
     const finalType = taskComponentType === 'custom' ? taskCustomType : taskComponentType;
     if (!finalType || !taskService || !taskInterval) { toast({ title: 'Preencha todos os campos', variant: 'destructive' }); return; }
     try {
-      await addTask.mutateAsync({ template_id: taskTemplateId, component_type: finalType, task: taskService, trigger_type: taskTrigger, interval_value: Number(taskInterval) });
-      toast({ title: 'Tarefa adicionada' });
+      if (editingTask) {
+        await updateTask.mutateAsync({
+          id: editingTask.id,
+          template_id: taskTemplateId,
+          updates: { component_type: finalType, task: taskService, trigger_type: taskTrigger, interval_value: Number(taskInterval) },
+        });
+        toast({ title: 'Tarefa atualizada e sincronizada' });
+      } else {
+        await addTask.mutateAsync({ template_id: taskTemplateId, component_type: finalType, task: taskService, trigger_type: taskTrigger, interval_value: Number(taskInterval) });
+        toast({ title: 'Tarefa adicionada e sincronizada' });
+      }
       setTaskDialogOpen(false);
     } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
   };
 
-  const handleDeleteTask = async (id: string) => {
-    try { await deleteTask.mutateAsync(id); toast({ title: 'Tarefa removida' }); } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
+  const handleDeleteTask = async (task: MaintenancePlanTemplateTask) => {
+    try {
+      await deleteTask.mutateAsync({ id: task.id, template_id: task.template_id, component_type: task.component_type, task: task.task });
+      toast({ title: 'Tarefa removida e sincronizada' });
+    } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
   };
 
   const filteredDialogModels = models.filter(m => m.manufacturer_id === templateManufId);
