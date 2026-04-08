@@ -19,9 +19,6 @@ export function InventoryTable({ items, onEdit, onDelete, onQuantityChange, empt
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Código</TableHead>
-          <TableHead>Cód. Alt. 01</TableHead>
-          <TableHead>Cód. Alt. 02</TableHead>
           <TableHead>Part Number</TableHead>
           <TableHead>Nome</TableHead>
           <TableHead>Aplicação</TableHead>
