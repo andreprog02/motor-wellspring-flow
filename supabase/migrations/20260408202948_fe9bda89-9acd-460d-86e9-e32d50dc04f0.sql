@@ -1,0 +1,1 @@
+ALTER TABLE public.equipments ADD COLUMN has_horimeter boolean NOT NULL DEFAULT true;

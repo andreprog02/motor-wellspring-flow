@@ -457,6 +457,7 @@ export type Database = {
           cylinders: number
           equipment_type: string
           fuel_type: string
+          has_horimeter: boolean
           id: string
           installation_date: string | null
           maintenance_plan_template_id: string | null
@@ -474,6 +475,7 @@ export type Database = {
           cylinders?: number
           equipment_type?: string
           fuel_type?: string
+          has_horimeter?: boolean
           id?: string
           installation_date?: string | null
           maintenance_plan_template_id?: string | null
@@ -491,6 +493,7 @@ export type Database = {
           cylinders?: number
           equipment_type?: string
           fuel_type?: string
+          has_horimeter?: boolean
           id?: string
           installation_date?: string | null
           maintenance_plan_template_id?: string | null
