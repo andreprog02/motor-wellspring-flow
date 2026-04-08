@@ -214,7 +214,7 @@ export function SubComponentEditDialog({
             )}
           </div>
 
-          {isOtherAsset && equipmentInstallationDate && (
+          {isOtherAsset && !!equipmentInstallationDate && (
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="use_equip_date"
