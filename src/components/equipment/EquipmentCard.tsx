@@ -409,6 +409,13 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EquipmentDocumentsDialog
+        open={docsOpen}
+        onOpenChange={setDocsOpen}
+        equipmentId={equipment.id}
+        equipmentName={equipment.name}
+      />
     </>
   );
 }
