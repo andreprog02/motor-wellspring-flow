@@ -1448,10 +1448,12 @@ export default function EquipmentDetailPage() {
                             </Badge>
                           </div>
                           <div className="text-xs text-muted-foreground space-y-1 mb-2">
-                            <div className="flex justify-between">
-                              <span>{group.type === 'starter_motor' ? 'Arranques totais:' : 'Horas em operação:'}</span>
-                              <span className="font-mono">{group.type === 'starter_motor' ? fmtNum(equipment.total_starts - comp.horimeter) + ' arr.' : fmtNum(equipment.total_horimeter - comp.horimeter) + 'h'}</span>
-                            </div>
+                            {(group.type === 'starter_motor' || comp.use_equipment_hours) && (
+                              <div className="flex justify-between">
+                                <span>{group.type === 'starter_motor' ? 'Arranques totais:' : 'Horas em operação:'}</span>
+                                <span className="font-mono">{group.type === 'starter_motor' ? fmtNum(equipment.total_starts - comp.horimeter) + ' arr.' : fmtNum(equipment.total_horimeter - comp.horimeter) + 'h'}</span>
+                              </div>
+                            )}
                             {comp.installation_date && (
                               <div className="flex justify-between">
                                 <span>Data instalação:</span>
