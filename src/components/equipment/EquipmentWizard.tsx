@@ -34,6 +34,7 @@ interface BasicData {
   model_id: string;
   maintenance_plan_template_id: string;
   equipment_type: string;
+  has_horimeter: boolean;
 }
 
 interface SubComponentData {
