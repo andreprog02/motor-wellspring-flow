@@ -1120,6 +1120,7 @@ export default function EquipmentDetailPage() {
                         onClick={() => setEditSubComp({
                           open: true, componentId: comp.id, componentType: comp.component_type,
                           horimeter: comp.horimeter, installationDate: comp.installation_date ?? null,
+                          useEquipmentHours: comp.use_equipment_hours,
                           plans: airFilterPlansAll.filter(p => p.component_id === comp.id),
                         })}>
                           <CardContent className="p-3">
