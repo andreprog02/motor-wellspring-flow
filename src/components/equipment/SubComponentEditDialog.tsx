@@ -186,6 +186,20 @@ export function SubComponentEditDialog({
               />
             </div>
           )}
+
+          {isOtherAsset && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="use_equipment_hours"
+                checked={useEquipmentHours}
+                onCheckedChange={(checked) => setUseEquipmentHours(!!checked)}
+              />
+              <Label htmlFor="use_equipment_hours" className="text-sm font-normal cursor-pointer">
+                Exibir horas em operação no card
+              </Label>
+            </div>
+          )}
+
           <div>
             <Label>{isStarter ? 'Arranques na Instalação' : 'Horímetro na Instalação'}</Label>
             <Input
@@ -200,6 +214,25 @@ export function SubComponentEditDialog({
             )}
           </div>
 
+          {isOtherAsset && equipmentInstallationDate && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="use_equip_date"
+                checked={useEquipDate}
+                onCheckedChange={(checked) => {
+                  const use = !!checked;
+                  setUseEquipDate(use);
+                  if (use && equipmentInstallationDate) {
+                    setInstallDate(new Date(equipmentInstallationDate + 'T12:00:00'));
+                  }
+                }}
+              />
+              <Label htmlFor="use_equip_date" className="text-sm font-normal cursor-pointer">
+                Usar mesma data de instalação do equipamento
+              </Label>
+            </div>
+          )}
+
           <div>
             <Label>Data da Instalação</Label>
             <Popover>
@@ -210,6 +243,7 @@ export function SubComponentEditDialog({
                     "w-full justify-start text-left font-normal",
                     !installDate && "text-muted-foreground"
                   )}
+                  disabled={useEquipDate}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {installDate ? format(installDate, "dd/MM/yyyy") : "Selecionar data"}
