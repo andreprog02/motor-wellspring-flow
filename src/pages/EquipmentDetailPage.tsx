@@ -594,15 +594,17 @@ export default function EquipmentDetailPage() {
 
         {/* Info Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <p className="text-xs text-muted-foreground">Horímetro</p>
-                <p className="font-bold">{fmtNum(equipment.total_horimeter)}h</p>
-              </div>
-            </CardContent>
-          </Card>
+          {equipment.has_horimeter && (
+            <Card>
+              <CardContent className="p-4 flex items-center gap-2 text-sm">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Horímetro</p>
+                  <p className="font-bold">{fmtNum(equipment.total_horimeter)}h</p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {!isOtherAsset && (
             <Card>
               <CardContent className="p-4 flex items-center gap-2 text-sm">
