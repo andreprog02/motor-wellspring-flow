@@ -306,6 +306,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           manufacturer_id: basic.manufacturer_id || null,
           model_id: basic.model_id || null,
           maintenance_plan_template_id: null,
+          has_horimeter: basic.has_horimeter,
         },
         subComponents,
       });
