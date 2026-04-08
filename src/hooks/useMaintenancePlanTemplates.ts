@@ -162,7 +162,13 @@ export function useMaintenancePlanTemplates() {
   const CYLINDER_COMPONENT_TYPES = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
 
   const applyTemplateToEquipment = async (templateId: string, equipmentId: string, currentHorimeter: number) => {
-    const tasks = (templateTasks.data ?? []).filter(t => t.template_id === templateId);
+    // Always fetch fresh tasks from DB instead of using potentially stale cache
+    const { data: freshTasks, error: tasksError } = await (supabase as any)
+      .from('maintenance_plan_template_tasks')
+      .select('*')
+      .eq('template_id', templateId);
+    if (tasksError) throw tasksError;
+    const tasks = (freshTasks || []) as MaintenancePlanTemplateTask[];
     if (tasks.length === 0) return;
 
     // Fetch existing plans to preserve recorded maintenance data
