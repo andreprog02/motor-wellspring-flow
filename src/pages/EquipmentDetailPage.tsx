@@ -171,8 +171,9 @@ export default function EquipmentDetailPage() {
     componentType: string;
     horimeter: number;
     installationDate: string | null;
+    useEquipmentHours: boolean;
     plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null; trigger_type: string; last_execution_date: string | null }>;
-  }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null, plans: [] });
+  }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null, useEquipmentHours: true, plans: [] });
 
   const [addCompOpen, setAddCompOpen] = useState(false);
   const [newCompName, setNewCompName] = useState('');
