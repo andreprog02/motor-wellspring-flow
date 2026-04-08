@@ -171,8 +171,9 @@ export default function EquipmentDetailPage() {
     componentType: string;
     horimeter: number;
     installationDate: string | null;
+    useEquipmentHours: boolean;
     plans: Array<{ id: string; task: string; last_execution_value: number; interval_value: number; component_id: string | null; trigger_type: string; last_execution_date: string | null }>;
-  }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null, plans: [] });
+  }>({ open: false, componentId: '', componentType: '', horimeter: 0, installationDate: null, useEquipmentHours: true, plans: [] });
 
   const [addCompOpen, setAddCompOpen] = useState(false);
   const [newCompName, setNewCompName] = useState('');
@@ -1119,6 +1120,7 @@ export default function EquipmentDetailPage() {
                         onClick={() => setEditSubComp({
                           open: true, componentId: comp.id, componentType: comp.component_type,
                           horimeter: comp.horimeter, installationDate: comp.installation_date ?? null,
+                          useEquipmentHours: comp.use_equipment_hours,
                           plans: airFilterPlansAll.filter(p => p.component_id === comp.id),
                         })}>
                           <CardContent className="p-3">
@@ -1234,6 +1236,7 @@ export default function EquipmentDetailPage() {
                         onClick={() => setEditSubComp({
                           open: true, componentId: comp.id, componentType: comp.component_type,
                           horimeter: comp.horimeter, installationDate: comp.installation_date ?? null,
+                          useEquipmentHours: comp.use_equipment_hours,
                           plans: fuelFilterPlansAll.filter(p => p.component_id === comp.id),
                         })}>
                           <CardContent className="p-3">
@@ -1424,6 +1427,7 @@ export default function EquipmentDetailPage() {
                           componentType: comp.component_type,
                           horimeter: comp.horimeter,
                           installationDate: comp.installation_date ?? null,
+                          useEquipmentHours: comp.use_equipment_hours,
                           plans: group.plans.filter(p => p.component_id === comp.id),
                         })}
                       >
@@ -1542,6 +1546,8 @@ export default function EquipmentDetailPage() {
           equipmentTotalStarts={equipment.total_starts}
           plans={editSubComp.plans}
           isOtherAsset={isOtherAsset}
+          currentUseEquipmentHours={editSubComp.useEquipmentHours}
+          equipmentInstallationDate={equipment.installation_date ?? null}
         />
       )}
 

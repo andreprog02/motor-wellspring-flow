@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -36,6 +37,8 @@ interface Props {
   equipmentTotalStarts: number;
   plans: MaintenancePlan[];
   isOtherAsset?: boolean;
+  currentUseEquipmentHours?: boolean;
+  equipmentInstallationDate?: string | null;
 }
 
 const typeLabels: Record<string, string> = {
@@ -67,11 +70,13 @@ const triggerUnits: Record<string, string> = {
 export function SubComponentEditDialog({
   open, onOpenChange, componentId, componentType,
   currentHorimeter, currentInstallationDate, equipmentTotalStarts, plans,
-  isOtherAsset = false,
+  isOtherAsset = false, currentUseEquipmentHours = true, equipmentInstallationDate,
 }: Props) {
   const qc = useQueryClient();
   const [horimeter, setHorimeter] = useState(currentHorimeter);
   const [compName, setCompName] = useState(componentType);
+  const [useEquipmentHours, setUseEquipmentHours] = useState(currentUseEquipmentHours);
+  const [useEquipDate, setUseEquipDate] = useState(false);
   const [installDate, setInstallDate] = useState<Date | undefined>(
     currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined
   );
@@ -84,6 +89,11 @@ export function SubComponentEditDialog({
     if (open) {
       setHorimeter(currentHorimeter);
       setCompName(componentType);
+      setUseEquipmentHours(currentUseEquipmentHours);
+      const equipDateStr = equipmentInstallationDate;
+      const compDateStr = currentInstallationDate;
+      const sameDate = !!(equipDateStr && compDateStr && equipDateStr === compDateStr);
+      setUseEquipDate(sameDate);
       setInstallDate(currentInstallationDate ? new Date(currentInstallationDate + 'T12:00:00') : undefined);
       const vals: Record<string, number> = {};
       const dates: Record<string, Date | undefined> = {};
@@ -97,7 +107,7 @@ export function SubComponentEditDialog({
       setPlanDates(dates);
       setPlanTriggerTypes(triggers);
     }
-  }, [open, currentHorimeter, currentInstallationDate, plans, componentType]);
+  }, [open, currentHorimeter, currentInstallationDate, plans, componentType, currentUseEquipmentHours, equipmentInstallationDate]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -105,6 +115,7 @@ export function SubComponentEditDialog({
       const updateData: any = {
         horimeter,
         installation_date: installDate ? format(installDate, 'yyyy-MM-dd') : null,
+        use_equipment_hours: useEquipmentHours,
       };
       if (isOtherAsset && compName.trim() && compName.trim() !== componentType) {
         updateData.component_type = compName.trim();
@@ -175,6 +186,20 @@ export function SubComponentEditDialog({
               />
             </div>
           )}
+
+          {isOtherAsset && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="use_equipment_hours"
+                checked={useEquipmentHours}
+                onCheckedChange={(checked) => setUseEquipmentHours(!!checked)}
+              />
+              <Label htmlFor="use_equipment_hours" className="text-sm font-normal cursor-pointer">
+                Exibir horas em operação no card
+              </Label>
+            </div>
+          )}
+
           <div>
             <Label>{isStarter ? 'Arranques na Instalação' : 'Horímetro na Instalação'}</Label>
             <Input
@@ -189,6 +214,25 @@ export function SubComponentEditDialog({
             )}
           </div>
 
+          {isOtherAsset && equipmentInstallationDate && (
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="use_equip_date"
+                checked={useEquipDate}
+                onCheckedChange={(checked) => {
+                  const use = !!checked;
+                  setUseEquipDate(use);
+                  if (use && equipmentInstallationDate) {
+                    setInstallDate(new Date(equipmentInstallationDate + 'T12:00:00'));
+                  }
+                }}
+              />
+              <Label htmlFor="use_equip_date" className="text-sm font-normal cursor-pointer">
+                Usar mesma data de instalação do equipamento
+              </Label>
+            </div>
+          )}
+
           <div>
             <Label>Data da Instalação</Label>
             <Popover>
@@ -199,6 +243,7 @@ export function SubComponentEditDialog({
                     "w-full justify-start text-left font-normal",
                     !installDate && "text-muted-foreground"
                   )}
+                  disabled={useEquipDate}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {installDate ? format(installDate, "dd/MM/yyyy") : "Selecionar data"}
