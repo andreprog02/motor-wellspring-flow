@@ -447,7 +447,11 @@ export default function MaintenancePlansPage() {
               const manuf = manufacturers.find(m => m.id === manufId);
               const manufName = manuf?.name ?? 'Fabricante desconhecido';
               const isManufExpanded = expandedManufs.has(manufId);
-              const modelIds = Object.keys(tree.grouped[manufId]);
+               const modelIds = Object.keys(tree.grouped[manufId]).sort((a, b) => {
+                    const nameA = models.find(m => m.id === a)?.name ?? '';
+                    const nameB = models.find(m => m.id === b)?.name ?? '';
+                    return nameA.localeCompare(nameB);
+                  });
 
               return (
                 <Card key={manufId}>
