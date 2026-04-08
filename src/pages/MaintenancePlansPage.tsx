@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FileText, Factory, Box, FolderOpen, Folder, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, FileText, Factory, Box, Folder, CheckCircle2, AlertTriangle, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const COMPONENT_TYPES = [
