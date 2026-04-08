@@ -171,6 +171,7 @@ export default function MaintenancePlansPage() {
 
   // Task dialog
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<MaintenancePlanTemplateTask | null>(null);
   const [taskTemplateId, setTaskTemplateId] = useState('');
   const [taskComponentType, setTaskComponentType] = useState('');
   const [taskCustomType, setTaskCustomType] = useState('');
