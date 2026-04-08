@@ -23,15 +23,21 @@ interface Props {
 
 export function EquipmentCard({ equipment, oilTypes }: Props) {
   const navigate = useNavigate();
-  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery, addOilType, fuelTypes } = useEquipmentStore();
+  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery, addOilType, fuelTypes, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel } = useEquipmentStore();
   const fuels = fuelTypes.data || [];
   const fuelLabels = fuels.reduce((acc, f) => { acc[f.slug] = f.name; return acc; }, {} as Record<string, string>);
   const allOilTypes = oilTypesQuery.data || oilTypes;
+  const allManufacturers = (componentManufacturers.data || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  const allModels = componentModels.data || [];
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [oilComboOpen, setOilComboOpen] = useState(false);
   const [oilSearch, setOilSearch] = useState('');
+  const [mfrComboOpen, setMfrComboOpen] = useState(false);
+  const [mfrSearch, setMfrSearch] = useState('');
+  const [modelComboOpen, setModelComboOpen] = useState(false);
+  const [modelSearch, setModelSearch] = useState('');
   const [quickEditOpen, setQuickEditOpen] = useState(false);
   const [quickHorimeter, setQuickHorimeter] = useState(equipment.total_horimeter);
   const [quickStarts, setQuickStarts] = useState(equipment.total_starts);
@@ -44,6 +50,8 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
     fuel_type: equipment.fuel_type,
     installation_date: equipment.installation_date || '',
     oil_type_id: equipment.oil_type_id || '',
+    manufacturer_id: equipment.manufacturer_id || '',
+    model_id: equipment.model_id || '',
   });
 
   const oilName = oilTypes.find(o => o.id === equipment.oil_type_id)?.name;
