@@ -15,8 +15,8 @@ const Dashboard = () => {
   const registeredEquipments = equipments.data || [];
   const oils = oilTypes.data || [];
 
-  const generators = registeredEquipments.filter(eq => eq.equipment_type === 'gerador');
-  const otherAssets = registeredEquipments.filter(eq => eq.equipment_type !== 'gerador');
+  const generators = registeredEquipments.filter(eq => eq.equipment_type === 'gerador').sort((a, b) => a.name.localeCompare(b.name));
+  const otherAssets = registeredEquipments.filter(eq => eq.equipment_type !== 'gerador').sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <AppLayout>
