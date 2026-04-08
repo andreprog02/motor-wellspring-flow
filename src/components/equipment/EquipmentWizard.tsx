@@ -480,10 +480,21 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           </>
         )}
 
-        <div>
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Horímetro (horas)</Label>
-          <Input className="mt-1" type="number" value={basic.total_horimeter} onChange={e => setBasic(p => ({ ...p, total_horimeter: Number(e.target.value) }))} />
+        <div className="col-span-2 flex items-center gap-2 mt-1">
+          <Checkbox
+            id="has_horimeter"
+            checked={basic.has_horimeter}
+            onCheckedChange={(checked) => setBasic(p => ({ ...p, has_horimeter: !!checked, total_horimeter: checked ? p.total_horimeter : 0 }))}
+          />
+          <Label htmlFor="has_horimeter" className="text-sm cursor-pointer">Possui contador de horas</Label>
         </div>
+
+        {basic.has_horimeter && (
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Horímetro (horas)</Label>
+            <Input className="mt-1" type="number" value={basic.total_horimeter} onChange={e => setBasic(p => ({ ...p, total_horimeter: Number(e.target.value) }))} />
+          </div>
+        )}
 
         {!isOtherAsset && (
           <>
