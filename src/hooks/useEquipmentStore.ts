@@ -16,6 +16,7 @@ export interface Equipment {
   manufacturer_id: string | null;
   model_id: string | null;
   maintenance_plan_template_id: string | null;
+  has_horimeter: boolean;
   created_at: string;
 }
 

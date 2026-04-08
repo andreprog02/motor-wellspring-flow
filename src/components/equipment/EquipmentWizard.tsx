@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useEquipmentStore, EquipmentSubComponent } from '@/hooks/useEquipmentStore';
@@ -33,6 +34,7 @@ interface BasicData {
   model_id: string;
   maintenance_plan_template_id: string;
   equipment_type: string;
+  has_horimeter: boolean;
 }
 
 interface SubComponentData {
@@ -90,7 +92,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
 
   const [step, setStep] = useState(0);
   const [basic, setBasic] = useState<BasicData>({
-    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: '', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador',
+    name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: '', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador', has_horimeter: true,
   });
 
   const emptySubComp = (): SubComponentData => ({
@@ -134,7 +136,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
 
   const reset = () => {
     setStep(0);
-    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: '', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador' });
+    setBasic({ name: '', serial_number: '', total_horimeter: 0, total_starts: 0, cylinders: 0, fuel_type: '', installation_date: undefined, oil_type_id: '', manufacturer_id: '', model_id: '', maintenance_plan_template_id: '', equipment_type: initialType || 'gerador', has_horimeter: true });
     setTurbine(emptySubComp()); setIntercooler(emptySubComp()); setOilExchanger(emptySubComp());
     setBlowby(emptyMultiComp()); setDamper(emptyMultiComp()); setStarterMotor(emptyMultiComp()); setBattery(emptyMultiComp()); setAirFilter(emptyMultiComp()); setFuelFilter(emptyMultiComp());
     setCustomComponents([]);
@@ -304,6 +306,7 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           manufacturer_id: basic.manufacturer_id || null,
           model_id: basic.model_id || null,
           maintenance_plan_template_id: null,
+          has_horimeter: basic.has_horimeter,
         },
         subComponents,
       });
@@ -478,10 +481,21 @@ export function EquipmentWizard({ open, onOpenChange, initialType }: Props) {
           </>
         )}
 
-        <div>
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Horímetro (horas)</Label>
-          <Input className="mt-1" type="number" value={basic.total_horimeter} onChange={e => setBasic(p => ({ ...p, total_horimeter: Number(e.target.value) }))} />
+        <div className="col-span-2 flex items-center gap-2 mt-1">
+          <Checkbox
+            id="has_horimeter"
+            checked={basic.has_horimeter}
+            onCheckedChange={(checked) => setBasic(p => ({ ...p, has_horimeter: !!checked, total_horimeter: checked ? p.total_horimeter : 0 }))}
+          />
+          <Label htmlFor="has_horimeter" className="text-sm cursor-pointer">Possui contador de horas</Label>
         </div>
+
+        {basic.has_horimeter && (
+          <div>
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Horímetro (horas)</Label>
+            <Input className="mt-1" type="number" value={basic.total_horimeter} onChange={e => setBasic(p => ({ ...p, total_horimeter: Number(e.target.value) }))} />
+          </div>
+        )}
 
         {!isOtherAsset && (
           <>
