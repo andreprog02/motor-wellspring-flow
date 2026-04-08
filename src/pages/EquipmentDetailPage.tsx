@@ -1103,7 +1103,7 @@ export default function EquipmentDetailPage() {
                         const st = getStatus(usage, plan.interval_value);
                         const pct = getPercent(usage, plan.interval_value);
                         return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate: plan.last_execution_date };
-                      });
+                      }).sort((a, b) => a.task.localeCompare(b.task));
                       const filteredStatuses = activeFilter === '_all' ? taskStatuses : taskStatuses.filter(ts => ts.task === activeFilter);
                       const overallStatus = filteredStatuses.some(t => t.status === 'critical') ? 'critical'
                         : filteredStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
