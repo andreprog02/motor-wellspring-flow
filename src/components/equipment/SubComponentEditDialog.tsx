@@ -214,7 +214,7 @@ export function SubComponentEditDialog({
             )}
           </div>
 
-          {isOtherAsset && !!equipmentInstallationDate && (
+          {isOtherAsset && (
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="use_equip_date"
@@ -226,9 +226,11 @@ export function SubComponentEditDialog({
                     setInstallDate(new Date(equipmentInstallationDate + 'T12:00:00'));
                   }
                 }}
+                disabled={!equipmentInstallationDate}
               />
-              <Label htmlFor="use_equip_date" className="text-sm font-normal cursor-pointer">
+              <Label htmlFor="use_equip_date" className={cn("text-sm font-normal cursor-pointer", !equipmentInstallationDate && "text-muted-foreground")}>
                 Usar mesma data de instalação do equipamento
+                {!equipmentInstallationDate && <span className="text-xs ml-1">(equipamento sem data cadastrada)</span>}
               </Label>
             </div>
           )}
