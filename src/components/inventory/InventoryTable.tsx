@@ -19,9 +19,6 @@ export function InventoryTable({ items, onEdit, onDelete, onQuantityChange, empt
     <Table>
       <TableHeader>
         <TableRow>
-          <TableHead>Código</TableHead>
-          <TableHead>Cód. Alt. 01</TableHead>
-          <TableHead>Cód. Alt. 02</TableHead>
           <TableHead>Part Number</TableHead>
           <TableHead>Nome</TableHead>
           <TableHead>Aplicação</TableHead>
@@ -35,9 +32,6 @@ export function InventoryTable({ items, onEdit, onDelete, onQuantityChange, empt
       <TableBody>
         {items.map(item => (
           <TableRow key={item.id}>
-            <TableCell className="font-mono text-sm">{item.codigo || '—'}</TableCell>
-            <TableCell className="font-mono text-sm">{item.codigo_alt_01 || '—'}</TableCell>
-            <TableCell className="font-mono text-sm">{item.codigo_alt_02 || '—'}</TableCell>
             <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
             <TableCell>
               <div className="flex items-center gap-2">
@@ -83,7 +77,7 @@ export function InventoryTable({ items, onEdit, onDelete, onQuantityChange, empt
         ))}
         {items.length === 0 && (
           <TableRow>
-            <TableCell colSpan={showTipo ? 11 : 10} className="text-center py-8 text-muted-foreground">
+            <TableCell colSpan={showTipo ? 8 : 7} className="text-center py-8 text-muted-foreground">
               {emptyMessage}
             </TableCell>
           </TableRow>

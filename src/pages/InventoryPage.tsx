@@ -15,11 +15,8 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 
-type SortField = 'codigo' | 'codigo_alt_01' | 'codigo_alt_02' | 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'quantity' | 'location_name';
+type SortField = 'part_number' | 'name' | 'aplicacao' | 'tipo' | 'gerador' | 'quantity' | 'location_name';
 const sortOptions: { value: SortField; label: string }[] = [
-  { value: 'codigo', label: 'Código' },
-  { value: 'codigo_alt_01', label: 'Cód. Alt. 01' },
-  { value: 'codigo_alt_02', label: 'Cód. Alt. 02' },
   { value: 'part_number', label: 'Part Number' },
   { value: 'name', label: 'Nome' },
   { value: 'aplicacao', label: 'Aplicação' },
