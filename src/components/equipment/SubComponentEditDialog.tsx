@@ -115,6 +115,7 @@ export function SubComponentEditDialog({
       const updateData: any = {
         horimeter,
         installation_date: installDate ? format(installDate, 'yyyy-MM-dd') : null,
+        use_equipment_hours: useEquipmentHours,
       };
       if (isOtherAsset && compName.trim() && compName.trim() !== componentType) {
         updateData.component_type = compName.trim();
