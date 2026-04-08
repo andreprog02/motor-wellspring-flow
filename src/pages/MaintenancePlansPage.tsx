@@ -253,12 +253,24 @@ export default function MaintenancePlansPage() {
   };
 
   const openAddTask = (templateId: string) => {
+    setEditingTask(null);
     setTaskTemplateId(templateId);
     setTaskComponentType('');
     setTaskCustomType('');
     setTaskService('');
     setTaskTrigger('hours');
     setTaskInterval('');
+    setTaskDialogOpen(true);
+  };
+
+  const openEditTask = (task: MaintenancePlanTemplateTask) => {
+    setEditingTask(task);
+    setTaskTemplateId(task.template_id);
+    setTaskComponentType(COMPONENT_TYPES.find(c => c.value === task.component_type) ? task.component_type : 'custom');
+    setTaskCustomType(COMPONENT_TYPES.find(c => c.value === task.component_type) ? '' : task.component_type);
+    setTaskService(task.task);
+    setTaskTrigger(task.trigger_type);
+    setTaskInterval(String(task.interval_value));
     setTaskDialogOpen(true);
   };
 
