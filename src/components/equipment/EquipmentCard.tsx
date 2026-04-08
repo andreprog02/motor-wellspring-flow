@@ -40,6 +40,7 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
   const [modelComboOpen, setModelComboOpen] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
   const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
   const [quickHorimeter, setQuickHorimeter] = useState(equipment.total_horimeter);
   const [quickStarts, setQuickStarts] = useState(equipment.total_starts);
   const [editData, setEditData] = useState({
