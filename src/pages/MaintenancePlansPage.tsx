@@ -547,7 +547,7 @@ export default function MaintenancePlansPage() {
         <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Adicionar Tarefa ao Plano</DialogTitle>
+              <DialogTitle>{editingTask ? 'Editar Tarefa' : 'Adicionar Tarefa ao Plano'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
