@@ -471,7 +471,8 @@ export default function MaintenancePlansPage() {
                           <div key={modelId} className="border rounded-lg ml-4">
                             <div className="p-2.5 cursor-pointer" onClick={() => toggle(expandedModels, modelId, setExpandedModels)}>
                               <div className="flex items-center gap-2">
-                                {isModelExpanded ? <FolderOpen className="h-4 w-4 text-primary" /> : <Folder className="h-4 w-4 text-primary" />}
+                                {isModelExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                                <Folder className="h-4 w-4 text-primary" />
                                 <span className="font-medium text-sm">{modelName}</span>
                                 <Badge variant="secondary" className="ml-2">{plansForModel.length} {plansForModel.length === 1 ? 'plano' : 'planos'}</Badge>
                               </div>
