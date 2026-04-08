@@ -598,11 +598,7 @@ export default function MaintenancePlansPage() {
                   if (generatorEquipments.length > 0) {
                     ['oil', 'air_filter', 'fuel_filter', 'starter_motor', 'battery', 'damper', 'intercooler', 'blowby', 'oil_exchanger', 'turbine'].forEach(t => componentTypes.add(t));
                   }
-                  // For non-generator equipments, add oil as it's commonly relevant
-                  const otherEquipments = modelEquipments.filter(e => e.equipment_type !== 'gerador');
-                  if (otherEquipments.length > 0) {
-                    componentTypes.add('oil');
-                  }
+                  // Non-generator equipments: no oil added automatically
                   
                   // Map to label options
                   const standardLabels: Record<string, string> = {
