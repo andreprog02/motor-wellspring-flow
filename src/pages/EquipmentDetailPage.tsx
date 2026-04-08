@@ -429,10 +429,11 @@ export default function EquipmentDetailPage() {
       const baseline = plan.last_execution_value;
       return equipment.total_starts - baseline;
     }
-    // hours
-    const baseline = compInstallValue !== undefined
-      ? Math.max(compInstallValue, plan.last_execution_value)
-      : plan.last_execution_value;
+    // hours — last_execution_value (maintenance hour) is independent;
+    // only fall back to compInstallValue when no maintenance was ever recorded
+    const baseline = plan.last_execution_value > 0
+      ? plan.last_execution_value
+      : (compInstallValue ?? 0);
     return equipment.total_horimeter - baseline;
   };
 
