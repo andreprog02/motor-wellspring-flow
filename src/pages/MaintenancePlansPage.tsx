@@ -584,10 +584,14 @@ export default function MaintenancePlansPage() {
                     }
                   }
                   
-                  // Also add standard non-cylinder types that generators always have
+                  // Also add standard types that generators always have
                   const generatorEquipments = modelEquipments.filter(e => e.equipment_type === 'gerador');
                   if (generatorEquipments.length > 0) {
-                    // Add oil as it's always relevant for generators
+                    ['oil', 'air_filter', 'fuel_filter', 'starter_motor', 'battery', 'damper', 'intercooler', 'blowby', 'oil_exchanger', 'turbine'].forEach(t => componentTypes.add(t));
+                  }
+                  // For non-generator equipments, add oil as it's commonly relevant
+                  const otherEquipments = modelEquipments.filter(e => e.equipment_type !== 'gerador');
+                  if (otherEquipments.length > 0) {
                     componentTypes.add('oil');
                   }
                   
