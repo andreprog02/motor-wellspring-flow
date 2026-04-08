@@ -73,29 +73,90 @@ export function useMaintenancePlanTemplates() {
     onSuccess: invalidate,
   });
 
+  const syncAfterTaskChange = async (templateId: string) => {
+    // Get all equipments linked to this template
+    const { data: linkedEquipments } = await (supabase as any)
+      .from('equipments')
+      .select('id, total_horimeter')
+      .eq('maintenance_plan_template_id', templateId);
+    if (!linkedEquipments || linkedEquipments.length === 0) return;
+
+    for (const eq of linkedEquipments) {
+      await applyTemplateToEquipment(templateId, eq.id, eq.total_horimeter);
+    }
+    qc.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
+    qc.invalidateQueries({ queryKey: ['component_maintenance_plans_all'] });
+  };
+
   const addTask = useMutation({
     mutationFn: async (params: Omit<MaintenancePlanTemplateTask, 'id' | 'created_at'>) => {
       const { data, error } = await (supabase as any).from('maintenance_plan_template_tasks').insert({ ...params, tenant_id: tenantId }).select().single();
       if (error) throw error;
       return data as MaintenancePlanTemplateTask;
     },
-    onSuccess: invalidate,
+    onSuccess: async (data) => {
+      invalidate();
+      await syncAfterTaskChange(data.template_id);
+    },
   });
 
   const updateTask = useMutation({
-    mutationFn: async (params: { id: string; updates: Partial<Omit<MaintenancePlanTemplateTask, 'id' | 'created_at'>> }) => {
+    mutationFn: async (params: { id: string; template_id: string; updates: Partial<Omit<MaintenancePlanTemplateTask, 'id' | 'created_at'>> }) => {
       const { error } = await (supabase as any).from('maintenance_plan_template_tasks').update(params.updates).eq('id', params.id);
       if (error) throw error;
+      return params;
     },
-    onSuccess: invalidate,
+    onSuccess: async (params) => {
+      invalidate();
+      // Update matching component_maintenance_plans for all linked equipments
+      const { data: linkedEquipments } = await (supabase as any)
+        .from('equipments')
+        .select('id')
+        .eq('maintenance_plan_template_id', params.template_id);
+      if (linkedEquipments && linkedEquipments.length > 0) {
+        // Fetch old task data before update to find the right plans
+        // Since the update already happened, we use the new values
+        const updates = params.updates;
+        // We need to update all plans that match the old component_type + task for these equipments
+        for (const eq of linkedEquipments) {
+          const updateFields: Record<string, any> = {};
+          if (updates.component_type !== undefined) updateFields.component_type = updates.component_type;
+          if (updates.task !== undefined) updateFields.task = updates.task;
+          if (updates.trigger_type !== undefined) updateFields.trigger_type = updates.trigger_type;
+          if (updates.interval_value !== undefined) updateFields.interval_value = updates.interval_value;
+          // We can't reliably match old values after update, so re-apply template
+        }
+        await syncAfterTaskChange(params.template_id);
+      }
+    },
   });
 
   const deleteTask = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await (supabase as any).from('maintenance_plan_template_tasks').delete().eq('id', id);
+    mutationFn: async (params: { id: string; template_id: string; component_type: string; task: string }) => {
+      const { error } = await (supabase as any).from('maintenance_plan_template_tasks').delete().eq('id', params.id);
       if (error) throw error;
+      return params;
     },
-    onSuccess: invalidate,
+    onSuccess: async (params) => {
+      invalidate();
+      // Delete matching component_maintenance_plans from all linked equipments
+      const { data: linkedEquipments } = await (supabase as any)
+        .from('equipments')
+        .select('id')
+        .eq('maintenance_plan_template_id', params.template_id);
+      if (linkedEquipments && linkedEquipments.length > 0) {
+        for (const eq of linkedEquipments) {
+          await (supabase as any)
+            .from('component_maintenance_plans')
+            .delete()
+            .eq('equipment_id', eq.id)
+            .eq('component_type', params.component_type)
+            .eq('task', params.task);
+        }
+        qc.invalidateQueries({ queryKey: ['component_maintenance_plans'] });
+        qc.invalidateQueries({ queryKey: ['component_maintenance_plans_all'] });
+      }
+    },
   });
 
   const CYLINDER_COMPONENT_TYPES = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
