@@ -55,7 +55,7 @@ const TRIGGER_TYPES = [
 ];
 
 export default function MaintenancePlansPage() {
-  const { templates, templateTasks, addTemplate, updateTemplate, deleteTemplate, addTask, deleteTask } = useMaintenancePlanTemplates();
+  const { templates, templateTasks, addTemplate, updateTemplate, deleteTemplate, addTask, updateTask, deleteTask } = useMaintenancePlanTemplates();
   const { componentManufacturers, componentModels, equipments } = useEquipmentStore();
   const { toast } = useToast();
 
@@ -171,6 +171,7 @@ export default function MaintenancePlansPage() {
 
   // Task dialog
   const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<MaintenancePlanTemplateTask | null>(null);
   const [taskTemplateId, setTaskTemplateId] = useState('');
   const [taskComponentType, setTaskComponentType] = useState('');
   const [taskCustomType, setTaskCustomType] = useState('');
@@ -252,6 +253,7 @@ export default function MaintenancePlansPage() {
   };
 
   const openAddTask = (templateId: string) => {
+    setEditingTask(null);
     setTaskTemplateId(templateId);
     setTaskComponentType('');
     setTaskCustomType('');
@@ -261,18 +263,41 @@ export default function MaintenancePlansPage() {
     setTaskDialogOpen(true);
   };
 
+  const openEditTask = (task: MaintenancePlanTemplateTask) => {
+    setEditingTask(task);
+    setTaskTemplateId(task.template_id);
+    setTaskComponentType(COMPONENT_TYPES.find(c => c.value === task.component_type) ? task.component_type : 'custom');
+    setTaskCustomType(COMPONENT_TYPES.find(c => c.value === task.component_type) ? '' : task.component_type);
+    setTaskService(task.task);
+    setTaskTrigger(task.trigger_type);
+    setTaskInterval(String(task.interval_value));
+    setTaskDialogOpen(true);
+  };
+
   const handleSaveTask = async () => {
     const finalType = taskComponentType === 'custom' ? taskCustomType : taskComponentType;
     if (!finalType || !taskService || !taskInterval) { toast({ title: 'Preencha todos os campos', variant: 'destructive' }); return; }
     try {
-      await addTask.mutateAsync({ template_id: taskTemplateId, component_type: finalType, task: taskService, trigger_type: taskTrigger, interval_value: Number(taskInterval) });
-      toast({ title: 'Tarefa adicionada' });
+      if (editingTask) {
+        await updateTask.mutateAsync({
+          id: editingTask.id,
+          template_id: taskTemplateId,
+          updates: { component_type: finalType, task: taskService, trigger_type: taskTrigger, interval_value: Number(taskInterval) },
+        });
+        toast({ title: 'Tarefa atualizada e sincronizada' });
+      } else {
+        await addTask.mutateAsync({ template_id: taskTemplateId, component_type: finalType, task: taskService, trigger_type: taskTrigger, interval_value: Number(taskInterval) });
+        toast({ title: 'Tarefa adicionada e sincronizada' });
+      }
       setTaskDialogOpen(false);
     } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
   };
 
-  const handleDeleteTask = async (id: string) => {
-    try { await deleteTask.mutateAsync(id); toast({ title: 'Tarefa removida' }); } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
+  const handleDeleteTask = async (task: MaintenancePlanTemplateTask) => {
+    try {
+      await deleteTask.mutateAsync({ id: task.id, template_id: task.template_id, component_type: task.component_type, task: task.task });
+      toast({ title: 'Tarefa removida e sincronizada' });
+    } catch (err: any) { toast({ title: 'Erro', description: err.message, variant: 'destructive' }); }
   };
 
   const filteredDialogModels = models.filter(m => m.manufacturer_id === templateManufId);
@@ -370,7 +395,10 @@ export default function MaintenancePlansPage() {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTask(task.id)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                          <div className="flex gap-0.5">
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditTask(task)}><Pencil className="h-3.5 w-3.5" /></Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteTask(task)}><Trash2 className="h-3.5 w-3.5 text-destructive" /></Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -519,7 +547,7 @@ export default function MaintenancePlansPage() {
         <Dialog open={taskDialogOpen} onOpenChange={setTaskDialogOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Adicionar Tarefa ao Plano</DialogTitle>
+              <DialogTitle>{editingTask ? 'Editar Tarefa' : 'Adicionar Tarefa ao Plano'}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div className="space-y-2">
@@ -616,7 +644,7 @@ export default function MaintenancePlansPage() {
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={() => setTaskDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleSaveTask}>Adicionar</Button>
+                <Button onClick={handleSaveTask}>{editingTask ? 'Salvar' : 'Adicionar'}</Button>
               </div>
             </div>
           </DialogContent>
