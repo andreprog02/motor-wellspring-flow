@@ -55,7 +55,7 @@ const TRIGGER_TYPES = [
 ];
 
 export default function MaintenancePlansPage() {
-  const { templates, templateTasks, addTemplate, updateTemplate, deleteTemplate, addTask, deleteTask } = useMaintenancePlanTemplates();
+  const { templates, templateTasks, addTemplate, updateTemplate, deleteTemplate, addTask, updateTask, deleteTask } = useMaintenancePlanTemplates();
   const { componentManufacturers, componentModels, equipments } = useEquipmentStore();
   const { toast } = useToast();
 
