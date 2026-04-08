@@ -11,7 +11,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Equipment, OilType, useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight, Check, ChevronsUpDown, Factory } from 'lucide-react';
+import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight, Check, ChevronsUpDown, Factory, FileText } from 'lucide-react';
+import { EquipmentDocumentsDialog } from './EquipmentDocumentsDialog';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,7 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
   const [modelComboOpen, setModelComboOpen] = useState(false);
   const [modelSearch, setModelSearch] = useState('');
   const [quickEditOpen, setQuickEditOpen] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
   const [quickHorimeter, setQuickHorimeter] = useState(equipment.total_horimeter);
   const [quickStarts, setQuickStarts] = useState(equipment.total_starts);
   const [editData, setEditData] = useState({
@@ -149,12 +151,12 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
             )}
           </div>
 
-          {equipment.equipment_type !== 'outro' && (
-            <div className="mt-3 pt-2 border-t">
+          <div className="mt-3 pt-2 border-t flex gap-2">
+            {equipment.equipment_type !== 'outro' && (
               <Button
                 size="sm"
                 variant="outline"
-                className="w-full h-7 text-xs"
+                className="flex-1 h-7 text-xs"
                 onClick={(e) => {
                   e.stopPropagation();
                   setQuickHorimeter(equipment.total_horimeter);
@@ -165,8 +167,20 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
                 <Clock className="h-3 w-3 mr-1" />
                 Atualizar Contadores
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              size="sm"
+              variant="outline"
+              className={cn("h-7 text-xs", equipment.equipment_type === 'outro' ? 'flex-1' : '')}
+              onClick={(e) => {
+                e.stopPropagation();
+                setDocsOpen(true);
+              }}
+            >
+              <FileText className="h-3 w-3 mr-1" />
+              Documentação
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -395,6 +409,13 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EquipmentDocumentsDialog
+        open={docsOpen}
+        onOpenChange={setDocsOpen}
+        equipmentId={equipment.id}
+        equipmentName={equipment.name}
+      />
     </>
   );
 }

@@ -380,6 +380,54 @@ export type Database = {
           },
         ]
       }
+      equipment_documents: {
+        Row: {
+          created_at: string
+          equipment_id: string
+          file_path: string
+          file_size: number
+          id: string
+          mime_type: string
+          name: string
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          equipment_id: string
+          file_path: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          name: string
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          equipment_id?: string
+          file_path?: string
+          file_size?: number
+          id?: string
+          mime_type?: string
+          name?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_documents_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "equipment_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       equipment_sub_components: {
         Row: {
           component_type: string
