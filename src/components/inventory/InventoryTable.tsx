@@ -77,7 +77,7 @@ export function InventoryTable({ items, onEdit, onDelete, onQuantityChange, empt
         ))}
         {items.length === 0 && (
           <TableRow>
-            <TableCell colSpan={showTipo ? 11 : 10} className="text-center py-8 text-muted-foreground">
+            <TableCell colSpan={showTipo ? 8 : 7} className="text-center py-8 text-muted-foreground">
               {emptyMessage}
             </TableCell>
           </TableRow>
