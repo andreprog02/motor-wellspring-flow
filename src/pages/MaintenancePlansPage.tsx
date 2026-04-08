@@ -644,7 +644,7 @@ export default function MaintenancePlansPage() {
               </div>
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="outline" onClick={() => setTaskDialogOpen(false)}>Cancelar</Button>
-                <Button onClick={handleSaveTask}>Adicionar</Button>
+                <Button onClick={handleSaveTask}>{editingTask ? 'Salvar' : 'Adicionar'}</Button>
               </div>
             </div>
           </DialogContent>
