@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Equipment, OilType, useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight, Check, ChevronsUpDown } from 'lucide-react';
+import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight, Check, ChevronsUpDown, Factory } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -23,15 +23,21 @@ interface Props {
 
 export function EquipmentCard({ equipment, oilTypes }: Props) {
   const navigate = useNavigate();
-  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery, addOilType, fuelTypes } = useEquipmentStore();
+  const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery, addOilType, fuelTypes, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel } = useEquipmentStore();
   const fuels = fuelTypes.data || [];
   const fuelLabels = fuels.reduce((acc, f) => { acc[f.slug] = f.name; return acc; }, {} as Record<string, string>);
   const allOilTypes = oilTypesQuery.data || oilTypes;
+  const allManufacturers = (componentManufacturers.data || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  const allModels = componentModels.data || [];
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [oilComboOpen, setOilComboOpen] = useState(false);
   const [oilSearch, setOilSearch] = useState('');
+  const [mfrComboOpen, setMfrComboOpen] = useState(false);
+  const [mfrSearch, setMfrSearch] = useState('');
+  const [modelComboOpen, setModelComboOpen] = useState(false);
+  const [modelSearch, setModelSearch] = useState('');
   const [quickEditOpen, setQuickEditOpen] = useState(false);
   const [quickHorimeter, setQuickHorimeter] = useState(equipment.total_horimeter);
   const [quickStarts, setQuickStarts] = useState(equipment.total_starts);
@@ -44,6 +50,8 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
     fuel_type: equipment.fuel_type,
     installation_date: equipment.installation_date || '',
     oil_type_id: equipment.oil_type_id || '',
+    manufacturer_id: equipment.manufacturer_id || '',
+    model_id: equipment.model_id || '',
   });
 
   const oilName = oilTypes.find(o => o.id === equipment.oil_type_id)?.name;
@@ -53,6 +61,8 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
       const updates: any = { ...editData };
       if (!updates.oil_type_id) updates.oil_type_id = null;
       if (!updates.installation_date) updates.installation_date = null;
+      if (!updates.manufacturer_id) updates.manufacturer_id = null;
+      if (!updates.model_id) updates.model_id = null;
       await updateEquipment.mutateAsync({ id: equipment.id, updates });
       toast.success('Equipamento atualizado!');
       setEditOpen(false);
@@ -170,6 +180,95 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
             <div><Label>Nome</Label><Input value={editData.name} onChange={e => setEditData(p => ({ ...p, name: e.target.value }))} /></div>
             <div><Label>Número de Série</Label><Input value={editData.serial_number} onChange={e => setEditData(p => ({ ...p, serial_number: e.target.value }))} /></div>
+            
+            {/* Fabricante */}
+            <div>
+              <Label>Fabricante</Label>
+              <Popover open={mfrComboOpen} onOpenChange={setMfrComboOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between">
+                    {editData.manufacturer_id ? allManufacturers.find(m => m.id === editData.manufacturer_id)?.name || 'Selecione...' : 'Selecione...'}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Pesquisar ou criar..." value={mfrSearch} onValueChange={setMfrSearch} />
+                    <CommandList>
+                      <CommandEmpty>
+                        {mfrSearch.trim() ? (
+                          <Button variant="ghost" className="w-full justify-start text-sm" onClick={async () => {
+                            try {
+                              const newMfr = await addComponentManufacturer.mutateAsync(mfrSearch.trim());
+                              setEditData(p => ({ ...p, manufacturer_id: newMfr.id, model_id: '' }));
+                              setMfrSearch('');
+                              setMfrComboOpen(false);
+                            } catch { toast.error('Erro ao criar fabricante'); }
+                          }}>+ Criar "{mfrSearch.trim()}"</Button>
+                        ) : 'Nenhum fabricante encontrado.'}
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {allManufacturers.map(m => (
+                          <CommandItem key={m.id} value={m.name} onSelect={() => {
+                            setEditData(p => ({ ...p, manufacturer_id: m.id, model_id: '' }));
+                            setMfrComboOpen(false);
+                          }}>
+                            <Check className={cn("mr-2 h-4 w-4", editData.manufacturer_id === m.id ? "opacity-100" : "opacity-0")} />
+                            {m.name}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Modelo */}
+            {editData.manufacturer_id && (
+              <div>
+                <Label>Modelo</Label>
+                <Popover open={modelComboOpen} onOpenChange={setModelComboOpen}>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" role="combobox" className="w-full justify-between">
+                      {editData.model_id ? allModels.find(m => m.id === editData.model_id)?.name || 'Selecione...' : 'Selecione...'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Pesquisar ou criar..." value={modelSearch} onValueChange={setModelSearch} />
+                      <CommandList>
+                        <CommandEmpty>
+                          {modelSearch.trim() ? (
+                            <Button variant="ghost" className="w-full justify-start text-sm" onClick={async () => {
+                              try {
+                                const newModel = await addComponentModel.mutateAsync({ manufacturer_id: editData.manufacturer_id, name: modelSearch.trim() });
+                                setEditData(p => ({ ...p, model_id: newModel.id }));
+                                setModelSearch('');
+                                setModelComboOpen(false);
+                              } catch { toast.error('Erro ao criar modelo'); }
+                            }}>+ Criar "{modelSearch.trim()}"</Button>
+                          ) : 'Nenhum modelo encontrado.'}
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {allModels.filter(m => m.manufacturer_id === editData.manufacturer_id).sort((a, b) => a.name.localeCompare(b.name)).map(m => (
+                            <CommandItem key={m.id} value={m.name} onSelect={() => {
+                              setEditData(p => ({ ...p, model_id: m.id }));
+                              setModelComboOpen(false);
+                            }}>
+                              <Check className={cn("mr-2 h-4 w-4", editData.model_id === m.id ? "opacity-100" : "opacity-0")} />
+                              {m.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
             <div><Label>Horímetro</Label><Input type="number" value={editData.total_horimeter} onChange={e => setEditData(p => ({ ...p, total_horimeter: Number(e.target.value) }))} /></div>
             {equipment.equipment_type !== 'outro' && (
               <div className="grid grid-cols-2 gap-3">
