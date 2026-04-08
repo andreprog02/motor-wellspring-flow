@@ -1546,6 +1546,8 @@ export default function EquipmentDetailPage() {
           equipmentTotalStarts={equipment.total_starts}
           plans={editSubComp.plans}
           isOtherAsset={isOtherAsset}
+          currentUseEquipmentHours={editSubComp.useEquipmentHours}
+          equipmentInstallationDate={equipment.installation_date ?? null}
         />
       )}
 
