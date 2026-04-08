@@ -379,7 +379,7 @@ export default function EquipmentDetailPage() {
     label: componentTypeLabels[type] || type,
     components: comps,
     plans: getPlansForType(type),
-  }));
+  })).sort((a, b) => a.label.localeCompare(b.label));
 
   // Air filter sub-components (separate group for dedicated tab)
   const airFilterComps = allSubComps.filter(sc => sc.component_type === 'air_filter');
