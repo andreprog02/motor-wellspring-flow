@@ -32,9 +32,6 @@ export function InventoryTable({ items, onEdit, onDelete, onQuantityChange, empt
       <TableBody>
         {items.map(item => (
           <TableRow key={item.id}>
-            <TableCell className="font-mono text-sm">{item.codigo || '—'}</TableCell>
-            <TableCell className="font-mono text-sm">{item.codigo_alt_01 || '—'}</TableCell>
-            <TableCell className="font-mono text-sm">{item.codigo_alt_02 || '—'}</TableCell>
             <TableCell className="font-mono text-sm">{item.part_number}</TableCell>
             <TableCell>
               <div className="flex items-center gap-2">
