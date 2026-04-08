@@ -61,6 +61,8 @@ export function EquipmentCard({ equipment, oilTypes }: Props) {
       const updates: any = { ...editData };
       if (!updates.oil_type_id) updates.oil_type_id = null;
       if (!updates.installation_date) updates.installation_date = null;
+      if (!updates.manufacturer_id) updates.manufacturer_id = null;
+      if (!updates.model_id) updates.model_id = null;
       await updateEquipment.mutateAsync({ id: equipment.id, updates });
       toast.success('Equipamento atualizado!');
       setEditOpen(false);
