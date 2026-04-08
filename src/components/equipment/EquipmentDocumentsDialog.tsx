@@ -48,7 +48,8 @@ export function EquipmentDocumentsDialog({ open, onOpenChange, equipmentId, equi
     setUploading(true);
     try {
       for (const file of Array.from(files)) {
-        const filePath = `${tenantId}/${equipmentId}/${Date.now()}_${file.name}`;
+        const safeName = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+        const filePath = `${tenantId}/${equipmentId}/${Date.now()}_${safeName}`;
         const { error: uploadErr } = await supabase.storage
           .from('equipment-documents')
           .upload(filePath, file);
