@@ -919,7 +919,7 @@ export default function EquipmentDetailPage() {
                         }
                       }
                       return { task: plan.task, status: st, percent: pct, interval: plan.interval_value, usage, unit, lastDate, triggerType: plan.trigger_type };
-                    });
+                    }).sort((a, b) => a.task.localeCompare(b.task));
 
                     const filteredStatuses = activeFilter === '_all'
                       ? taskStatuses
