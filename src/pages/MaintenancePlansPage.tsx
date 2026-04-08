@@ -415,7 +415,11 @@ export default function MaintenancePlansPage() {
     );
   };
 
-  const manufIds = Object.keys(tree.grouped);
+  const manufIds = Object.keys(tree.grouped).sort((a, b) => {
+    const nameA = manufacturers.find(m => m.id === a)?.name ?? '';
+    const nameB = manufacturers.find(m => m.id === b)?.name ?? '';
+    return nameA.localeCompare(nameB);
+  });
 
   return (
     <AppLayout>
