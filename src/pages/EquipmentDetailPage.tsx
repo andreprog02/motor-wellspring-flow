@@ -1427,6 +1427,7 @@ export default function EquipmentDetailPage() {
                           componentType: comp.component_type,
                           horimeter: comp.horimeter,
                           installationDate: comp.installation_date ?? null,
+                          useEquipmentHours: comp.use_equipment_hours,
                           plans: group.plans.filter(p => p.component_id === comp.id),
                         })}
                       >
