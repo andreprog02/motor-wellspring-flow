@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Equipment, OilType, useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight, Check, ChevronsUpDown } from 'lucide-react';
+import { Pencil, Trash2, Fuel, Clock, Zap, Cylinder, CalendarDays, Droplets, ChevronRight, Check, ChevronsUpDown, Factory } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
