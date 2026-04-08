@@ -365,7 +365,7 @@ export default function EquipmentDetailPage() {
     type,
     label: componentTypeLabels[type] || type,
     components: allCylComps.filter(c => c.component_type === type).sort((a, b) => a.cylinder_number - b.cylinder_number),
-  })).filter(g => g.components.length > 0);
+  })).filter(g => g.components.length > 0).sort((a, b) => a.label.localeCompare(b.label));
 
   // Group sub-components by type (excluding cylinder types, oil, and air_filter which has its own tab)
   const subCompByType = Object.entries(
@@ -379,7 +379,7 @@ export default function EquipmentDetailPage() {
     label: componentTypeLabels[type] || type,
     components: comps,
     plans: getPlansForType(type),
-  }));
+  })).sort((a, b) => a.label.localeCompare(b.label));
 
   // Air filter sub-components (separate group for dedicated tab)
   const airFilterComps = allSubComps.filter(sc => sc.component_type === 'air_filter');
