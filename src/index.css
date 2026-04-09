@@ -144,3 +144,28 @@
     @apply w-2 h-2 rounded-full bg-[hsl(var(--status-critical))];
   }
 }
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  .print\:hidden,
+  nav,
+  aside,
+  header button,
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+  .print\:block {
+    display: block !important;
+  }
+  .report-equipment-block {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+}
