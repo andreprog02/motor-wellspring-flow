@@ -1,0 +1,1 @@
+DELETE FROM public.equipment_sub_components WHERE component_type = 'Válulas';
