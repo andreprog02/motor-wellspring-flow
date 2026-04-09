@@ -30,6 +30,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import TermsPage from "./pages/TermsPage";
 import TeamPage from "./pages/TeamPage";
 import SuperAdminPage from "./pages/SuperAdminPage";
+import MaintenanceReportPage from "./pages/MaintenanceReportPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -69,6 +70,7 @@ const App = () => (
             <Route path="/cylinder-heads" element={<P><CylinderHeadsPage /></P>} />
             <Route path="/turbos" element={<P><TurbosPage /></P>} />
             <Route path="/reports" element={<P><ReportsPage /></P>} />
+            <Route path="/maintenance/report" element={<P><MaintenanceReportPage /></P>} />
             <Route path="/team" element={<P><TeamPage /></P>} />
             <Route path="/super-admin" element={<P><SuperAdminPage /></P>} />
             <Route path="*" element={<NotFound />} />
