@@ -1125,6 +1125,16 @@ export default function EquipmentDetailPage() {
                           </>
                         );
                       })()}
+                      <span className="text-muted-foreground text-xs">|</span>
+                      {(['_all', 'warning', 'critical'] as const).map(sf => {
+                        const sfLabel = sf === '_all' ? 'Todos' : sf === 'warning' ? 'A vencer' : 'Vencido';
+                        const activeStatusFilter = statusFilter['air_filter'] || '_all';
+                        return (
+                          <Button key={sf} size="sm" variant={activeStatusFilter === sf ? 'default' : 'outline'}
+                            className={`text-xs h-7 px-3 ${sf === 'warning' ? 'border-[hsl(var(--status-warning))]/50' : sf === 'critical' ? 'border-[hsl(var(--status-critical))]/50' : ''}`}
+                            onClick={() => setStatusFilter(prev => ({ ...prev, air_filter: sf }))}>{sfLabel}</Button>
+                        );
+                      })}
                     </div>
                     <Button size="sm" onClick={() => openMaintDialog('air_filter')}>
                       <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
