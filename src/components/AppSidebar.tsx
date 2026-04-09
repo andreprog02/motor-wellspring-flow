@@ -28,6 +28,7 @@ const navItems = [
 
 const maintenanceSubItems = [
   { to: '/maintenance/plans', key: 'nav.plans', icon: ClipboardList },
+  { to: '/maintenance/report', key: 'nav.maintenance_report', icon: FileText },
 ];
 
 interface AppSidebarProps {
