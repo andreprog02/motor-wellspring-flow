@@ -100,8 +100,6 @@ const componentTypeLabels: Record<string, string> = {
   battery: 'Bateria',
   air_filter: 'Filtro de Ar',
   fuel_filter: 'Filtro de Combustível',
-  segment_ring: 'Anel de Segmento',
-  valve: 'Válvula',
 };
 
 const componentTypePluralLabels: Record<string, string> = {
