@@ -185,23 +185,50 @@ export function CylinderMaintenanceDialog({
         if (selectedCompIds.length > 0) {
           const planTaskLabel = serviceTypeToLabel[serviceType] || serviceType;
           for (const compId of selectedCompIds) {
-            // Update plans linked to specific component_id
-            await (supabase as any)
+            // Check if a per-component plan exists
+            const { data: perCompPlan } = await (supabase as any)
               .from('component_maintenance_plans')
-              .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
+              .select('id')
               .eq('equipment_id', equipmentId)
               .eq('component_type', componentType)
               .eq('component_id', compId)
-              .eq('task', planTaskLabel);
+              .eq('task', planTaskLabel)
+              .maybeSingle();
+
+            if (perCompPlan) {
+              // Update existing per-component plan
+              await (supabase as any)
+                .from('component_maintenance_plans')
+                .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
+                .eq('id', perCompPlan.id);
+            } else {
+              // Check for shared plan (component_id IS NULL) and clone it for this component
+              const { data: sharedPlan } = await (supabase as any)
+                .from('component_maintenance_plans')
+                .select('*')
+                .eq('equipment_id', equipmentId)
+                .eq('component_type', componentType)
+                .is('component_id', null)
+                .eq('task', planTaskLabel)
+                .maybeSingle();
+
+              if (sharedPlan) {
+                await (supabase as any)
+                  .from('component_maintenance_plans')
+                  .insert({
+                    equipment_id: equipmentId,
+                    component_type: componentType,
+                    component_id: compId,
+                    task: sharedPlan.task,
+                    trigger_type: sharedPlan.trigger_type,
+                    interval_value: sharedPlan.interval_value,
+                    last_execution_value: horimeter,
+                    last_execution_date: serviceDate,
+                    tenant_id: tenantId,
+                  });
+              }
+            }
           }
-          // Also update plans without component_id (shared plans for all cylinders)
-          await (supabase as any)
-            .from('component_maintenance_plans')
-            .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
-            .eq('equipment_id', equipmentId)
-            .eq('component_type', componentType)
-            .is('component_id', null)
-            .eq('task', planTaskLabel);
         }
 
         toast.success(`Manutenção registrada — ${componentTypeLabels[componentType] || componentType} — Cil. ${cylLabel}`);
