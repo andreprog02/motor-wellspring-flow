@@ -933,7 +933,7 @@ export default function EquipmentDetailPage() {
                     });
                     const fStatuses = af === '_all' ? tStatuses : tStatuses.filter(ts => ts.task === af);
                     const os = fStatuses.some(t => t.status === 'critical') ? 'critical' : fStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
-                    if (sf === 'warning') return os === 'warning' || os === 'critical';
+                    if (sf === 'warning') return os === 'warning';
                     if (sf === 'critical') return os === 'critical';
                     return true;
                   }).map(comp => {
@@ -1151,7 +1151,7 @@ export default function EquipmentDetailPage() {
                       const tStatuses = uPlans.map(plan => ({ task: plan.task, status: getStatus(getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined), plan.interval_value) }));
                       const fStatuses = af === '_all' ? tStatuses : tStatuses.filter(ts => ts.task === af);
                       const os = fStatuses.some(t => t.status === 'critical') ? 'critical' : fStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
-                      if (sf === 'warning') return os === 'warning' || os === 'critical';
+                      if (sf === 'warning') return os === 'warning';
                       if (sf === 'critical') return os === 'critical';
                       return true;
                     }).map(comp => {
@@ -1289,7 +1289,7 @@ export default function EquipmentDetailPage() {
                       const tStatuses = uPlans.map(plan => ({ task: plan.task, status: getStatus(getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined), plan.interval_value) }));
                       const fStatuses = af === '_all' ? tStatuses : tStatuses.filter(ts => ts.task === af);
                       const os = fStatuses.some(t => t.status === 'critical') ? 'critical' : fStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
-                      if (sf === 'warning') return os === 'warning' || os === 'critical';
+                      if (sf === 'warning') return os === 'warning';
                       if (sf === 'critical') return os === 'critical';
                       return true;
                     }).map(comp => {
@@ -1490,7 +1490,7 @@ export default function EquipmentDetailPage() {
                     const tStatuses = uPlans.map(plan => ({ task: plan.task, status: getStatus(getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined), plan.interval_value) }));
                     const fStatuses = af === '_all' ? tStatuses : tStatuses.filter(ts => ts.task === af);
                     const os = fStatuses.some(t => t.status === 'critical') ? 'critical' : fStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
-                    if (sf === 'warning') return os === 'warning' || os === 'critical';
+                    if (sf === 'warning') return os === 'warning';
                     if (sf === 'critical') return os === 'critical';
                     return true;
                   }).map(comp => {
