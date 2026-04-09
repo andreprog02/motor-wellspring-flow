@@ -43,6 +43,8 @@ const maintenanceTypeLabels: Record<string, string> = {
   piston: 'Pistão',
   connecting_rod: 'Biela',
   bearing: 'Bronzina',
+  segment_ring: 'Anel de Segmento',
+  valve: 'Válvula',
 };
 
 interface MaintenancePlan {
