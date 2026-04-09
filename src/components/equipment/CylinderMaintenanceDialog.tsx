@@ -185,6 +185,7 @@ export function CylinderMaintenanceDialog({
         if (selectedCompIds.length > 0) {
           const planTaskLabel = serviceTypeToLabel[serviceType] || serviceType;
           for (const compId of selectedCompIds) {
+            // Update plans linked to specific component_id
             await (supabase as any)
               .from('component_maintenance_plans')
               .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
@@ -193,6 +194,14 @@ export function CylinderMaintenanceDialog({
               .eq('component_id', compId)
               .eq('task', planTaskLabel);
           }
+          // Also update plans without component_id (shared plans for all cylinders)
+          await (supabase as any)
+            .from('component_maintenance_plans')
+            .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
+            .eq('equipment_id', equipmentId)
+            .eq('component_type', componentType)
+            .is('component_id', null)
+            .eq('task', planTaskLabel);
         }
 
         toast.success(`Manutenção registrada — ${componentTypeLabels[componentType] || componentType} — Cil. ${cylLabel}`);
