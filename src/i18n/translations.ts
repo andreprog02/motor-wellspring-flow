@@ -45,6 +45,7 @@ export const translations: Record<string, Record<string, string>> = {
   'nav.reports': { pt: 'Relatórios', en: 'Reports', es: 'Informes' },
   'nav.maintenance': { pt: 'Manutenção', en: 'Maintenance', es: 'Mantenimiento' },
   'nav.plans': { pt: 'Planos', en: 'Plans', es: 'Planes' },
+  'nav.maintenance_report': { pt: 'Relatório Preventiva', en: 'Preventive Report', es: 'Informe Preventivo' },
   'nav.team': { pt: 'Equipe', en: 'Team', es: 'Equipo' },
   'nav.backup': { pt: 'Backup', en: 'Backup', es: 'Copia de seguridad' },
   'nav.logout': { pt: 'Sair', en: 'Logout', es: 'Cerrar sesión' },
