@@ -1458,6 +1458,22 @@ export default function EquipmentDetailPage() {
                         ))}
                       </>
                     )}
+                    <span className="text-muted-foreground text-xs">|</span>
+                    {(['_all', 'warning', 'critical'] as const).map(sf => {
+                      const sfLabel = sf === '_all' ? 'Todos' : sf === 'warning' ? 'A vencer' : 'Vencido';
+                      const activeStatusFilter = statusFilter[group.type] || '_all';
+                      return (
+                        <Button
+                          key={sf}
+                          size="sm"
+                          variant={activeStatusFilter === sf ? 'default' : 'outline'}
+                          className={`text-xs h-7 px-3 ${sf === 'warning' ? 'border-[hsl(var(--status-warning))]/50' : sf === 'critical' ? 'border-[hsl(var(--status-critical))]/50' : ''}`}
+                          onClick={() => setStatusFilter(prev => ({ ...prev, [group.type]: sf }))}
+                        >
+                          {sfLabel}
+                        </Button>
+                      );
+                    })}
                   </div>
                   <Button size="sm" onClick={() => openMaintDialog(group.type)}>
                     <PlusCircle className="h-3.5 w-3.5 mr-1.5" />
@@ -1465,7 +1481,19 @@ export default function EquipmentDetailPage() {
                   </Button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-                  {group.components.map(comp => {
+                  {group.components.filter(comp => {
+                    const sf = statusFilter[group.type] || '_all';
+                    if (sf === '_all') return true;
+                    const cPlans = group.plans.filter(p => p.component_id === comp.id);
+                    const uPlans = cPlans.reduce<MaintenancePlan[]>((acc, p) => { if (!acc.find(a => a.task === p.task)) acc.push(p); return acc; }, []);
+                    const af = taskFilter[group.type] || '_all';
+                    const tStatuses = uPlans.map(plan => ({ task: plan.task, status: getStatus(getUsageForPlan(plan, plan.trigger_type === 'hours' ? comp.horimeter : undefined), plan.interval_value) }));
+                    const fStatuses = af === '_all' ? tStatuses : tStatuses.filter(ts => ts.task === af);
+                    const os = fStatuses.some(t => t.status === 'critical') ? 'critical' : fStatuses.some(t => t.status === 'warning') ? 'warning' : 'ok';
+                    if (sf === 'warning') return os === 'warning' || os === 'critical';
+                    if (sf === 'critical') return os === 'critical';
+                    return true;
+                  }).map(comp => {
                     // Filter plans specifically for THIS component by component_id
                     const compPlans = group.plans.filter(p => p.component_id === comp.id);
                     const compUniquePlans = compPlans.reduce<MaintenancePlan[]>((acc, p) => {
