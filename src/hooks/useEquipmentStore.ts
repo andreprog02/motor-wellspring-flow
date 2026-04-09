@@ -167,7 +167,7 @@ export function useEquipmentStore() {
           equipment_id: string; cylinder_number: number; component_type: string; horimeter_at_install: number; tenant_id: string | null;
         }> = [];
         for (let i = 1; i <= cylinders; i++) {
-          ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'].forEach(type => {
+          ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing', 'segment_ring', 'valve'].forEach(type => {
             cylinderRows.push({ equipment_id: equipmentId, cylinder_number: i, component_type: type, horimeter_at_install: data.equipment.total_horimeter, tenant_id: tenantId });
           });
         }

@@ -43,6 +43,8 @@ const maintenanceTypeLabels: Record<string, string> = {
   piston: 'Pistão',
   connecting_rod: 'Biela',
   bearing: 'Bronzina',
+  segment_ring: 'Anel de Segmento',
+  valve: 'Válvula',
 };
 
 interface MaintenancePlan {
@@ -88,6 +90,8 @@ const componentTypeLabels: Record<string, string> = {
   piston: 'Pistão',
   connecting_rod: 'Biela',
   bearing: 'Bronzina',
+  segment_ring: 'Anel de Segmento',
+  valve: 'Válvula',
   turbine: 'Turbina',
   intercooler: 'Intercooler',
   oil_exchanger: 'Trocador de Óleo',
@@ -106,6 +110,8 @@ const componentTypePluralLabels: Record<string, string> = {
   piston: 'Pistões',
   connecting_rod: 'Bielas',
   bearing: 'Bronzinas',
+  segment_ring: 'Anéis de Segmento',
+  valve: 'Válvulas',
 };
 
 const subComponentIcons: Record<string, typeof Cog> = {
@@ -120,7 +126,7 @@ const subComponentIcons: Record<string, typeof Cog> = {
   fuel_filter: Fuel,
 };
 
-const cylinderComponentTypes = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing'];
+const cylinderComponentTypes = ['spark_plug', 'liner', 'piston', 'connecting_rod', 'bearing', 'segment_ring', 'valve'];
 
 const triggerLabels: Record<string, string> = {
   hours: 'Horas',
