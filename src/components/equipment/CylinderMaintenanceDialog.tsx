@@ -101,6 +101,11 @@ export function CylinderMaintenanceDialog({
   const planTasks = plansQuery.data || [];
   const uniqueTasks = [...new Set(planTasks.map(p => p.task))];
 
+  // Filter service type options to only those registered as maintenance plans for this component
+  const availableServiceTypes = Object.entries(serviceTypeToLabel).filter(([, label]) =>
+    uniqueTasks.includes(label)
+  );
+
   useEffect(() => {
     if (open) {
       setSelectedCylinders(preSelectedCylinders || []);
@@ -108,10 +113,16 @@ export function CylinderMaintenanceDialog({
       setHorimeter(equipmentHorimeter);
       setServiceDate(formatLocalDate());
       setNotes('');
-      setServiceType('inspection');
       setTask(uniqueTasks.length > 0 ? uniqueTasks[0] : '');
     }
   }, [open, preSelectedCylinders, equipmentHorimeter]);
+
+  // Ensure selected serviceType is valid for the available options
+  useEffect(() => {
+    if (availableServiceTypes.length > 0 && !availableServiceTypes.find(([slug]) => slug === serviceType)) {
+      setServiceType(availableServiceTypes[0][0]);
+    }
+  }, [plansQuery.data]);
 
   useEffect(() => {
     if (uniqueTasks.length > 0 && !task) {
@@ -365,17 +376,14 @@ export function CylinderMaintenanceDialog({
           {/* Service type */}
           <div>
             <Label>Tipo de Serviço</Label>
-            <Select value={serviceType} onValueChange={setServiceType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={serviceType} onValueChange={setServiceType} disabled={availableServiceTypes.length === 0}>
+              <SelectTrigger>
+                <SelectValue placeholder={availableServiceTypes.length === 0 ? 'Nenhum serviço cadastrado' : 'Selecione...'} />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="inspection">Inspeção</SelectItem>
-                <SelectItem value="replacement">Substituição</SelectItem>
-                <SelectItem value="cleaning">Limpeza</SelectItem>
-                <SelectItem value="lubrication">Lubrificação</SelectItem>
-                <SelectItem value="analysis">Análise</SelectItem>
-                <SelectItem value="collection">Coleta</SelectItem>
-                <SelectItem value="calibration">Calibração</SelectItem>
-                <SelectItem value="adjustment">Regulagem</SelectItem>
+                {availableServiceTypes.map(([slug, label]) => (
+                  <SelectItem key={slug} value={slug}>{label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
