@@ -672,43 +672,6 @@ export default function EquipmentDetailPage() {
           )}
         </div>
 
-        {/* Status Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Card className="border-[hsl(var(--status-ok))]/20">
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-[hsl(var(--status-ok))]/10 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5 text-[hsl(var(--status-ok))]" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Em dia</p>
-                <p className="text-2xl font-bold">{statusCounts.ok}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className={statusCounts.warning > 0 ? 'border-[hsl(var(--status-warning))]/30 bg-[hsl(var(--status-warning-muted))]' : ''}>
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-[hsl(var(--status-warning))]/10 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-[hsl(var(--status-warning))]" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Atenção</p>
-                <p className="text-2xl font-bold">{statusCounts.warning}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className={statusCounts.critical > 0 ? 'border-[hsl(var(--status-critical))]/30 bg-[hsl(var(--status-critical-muted))]' : ''}>
-            <CardContent className="p-5 flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-[hsl(var(--status-critical))]/10 flex items-center justify-center">
-                <XCircle className="h-5 w-5 text-[hsl(var(--status-critical))]" />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground font-medium">Vencidas</p>
-                <p className="text-2xl font-bold">{statusCounts.critical}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         {/* Components: overview grid (drill-down) or selected section view */}
         {(() => {
           // Build sections metadata for the overview cards
