@@ -101,9 +101,16 @@ export function EquipmentCard({ equipment, oilTypes, maintenanceStatus = 'none' 
     } catch { toast.error('Erro ao atualizar'); }
   };
 
+  const borderAccent = {
+    ok: 'border-l-4 border-l-emerald-500',
+    warning: 'border-l-4 border-l-amber-500',
+    critical: 'border-l-4 border-l-red-500',
+    none: '',
+  }[maintenanceStatus];
+
   return (
     <>
-      <Card className="group hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/equipment/${equipment.id}`)}>
+      <Card className={cn("group hover:shadow-md transition-shadow cursor-pointer", borderAccent)} onClick={() => navigate(`/equipment/${equipment.id}`)}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
             <div className="min-w-0">
