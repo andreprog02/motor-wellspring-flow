@@ -1638,7 +1638,9 @@ export default function EquipmentDetailPage() {
               </TabsContent>
             );
           })}
-        </Tabs>
+            </Tabs>
+          );
+        })()}
       </div>
 
       {/* Maintenance Dialog */}
