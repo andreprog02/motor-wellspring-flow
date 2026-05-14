@@ -106,17 +106,28 @@ export function EquipmentCard({ equipment, oilTypes, maintenanceStatus = 'none' 
       <Card className="group hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/equipment/${equipment.id}`)}>
         <CardContent className="p-4">
           <div className="flex items-start justify-between mb-3">
-            <div>
-              <h3 className="font-bold text-base">{equipment.name}</h3>
+            <div className="min-w-0">
+              <h3 className="font-bold text-base truncate">{equipment.name}</h3>
               <p className="text-xs text-muted-foreground">{equipment.serial_number || 'Sem S/N'}</p>
             </div>
-            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}>
-                <Pencil className="h-3.5 w-3.5" />
-              </Button>
-              <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+            <div className="flex items-center gap-2">
+              {maintenanceStatus && maintenanceStatus !== 'none' && (
+                <div
+                  className="flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-medium shrink-0"
+                  title={statusIndicatorConfig[maintenanceStatus].label}
+                >
+                  <span className={cn('h-2 w-2 rounded-full', statusIndicatorConfig[maintenanceStatus].dotClass)} />
+                  <span className={statusIndicatorConfig[maintenanceStatus].textClass}>{statusIndicatorConfig[maintenanceStatus].label}</span>
+                </div>
+              )}
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); setDeleteOpen(true); }}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground self-center ml-1" />
             </div>
           </div>
