@@ -40,6 +40,8 @@ const Dashboard = () => {
     if (!plansQuery.data || !registeredEquipments.length) return new Map<string, 'ok' | 'warning' | 'critical' | 'none'>();
 
     const map = new Map<string, 'ok' | 'warning' | 'critical' | 'none'>();
+    const now = new Date();
+    const MS_PER_DAY = 86400000;
 
     registeredEquipments.forEach((eq) => {
       const eqPlans = plansQuery.data.filter((p: any) => p.equipment_id === eq.id);
@@ -47,14 +49,28 @@ const Dashboard = () => {
         map.set(eq.id, 'none');
         return;
       }
-      const current = eq.total_horimeter ?? 0;
       let hasCritical = false;
       let hasWarning = false;
       for (const p of eqPlans) {
-        const last = p.last_execution_value ?? 0;
-        const interval = p.interval_value ?? 1;
-        const usage = current - last;
-        const percent = Math.min(Math.round((usage / interval) * 100), 100);
+        const interval = Number(p.interval_value) || 0;
+        if (interval <= 0) continue;
+        let percent = 0;
+
+        if (p.trigger_type === 'hours' || p.trigger_type === 'starts') {
+          const current = p.trigger_type === 'starts' ? (eq.total_starts ?? 0) : (eq.total_horimeter ?? 0);
+          const last = Number(p.last_execution_value) || 0;
+          percent = Math.round(((current - last) / interval) * 100);
+        } else {
+          // time-based: months / weeks / days
+          if (!p.last_execution_date) continue;
+          const last = new Date(p.last_execution_date);
+          const daysSince = Math.max(0, (now.getTime() - last.getTime()) / MS_PER_DAY);
+          let intervalDays = interval;
+          if (p.trigger_type === 'months') intervalDays = interval * 30;
+          else if (p.trigger_type === 'weeks') intervalDays = interval * 7;
+          percent = Math.round((daysSince / intervalDays) * 100);
+        }
+
         const status = getStatus(percent);
         if (status === 'critical') hasCritical = true;
         if (status === 'warning') hasWarning = true;
