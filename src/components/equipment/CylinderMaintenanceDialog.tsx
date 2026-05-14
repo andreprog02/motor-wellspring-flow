@@ -101,6 +101,11 @@ export function CylinderMaintenanceDialog({
   const planTasks = plansQuery.data || [];
   const uniqueTasks = [...new Set(planTasks.map(p => p.task))];
 
+  // Filter service type options to only those registered as maintenance plans for this component
+  const availableServiceTypes = Object.entries(serviceTypeToLabel).filter(([, label]) =>
+    uniqueTasks.includes(label)
+  );
+
   useEffect(() => {
     if (open) {
       setSelectedCylinders(preSelectedCylinders || []);
@@ -108,10 +113,16 @@ export function CylinderMaintenanceDialog({
       setHorimeter(equipmentHorimeter);
       setServiceDate(formatLocalDate());
       setNotes('');
-      setServiceType('inspection');
       setTask(uniqueTasks.length > 0 ? uniqueTasks[0] : '');
     }
   }, [open, preSelectedCylinders, equipmentHorimeter]);
+
+  // Ensure selected serviceType is valid for the available options
+  useEffect(() => {
+    if (availableServiceTypes.length > 0 && !availableServiceTypes.find(([slug]) => slug === serviceType)) {
+      setServiceType(availableServiceTypes[0][0]);
+    }
+  }, [plansQuery.data]);
 
   useEffect(() => {
     if (uniqueTasks.length > 0 && !task) {
