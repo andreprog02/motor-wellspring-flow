@@ -132,7 +132,7 @@ const Dashboard = () => {
                 <h2 className="text-lg font-semibold mb-3">Geradores</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {generators.map(eq => (
-                    <EquipmentCard key={eq.id} equipment={eq} oilTypes={oils} />
+                    <EquipmentCard key={eq.id} equipment={eq} oilTypes={oils} maintenanceStatus={equipmentStatusMap.get(eq.id) || 'none'} />
                   ))}
                 </div>
               </div>
@@ -144,7 +144,7 @@ const Dashboard = () => {
                 <h2 className="text-lg font-semibold mb-3">Outros Equipamentos</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                   {otherAssets.map(eq => (
-                    <EquipmentCard key={eq.id} equipment={eq} oilTypes={oils} />
+                    <EquipmentCard key={eq.id} equipment={eq} oilTypes={oils} maintenanceStatus={equipmentStatusMap.get(eq.id) || 'none'} />
                   ))}
                 </div>
               </div>
