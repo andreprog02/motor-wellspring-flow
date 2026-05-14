@@ -39,7 +39,7 @@ export default function BearingMaintenancePage() {
 
   const [equipmentId, setEquipmentId] = useState('');
   const [horimeter, setHorimeter] = useState('');
-  const [serviceType, setServiceType] = useState<'inspection' | 'replacement'>('inspection');
+  const [serviceType, setServiceType] = useState<'inspection' | 'replacement' | 'borescope'>('inspection');
   const [serviceDate, setServiceDate] = useState(formatLocalDate());
   const [notes, setNotes] = useState('');
   const [selectedCylinders, setSelectedCylinders] = useState<number[]>([]);
@@ -122,7 +122,7 @@ export default function BearingMaintenancePage() {
     }
 
     try {
-      const maintenanceType = serviceType === 'inspection' ? 'bearing_inspection' : 'bearing_replacement';
+      const maintenanceType = serviceType === 'inspection' ? 'bearing_inspection' : serviceType === 'replacement' ? 'bearing_replacement' : 'bearing_borescope';
       const cylindersLabel = selectedCylinders.sort((a, b) => a - b).join(', ');
 
       await addMaintenanceLog.mutateAsync({
@@ -213,11 +213,12 @@ export default function BearingMaintenancePage() {
               </div>
               <div className="space-y-2">
                 <Label>Tipo de Serviço</Label>
-                <Select value={serviceType} onValueChange={v => setServiceType(v as 'inspection' | 'replacement')}>
+                <Select value={serviceType} onValueChange={v => setServiceType(v as 'inspection' | 'replacement' | 'borescope')}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="inspection">Inspeção</SelectItem>
                     <SelectItem value="replacement">Substituição</SelectItem>
+                    <SelectItem value="borescope">Boroscopia</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

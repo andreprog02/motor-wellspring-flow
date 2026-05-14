@@ -32,6 +32,7 @@ const serviceTypeToLabel: Record<string, string> = {
   collection: 'Coleta',
   calibration: 'Calibração',
   adjustment: 'Regulagem',
+  borescope: 'Boroscopia',
 };
 
 interface CylComp {
