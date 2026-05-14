@@ -675,13 +675,22 @@ export default function EquipmentDetailPage() {
         {/* Components: overview grid (drill-down) or selected section view */}
         {(() => {
           // Build sections metadata for the overview cards
-          type Section = { value: string; label: string; icon?: typeof Cog; count: number; critical: number; warning: number };
+          type Section = { value: string; label: string; icon?: typeof Cog; count: number; critical: number; warning: number; lastUpdate: string | null };
           const sections: Section[] = [];
+
+          const maxDate = (dates: (string | null | undefined)[]): string | null => {
+            const valid = dates.filter((d): d is string => !!d);
+            if (valid.length === 0) return null;
+            return valid.sort((a, b) => b.localeCompare(a))[0];
+          };
 
           if (!isOtherAsset) {
             cylByType.forEach(group => {
               const s = countStatuses(
                 group.components.flatMap(comp => getTaskStatuses(getPlansForComponent(group.type, comp.id), comp.horimeter_at_install))
+              );
+              const dates = group.components.flatMap(comp =>
+                getPlansForComponent(group.type, comp.id).map(p => p.last_execution_date)
               );
               sections.push({
                 value: group.type,
@@ -690,6 +699,7 @@ export default function EquipmentDetailPage() {
                 count: group.components.length,
                 critical: s.critical,
                 warning: s.warning,
+                lastUpdate: maxDate(dates),
               });
             });
 
@@ -701,6 +711,7 @@ export default function EquipmentDetailPage() {
               count: oilPlans.length,
               critical: oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'critical').length,
               warning: oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'warning').length,
+              lastUpdate: maxDate(oilPlans.map(p => p.last_execution_date)),
             });
 
             const afS = countStatuses(
@@ -713,6 +724,7 @@ export default function EquipmentDetailPage() {
               count: airFilterComps.length,
               critical: afS.critical,
               warning: afS.warning,
+              lastUpdate: maxDate(airFilterPlansAll.map(p => p.last_execution_date)),
             });
 
             const ffS = countStatuses(
@@ -725,8 +737,16 @@ export default function EquipmentDetailPage() {
               count: fuelFilterComps.length,
               critical: ffS.critical,
               warning: ffS.warning,
+              lastUpdate: maxDate(fuelFilterPlansAll.map(p => p.last_execution_date)),
             });
 
+            const chMaintenances = chStore.maintenances.data || [];
+            const chDates: string[] = [];
+            activeHeads.forEach(head => {
+              chMaintenances.filter(m => m.cylinder_head_id === head.id).forEach(m => {
+                if (m.maintenance_date) chDates.push(m.maintenance_date);
+              });
+            });
             sections.push({
               value: 'cylinder_heads',
               label: 'Cabeçotes',
@@ -734,8 +754,16 @@ export default function EquipmentDetailPage() {
               count: activeHeads.length,
               critical: 0,
               warning: 0,
+              lastUpdate: maxDate(chDates),
             });
 
+            const turboMaintenances = turboStore.maintenances.data || [];
+            const turboDates: string[] = [];
+            activeTurbos.forEach(turbo => {
+              turboMaintenances.filter(m => m.turbo_id === turbo.id).forEach(m => {
+                if (m.maintenance_date) turboDates.push(m.maintenance_date);
+              });
+            });
             sections.push({
               value: 'turbos',
               label: 'Turbos',
@@ -743,6 +771,7 @@ export default function EquipmentDetailPage() {
               count: activeTurbos.length,
               critical: 0,
               warning: 0,
+              lastUpdate: maxDate(turboDates),
             });
           }
 
@@ -751,6 +780,9 @@ export default function EquipmentDetailPage() {
             const s = countStatuses(
               group.components.flatMap(comp => getTaskStatuses(group.plans.filter(p => p.component_id === comp.id), comp.horimeter))
             );
+            const dates = group.components.flatMap(comp =>
+              group.plans.filter(p => p.component_id === comp.id).map(p => p.last_execution_date)
+            );
             sections.push({
               value: group.type,
               label: group.label,
@@ -758,6 +790,7 @@ export default function EquipmentDetailPage() {
               count: group.components.length,
               critical: s.critical,
               warning: s.warning,
+              lastUpdate: maxDate(dates),
             });
           });
 
@@ -794,7 +827,7 @@ export default function EquipmentDetailPage() {
                             <Icon className="h-4 w-4 text-muted-foreground" />
                             <span className="font-medium text-sm">{s.label}</span>
                           </div>
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-2">
                             <span className="text-xs text-muted-foreground">
                               {s.count > 0 ? `${s.count} ${s.count > 1 ? 'unidades' : 'unidade'}` : '—'}
                             </span>
@@ -817,6 +850,18 @@ export default function EquipmentDetailPage() {
                               )}
                             </div>
                           </div>
+                          {s.lastUpdate && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground border-t border-border pt-2 mt-1">
+                              <CalendarDays className="h-3 w-3" />
+                              <span>Atualizado em {format(new Date(s.lastUpdate + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                            </div>
+                          )}
+                          {!s.lastUpdate && (
+                            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground border-t border-border pt-2 mt-1">
+                              <CalendarDays className="h-3 w-3" />
+                              <span>Sem atualização</span>
+                            </div>
+                          )}
                         </button>
                       );
                     })}
