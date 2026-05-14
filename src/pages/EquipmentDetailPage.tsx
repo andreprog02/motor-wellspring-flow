@@ -163,6 +163,7 @@ export default function EquipmentDetailPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [taskFilter, setTaskFilter] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<Record<string, string>>({});
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [editComp, setEditComp] = useState<{
     open: boolean;
     componentType: string;
@@ -708,163 +709,181 @@ export default function EquipmentDetailPage() {
           </Card>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue={defaultTab}>
-          <TabsList className="flex-wrap h-auto gap-1">
-            {/* Cylinder component tabs - only for generators */}
-            {!isOtherAsset && cylByType.map(group => {
-              const groupStatuses = countStatuses(
+        {/* Components: overview grid (drill-down) or selected section view */}
+        {(() => {
+          // Build sections metadata for the overview cards
+          type Section = { value: string; label: string; icon?: typeof Cog; count: number; critical: number; warning: number };
+          const sections: Section[] = [];
+
+          if (!isOtherAsset) {
+            cylByType.forEach(group => {
+              const s = countStatuses(
                 group.components.flatMap(comp => getTaskStatuses(getPlansForComponent(group.type, comp.id), comp.horimeter_at_install))
               );
-              const cylCritical = groupStatuses.critical;
-              const cylWarning = groupStatuses.warning;
-              return (
-                <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
-                  {componentTypePluralLabels[group.type] || `${group.label}s`}
-                  {cylCritical > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
-                      {cylCritical}
-                    </span>
-                  )}
-                  {cylWarning > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
-                      {cylWarning}
-                    </span>
-                  )}
-                </TabsTrigger>
-              );
-            })}
+              sections.push({
+                value: group.type,
+                label: componentTypePluralLabels[group.type] || `${group.label}s`,
+                icon: Cog,
+                count: group.components.length,
+                critical: s.critical,
+                warning: s.warning,
+              });
+            });
 
-            {/* Oil tab - only for generators */}
-            {!isOtherAsset && (() => {
-              const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
-              const oilCritical = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'critical').length;
-              const oilWarning = oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'warning').length;
-              return (
-                <TabsTrigger value="oil" className="relative gap-1.5">
-                  <Droplets className="h-3.5 w-3.5" />
-                  Óleo
-                  {oilCritical > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
-                      {oilCritical}
-                    </span>
-                  )}
-                  {oilWarning > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
-                      {oilWarning}
-                    </span>
-                  )}
-                </TabsTrigger>
-              );
-            })()}
+            const oilPlans = allPlans.filter(p => p.component_type === 'oil_change' || p.component_type === 'oil_filter');
+            sections.push({
+              value: 'oil',
+              label: 'Óleo',
+              icon: Droplets,
+              count: oilPlans.length,
+              critical: oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'critical').length,
+              warning: oilPlans.filter(p => getStatus(getUsageForPlan(p), p.interval_value) === 'warning').length,
+            });
 
+            const afS = countStatuses(
+              airFilterComps.flatMap(comp => getTaskStatuses(airFilterPlansAll.filter(p => p.component_id === comp.id), comp.horimeter))
+            );
+            sections.push({
+              value: 'air_filter',
+              label: 'Filtros de Ar',
+              icon: Wind,
+              count: airFilterComps.length,
+              critical: afS.critical,
+              warning: afS.warning,
+            });
 
+            const ffS = countStatuses(
+              fuelFilterComps.flatMap(comp => getTaskStatuses(fuelFilterPlansAll.filter(p => p.component_id === comp.id), comp.horimeter))
+            );
+            sections.push({
+              value: 'fuel_filter',
+              label: 'Filtros de Combustível',
+              icon: Fuel,
+              count: fuelFilterComps.length,
+              critical: ffS.critical,
+              warning: ffS.warning,
+            });
 
-            {/* Air Filter tab - only for generators */}
-            {!isOtherAsset && (() => {
-              const afStatuses = countStatuses(
-                airFilterComps.flatMap(comp => {
-                  const compPlans = airFilterPlansAll.filter(p => p.component_id === comp.id);
-                  return getTaskStatuses(compPlans, comp.horimeter);
-                })
-              );
-              return (
-                <TabsTrigger value="air_filter" className="gap-1.5">
-                  <Wind className="h-3.5 w-3.5" />
-                  Filtros de Ar {airFilterComps.length > 0 && `(${airFilterComps.length})`}
-                  {afStatuses.critical > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
-                      {afStatuses.critical}
+            sections.push({
+              value: 'cylinder_heads',
+              label: 'Cabeçotes',
+              icon: Cog,
+              count: activeHeads.length,
+              critical: 0,
+              warning: 0,
+            });
+
+            sections.push({
+              value: 'turbos',
+              label: 'Turbos',
+              icon: Wind,
+              count: activeTurbos.length,
+              critical: 0,
+              warning: 0,
+            });
+          }
+
+          subCompByType.forEach(group => {
+            const Icon = subComponentIcons[group.type] || Cog;
+            const s = countStatuses(
+              group.components.flatMap(comp => getTaskStatuses(group.plans.filter(p => p.component_id === comp.id), comp.horimeter))
+            );
+            sections.push({
+              value: group.type,
+              label: group.label,
+              icon: Icon,
+              count: group.components.length,
+              critical: s.critical,
+              warning: s.warning,
+            });
+          });
+
+          if (selectedSection === null) {
+            return (
+              <Card>
+                <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
+                  <CardTitle className="text-base">Componentes</CardTitle>
+                  <Button size="sm" variant="outline" className="h-8" onClick={() => setAddCompOpen(true)}>
+                    <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                    Adicionar Componente
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                    {sections.map(s => {
+                      const Icon = s.icon || Cog;
+                      const accent =
+                        s.critical > 0
+                          ? 'border-l-4 border-l-[hsl(var(--status-critical))]'
+                          : s.warning > 0
+                          ? 'border-l-4 border-l-[hsl(var(--status-warning))]'
+                          : 'border-l-4 border-l-[hsl(var(--status-ok))]/40';
+                      return (
+                        <button
+                          key={s.value}
+                          onClick={() => setSelectedSection(s.value)}
+                          className={cn(
+                            'text-left rounded-lg border bg-card p-4 hover:border-primary hover:shadow-md transition-all',
+                            accent
+                          )}
+                        >
+                          <div className="flex items-center gap-2 mb-3">
+                            <Icon className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium text-sm">{s.label}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">
+                              {s.count > 0 ? `${s.count} ${s.count > 1 ? 'unidades' : 'unidade'}` : '—'}
+                            </span>
+                            <div className="flex gap-1">
+                              {s.critical > 0 && (
+                                <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
+                                  {s.critical}
+                                </span>
+                              )}
+                              {s.warning > 0 && (
+                                <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
+                                  {s.warning}
+                                </span>
+                              )}
+                              {s.critical === 0 && s.warning === 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-medium text-[hsl(var(--status-ok))]">
+                                  <CheckCircle2 className="h-3 w-3" />
+                                  Em dia
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          }
+
+          const current = sections.find(s => s.value === selectedSection);
+          return (
+            <Tabs value={selectedSection} onValueChange={(v) => setSelectedSection(v)}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Button size="sm" variant="ghost" className="h-8 px-2" onClick={() => setSelectedSection(null)}>
+                    <ArrowLeft className="h-4 w-4 mr-1" />
+                    Voltar aos componentes
+                  </Button>
+                  {current && (
+                    <span className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      {current.icon && <current.icon className="h-4 w-4 text-muted-foreground" />}
+                      {current.label}
                     </span>
                   )}
-                  {afStatuses.warning > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
-                      {afStatuses.warning}
-                    </span>
-                  )}
-                </TabsTrigger>
-              );
-            })()}
-
-            {!isOtherAsset && (() => {
-              const ffStatuses = countStatuses(
-                fuelFilterComps.flatMap(comp => {
-                  const compPlans = fuelFilterPlansAll.filter(p => p.component_id === comp.id);
-                  return getTaskStatuses(compPlans, comp.horimeter);
-                })
-              );
-              return (
-                <TabsTrigger value="fuel_filter" className="gap-1.5">
-                  <Fuel className="h-3.5 w-3.5" />
-                  Filtros de Combustível {fuelFilterComps.length > 0 && `(${fuelFilterComps.length})`}
-                  {ffStatuses.critical > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
-                      {ffStatuses.critical}
-                    </span>
-                  )}
-                  {ffStatuses.warning > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
-                      {ffStatuses.warning}
-                    </span>
-                  )}
-                </TabsTrigger>
-              );
-            })()}
-
-            {/* Cylinder Heads tab - only for generators */}
-            {!isOtherAsset && (
-              <TabsTrigger value="cylinder_heads" className="gap-1.5">
-                <Cog className="h-3.5 w-3.5" />
-                Cabeçotes {activeHeads.length > 0 && `(${activeHeads.length})`}
-              </TabsTrigger>
-            )}
-
-            {/* Turbos tab - only for generators */}
-            {!isOtherAsset && (
-              <TabsTrigger value="turbos" className="gap-1.5">
-                <Wind className="h-3.5 w-3.5" />
-                Turbos {activeTurbos.length > 0 && `(${activeTurbos.length})`}
-              </TabsTrigger>
-            )}
-
-            {/* Sub-component tabs */}
-            {subCompByType.map(group => {
-              const Icon = subComponentIcons[group.type] || Cog;
-              const scStatuses = countStatuses(
-                group.components.flatMap(comp => {
-                  const compPlans = group.plans.filter(p => p.component_id === comp.id);
-                  return getTaskStatuses(compPlans, comp.horimeter);
-                })
-              );
-              const scCritical = scStatuses.critical;
-              const scWarning = scStatuses.warning;
-              return (
-                <TabsTrigger key={group.type} value={group.type} className="relative gap-1.5">
-                  <Icon className="h-3.5 w-3.5" />
-                  {group.label} {group.components.length > 1 && `(${group.components.length})`}
-                  {scCritical > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-critical))] text-white">
-                      {scCritical}
-                    </span>
-                  )}
-                  {scWarning > 0 && (
-                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1 rounded-full text-[10px] font-bold bg-[hsl(var(--status-warning))] text-white">
-                      {scWarning}
-                    </span>
-                  )}
-                </TabsTrigger>
-              );
-            })}
-            <Button
-              size="sm"
-              variant="outline"
-              className="ml-2 text-xs h-8"
-              onClick={() => setAddCompOpen(true)}
-            >
-              <PlusCircle className="h-3.5 w-3.5 mr-1" />
-              Adicionar Componente
-            </Button>
-          </TabsList>
+                </div>
+                <Button size="sm" variant="outline" className="h-8" onClick={() => setAddCompOpen(true)}>
+                  <PlusCircle className="h-3.5 w-3.5 mr-1" />
+                  Adicionar Componente
+                </Button>
+              </div>
 
           {/* One tab per cylinder component type - only for generators */}
           {!isOtherAsset && cylByType.map(group => {
@@ -1619,7 +1638,9 @@ export default function EquipmentDetailPage() {
               </TabsContent>
             );
           })}
-        </Tabs>
+            </Tabs>
+          );
+        })()}
       </div>
 
       {/* Maintenance Dialog */}
