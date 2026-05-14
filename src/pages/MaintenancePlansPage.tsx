@@ -44,6 +44,7 @@ const SERVICE_TYPES = [
   { value: 'Coleta', label: 'Coleta' },
   { value: 'Calibração', label: 'Calibração' },
   { value: 'Regulagem', label: 'Regulagem' },
+  { value: 'Boroscopia', label: 'Boroscopia' },
 ];
 
 const TRIGGER_TYPES = [
