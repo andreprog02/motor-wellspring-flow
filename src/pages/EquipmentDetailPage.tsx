@@ -163,6 +163,7 @@ export default function EquipmentDetailPage() {
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [taskFilter, setTaskFilter] = useState<Record<string, string>>({});
   const [statusFilter, setStatusFilter] = useState<Record<string, string>>({});
+  const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [editComp, setEditComp] = useState<{
     open: boolean;
     componentType: string;
