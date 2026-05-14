@@ -331,6 +331,18 @@ export function CylinderMaintenanceDialog({
               .from('equipment_sub_components')
               .update({ horimeter })
               .eq('id', subId);
+
+            // Reset ALL other plans for this sub-component
+            const otherTasks = uniqueTasks.filter(t => t !== planTaskLabel);
+            for (const otherTask of otherTasks) {
+              await (supabase as any)
+                .from('component_maintenance_plans')
+                .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
+                .eq('equipment_id', equipmentId)
+                .eq('component_type', componentType)
+                .eq('component_id', subId)
+                .eq('task', otherTask);
+            }
           }
         }
 
