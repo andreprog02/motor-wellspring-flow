@@ -376,17 +376,14 @@ export function CylinderMaintenanceDialog({
           {/* Service type */}
           <div>
             <Label>Tipo de Serviço</Label>
-            <Select value={serviceType} onValueChange={setServiceType}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+            <Select value={serviceType} onValueChange={setServiceType} disabled={availableServiceTypes.length === 0}>
+              <SelectTrigger>
+                <SelectValue placeholder={availableServiceTypes.length === 0 ? 'Nenhum serviço cadastrado' : 'Selecione...'} />
+              </SelectTrigger>
               <SelectContent>
-                <SelectItem value="inspection">Inspeção</SelectItem>
-                <SelectItem value="replacement">Substituição</SelectItem>
-                <SelectItem value="cleaning">Limpeza</SelectItem>
-                <SelectItem value="lubrication">Lubrificação</SelectItem>
-                <SelectItem value="analysis">Análise</SelectItem>
-                <SelectItem value="collection">Coleta</SelectItem>
-                <SelectItem value="calibration">Calibração</SelectItem>
-                <SelectItem value="adjustment">Regulagem</SelectItem>
+                {availableServiceTypes.map(([slug, label]) => (
+                  <SelectItem key={slug} value={slug}>{label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
