@@ -20,9 +20,17 @@ import { cn } from '@/lib/utils';
 interface Props {
   equipment: Equipment;
   oilTypes: OilType[];
+  maintenanceStatus?: 'ok' | 'warning' | 'critical' | 'none';
 }
 
-export function EquipmentCard({ equipment, oilTypes }: Props) {
+const statusIndicatorConfig: Record<string, { label: string; dotClass: string; textClass: string }> = {
+  ok: { label: 'Em dia', dotClass: 'bg-emerald-500', textClass: 'text-emerald-600' },
+  warning: { label: 'Atenção', dotClass: 'bg-amber-500', textClass: 'text-amber-600' },
+  critical: { label: 'Vencido', dotClass: 'bg-red-500 animate-pulse', textClass: 'text-red-600' },
+  none: { label: 'Sem plano', dotClass: 'bg-muted', textClass: 'text-muted-foreground' },
+};
+
+export function EquipmentCard({ equipment, oilTypes, maintenanceStatus = 'none' }: Props) {
   const navigate = useNavigate();
   const { updateEquipment, deleteEquipment, oilTypes: oilTypesQuery, addOilType, fuelTypes, componentManufacturers, componentModels, addComponentManufacturer, addComponentModel } = useEquipmentStore();
   const fuels = fuelTypes.data || [];
