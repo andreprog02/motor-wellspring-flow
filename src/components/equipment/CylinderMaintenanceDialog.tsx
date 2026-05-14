@@ -240,6 +240,55 @@ export function CylinderMaintenanceDialog({
               }
             }
           }
+
+          // On replacement, reset ALL other maintenance plans for these components
+          if (serviceType === 'replacement') {
+            const otherTasks = uniqueTasks.filter(t => t !== planTaskLabel);
+            for (const compId of selectedCompIds) {
+              for (const otherTask of otherTasks) {
+                const { data: perCompPlan } = await (supabase as any)
+                  .from('component_maintenance_plans')
+                  .select('id')
+                  .eq('equipment_id', equipmentId)
+                  .eq('component_type', componentType)
+                  .eq('component_id', compId)
+                  .eq('task', otherTask)
+                  .maybeSingle();
+
+                if (perCompPlan) {
+                  await (supabase as any)
+                    .from('component_maintenance_plans')
+                    .update({ last_execution_value: horimeter, last_execution_date: serviceDate })
+                    .eq('id', perCompPlan.id);
+                } else {
+                  const { data: sharedPlan } = await (supabase as any)
+                    .from('component_maintenance_plans')
+                    .select('*')
+                    .eq('equipment_id', equipmentId)
+                    .eq('component_type', componentType)
+                    .is('component_id', null)
+                    .eq('task', otherTask)
+                    .maybeSingle();
+
+                  if (sharedPlan) {
+                    await (supabase as any)
+                      .from('component_maintenance_plans')
+                      .insert({
+                        equipment_id: equipmentId,
+                        component_type: componentType,
+                        component_id: compId,
+                        task: sharedPlan.task,
+                        trigger_type: sharedPlan.trigger_type,
+                        interval_value: sharedPlan.interval_value,
+                        last_execution_value: horimeter,
+                        last_execution_date: serviceDate,
+                        tenant_id: tenantId,
+                      });
+                  }
+                }
+              }
+            }
+          }
         }
 
         toast.success(`Manutenção registrada — ${componentTypeLabels[componentType] || componentType} — Cil. ${cylLabel}`);
