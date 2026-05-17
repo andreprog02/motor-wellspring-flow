@@ -681,6 +681,7 @@ export default function ReportsPage() {
             <TabsTrigger value="installations">Instalações ({installationRows.length})</TabsTrigger>
             <TabsTrigger value="maintenances">Manutenções ({maintenanceRows.length})</TabsTrigger>
             <TabsTrigger value="components">Troca de Componentes ({componentRows.length})</TabsTrigger>
+            <TabsTrigger value="services">Serviços Realizados ({servicesRows.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="installations">
