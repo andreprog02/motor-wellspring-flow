@@ -24,8 +24,9 @@ function fmtNum(n: number): string {
   return n.toLocaleString('pt-BR');
 }
 
-type ReportType = 'installations' | 'maintenances' | 'components';
+type ReportType = 'installations' | 'maintenances' | 'components' | 'services';
 type AssetType = 'all' | 'cylinder_head' | 'turbo';
+type PeriodType = 'week' | 'biweek' | 'month' | 'custom';
 
 const installationColumns = [
   { key: 'type', label: 'Tipo' },
@@ -51,6 +52,47 @@ const componentColumns = [
   { key: 'date', label: 'Data' },
   { key: 'horimeter', label: 'Horímetro' },
 ] as const;
+
+const servicesColumns = [
+  { key: 'date', label: 'Data' },
+  { key: 'equipment', label: 'Gerador / Equipamento' },
+  { key: 'component', label: 'Componente' },
+  { key: 'serviceType', label: 'Tipo de Serviço' },
+] as const;
+
+// Maps maintenance_type strings to a friendly { component, service } pair.
+const COMPONENT_LABELS: Record<string, string> = {
+  oil: 'Óleo',
+  oil_filter: 'Filtro de Óleo',
+  air_filter: 'Filtro de Ar',
+  fuel_filter: 'Filtro de Combustível',
+  spark_plug: 'Vela',
+  piston: 'Pistão',
+  liner: 'Camisa',
+  bearing: 'Mancal',
+  cylinder_head: 'Cabeçote',
+  turbo: 'Turbo',
+};
+const SERVICE_LABELS: Record<string, string> = {
+  change: 'Troca',
+  replacement: 'Substituição',
+  inspection: 'Inspeção',
+  borescope: 'Boroscopia',
+  maintenance: 'Manutenção',
+};
+function parseMaintenanceType(mt: string): { component: string; service: string } {
+  if (!mt) return { component: '—', service: '—' };
+  // try suffix matches against known service words
+  for (const suf of Object.keys(SERVICE_LABELS)) {
+    if (mt.endsWith('_' + suf)) {
+      const comp = mt.slice(0, -(suf.length + 1));
+      return { component: COMPONENT_LABELS[comp] || comp, service: SERVICE_LABELS[suf] };
+    }
+    if (mt === suf) return { component: '—', service: SERVICE_LABELS[suf] };
+  }
+  // No suffix → just component
+  return { component: COMPONENT_LABELS[mt] || mt, service: '—' };
+}
 
 export default function ReportsPage() {
   const chStore = useCylinderHeadStore();
