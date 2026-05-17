@@ -5,6 +5,7 @@ import { useTurboStore } from '@/hooks/useTurboStore';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
 import { Card, CardContent } from '@/components/ui/card';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -14,9 +15,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FileDown, Filter, FileText, Columns3, ArrowUpDown, FileSpreadsheet, Wrench, Cog, ClipboardList, Plus, X, ArrowUp, ArrowDown, Calendar } from 'lucide-react';
+import { FileDown, Filter, FileText, Columns3, ArrowUpDown, FileSpreadsheet, Wrench, Cog, ClipboardList, Plus, X, ArrowUp, ArrowDown, Calendar, ChevronDown } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 import { cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
 import { turboComponentTypes } from '@/hooks/useTurboStore';
 
@@ -141,6 +143,10 @@ export default function ReportsPage() {
   const [svcSorts, setSvcSorts] = useState<Array<{ field: string; dir: 'asc' | 'desc' }>>([
     { field: 'date', dir: 'desc' },
   ]);
+
+  // Collapsible card states
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
 
   // Column visibility state per report type
   const [instCols, setInstCols] = useState<Set<string>>(new Set(installationColumns.map(c => c.key)));
@@ -748,330 +754,346 @@ export default function ReportsPage() {
         </Card>
 
         {/* Histórico — Cabeçotes & Turbos */}
-        <Card className="overflow-hidden">
-          <div className="flex items-center gap-3 border-b bg-muted/30 p-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Cog className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-base font-semibold leading-tight">Histórico — Cabeçotes & Turbos</h2>
-              <p className="text-xs text-muted-foreground">Instalações, manutenções e troca de componentes</p>
-            </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <Badge variant="outline" className="font-mono">{installationRows.length} inst.</Badge>
-              <Badge variant="outline" className="font-mono">{maintenanceRows.length} manut.</Badge>
-              <Badge variant="outline" className="font-mono">{componentRows.length} comp.</Badge>
-            </div>
-          </div>
-          <CardContent className="p-4">
-        <Tabs value={upperReportType} onValueChange={(v) => setReportType(v as ReportType)} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
-            <TabsTrigger value="installations" className="gap-1.5"><Wrench className="h-3.5 w-3.5" />Instalações <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{installationRows.length}</Badge></TabsTrigger>
-            <TabsTrigger value="maintenances" className="gap-1.5"><Cog className="h-3.5 w-3.5" />Manutenções <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{maintenanceRows.length}</Badge></TabsTrigger>
-            <TabsTrigger value="components" className="gap-1.5"><Columns3 className="h-3.5 w-3.5" />Componentes <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{componentRows.length}</Badge></TabsTrigger>
-          </TabsList>
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+          <Card className="overflow-hidden">
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center gap-3 border-b bg-muted/30 p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Cog className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base font-semibold leading-tight">Histórico — Cabeçotes & Turbos</h2>
+                  <p className="text-xs text-muted-foreground">Instalações, manutenções e troca de componentes</p>
+                </div>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Badge variant="outline" className="font-mono">{installationRows.length} inst.</Badge>
+                  <Badge variant="outline" className="font-mono">{maintenanceRows.length} manut.</Badge>
+                  <Badge variant="outline" className="font-mono">{componentRows.length} comp.</Badge>
+                </div>
+                <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300", historyOpen && "rotate-180")} />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4">
+                <Tabs value={upperReportType} onValueChange={(v) => setReportType(v as ReportType)} className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+                    <TabsTrigger value="installations" className="gap-1.5"><Wrench className="h-3.5 w-3.5" />Instalações <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{installationRows.length}</Badge></TabsTrigger>
+                    <TabsTrigger value="maintenances" className="gap-1.5"><Cog className="h-3.5 w-3.5" />Manutenções <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{maintenanceRows.length}</Badge></TabsTrigger>
+                    <TabsTrigger value="components" className="gap-1.5"><Columns3 className="h-3.5 w-3.5" />Componentes <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{componentRows.length}</Badge></TabsTrigger>
+                  </TabsList>
 
-          <TabsContent value="installations">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {instCols.has('type') && <TableHead>Tipo</TableHead>}
-                    {instCols.has('serial') && <TableHead>S/N</TableHead>}
-                    {instCols.has('equipment') && <TableHead>Equipamento</TableHead>}
-                    {instCols.has('installDate') && <TableHead>Instalação</TableHead>}
-                    {instCols.has('removeDate') && <TableHead>Remoção</TableHead>}
-                    {instCols.has('delta') && <TableHead className="text-right">Delta (h)</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {installationRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={visibleInstColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
-                  ) : installationRows.map((r, idx) => (
-                    <TableRow key={idx}>
-                      {instCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
-                      {instCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
-                      {instCols.has('equipment') && <TableCell className="text-sm">{r.equipment}</TableCell>}
-                      {instCols.has('installDate') && (
-                        <TableCell className="text-xs">
-                          <span className="font-mono">{format(new Date(r.installDate), 'dd/MM/yyyy')}</span>
-                          <span className="text-muted-foreground ml-1">({fmtNum(r.installHor)}h)</span>
-                        </TableCell>
-                      )}
-                      {instCols.has('removeDate') && (
-                        <TableCell className="text-xs">
-                          {r.removeDate ? (
-                            <><span className="font-mono">{format(new Date(r.removeDate), 'dd/MM/yyyy')}</span><span className="text-muted-foreground ml-1">({fmtNum(r.removeHor!)}h)</span></>
-                          ) : <Badge variant="outline" className="text-xs">Ativo</Badge>}
-                        </TableCell>
-                      )}
-                      {instCols.has('delta') && <TableCell className="text-right font-mono text-sm">{r.delta != null ? `${fmtNum(r.delta)}h` : '—'}</TableCell>}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
+                  <TabsContent value="installations">
+                    <Card>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {instCols.has('type') && <TableHead>Tipo</TableHead>}
+                            {instCols.has('serial') && <TableHead>S/N</TableHead>}
+                            {instCols.has('equipment') && <TableHead>Equipamento</TableHead>}
+                            {instCols.has('installDate') && <TableHead>Instalação</TableHead>}
+                            {instCols.has('removeDate') && <TableHead>Remoção</TableHead>}
+                            {instCols.has('delta') && <TableHead className="text-right">Delta (h)</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {installationRows.length === 0 ? (
+                            <TableRow><TableCell colSpan={visibleInstColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
+                          ) : installationRows.map((r, idx) => (
+                            <TableRow key={idx}>
+                              {instCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
+                              {instCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
+                              {instCols.has('equipment') && <TableCell className="text-sm">{r.equipment}</TableCell>}
+                              {instCols.has('installDate') && (
+                                <TableCell className="text-xs">
+                                  <span className="font-mono">{format(new Date(r.installDate), 'dd/MM/yyyy')}</span>
+                                  <span className="text-muted-foreground ml-1">({fmtNum(r.installHor)}h)</span>
+                                </TableCell>
+                              )}
+                              {instCols.has('removeDate') && (
+                                <TableCell className="text-xs">
+                                  {r.removeDate ? (
+                                    <><span className="font-mono">{format(new Date(r.removeDate), 'dd/MM/yyyy')}</span><span className="text-muted-foreground ml-1">({fmtNum(r.removeHor!)}h)</span></>
+                                  ) : <Badge variant="outline" className="text-xs">Ativo</Badge>}
+                                </TableCell>
+                              )}
+                              {instCols.has('delta') && <TableCell className="text-right font-mono text-sm">{r.delta != null ? `${fmtNum(r.delta)}h` : '—'}</TableCell>}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </Card>
+                  </TabsContent>
 
-          <TabsContent value="maintenances">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {maintCols.has('type') && <TableHead>Tipo</TableHead>}
-                    {maintCols.has('serial') && <TableHead>S/N</TableHead>}
-                    {maintCols.has('date') && <TableHead>Data</TableHead>}
-                    {maintCols.has('horimeter') && <TableHead>Horímetro</TableHead>}
-                    {maintCols.has('description') && <TableHead>Descrição</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {maintenanceRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={visibleMaintColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
-                  ) : maintenanceRows.map((r, idx) => (
-                    <TableRow key={idx}>
-                      {maintCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
-                      {maintCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
-                      {maintCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
-                      {maintCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
-                      {maintCols.has('description') && <TableCell className="text-sm">{r.description}</TableCell>}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-            {/* Summary table */}
-            {assetType !== 'turbo' && maintenanceSummary.length > 0 && (
-              <Card className="mt-4">
-                <CardContent className="pt-4">
-                  <h3 className="text-sm font-semibold mb-2">Quadro Resumo — Horas Totais Estimadas</h3>
+                  <TabsContent value="maintenances">
+                    <Card>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {maintCols.has('type') && <TableHead>Tipo</TableHead>}
+                            {maintCols.has('serial') && <TableHead>S/N</TableHead>}
+                            {maintCols.has('date') && <TableHead>Data</TableHead>}
+                            {maintCols.has('horimeter') && <TableHead>Horímetro</TableHead>}
+                            {maintCols.has('description') && <TableHead>Descrição</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {maintenanceRows.length === 0 ? (
+                            <TableRow><TableCell colSpan={visibleMaintColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
+                          ) : maintenanceRows.map((r, idx) => (
+                            <TableRow key={idx}>
+                              {maintCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
+                              {maintCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
+                              {maintCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
+                              {maintCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
+                              {maintCols.has('description') && <TableCell className="text-sm">{r.description}</TableCell>}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </Card>
+                    {/* Summary table */}
+                    {assetType !== 'turbo' && maintenanceSummary.length > 0 && (
+                      <Card className="mt-4">
+                        <CardContent className="pt-4">
+                          <h3 className="text-sm font-semibold mb-2">Quadro Resumo — Horas Totais Estimadas</h3>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>S/N Cabeçote</TableHead>
+                                <TableHead className="text-right">Horas Totais</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {maintenanceSummary.map(s => (
+                                <TableRow key={s.serial}>
+                                  <TableCell className="font-mono font-medium text-sm">{s.serial}</TableCell>
+                                  <TableCell className="text-right font-mono text-sm">{fmtNum(s.hours)}h</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
+
+                  <TabsContent value="components">
+                    <Card>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {compCols.has('type') && <TableHead>Tipo</TableHead>}
+                            {compCols.has('serial') && <TableHead>S/N</TableHead>}
+                            {compCols.has('component') && <TableHead>Componente</TableHead>}
+                            {compCols.has('date') && <TableHead>Data</TableHead>}
+                            {compCols.has('horimeter') && <TableHead>Horímetro</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {componentRows.length === 0 ? (
+                            <TableRow><TableCell colSpan={visibleCompColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
+                          ) : componentRows.map((r, idx) => (
+                            <TableRow key={idx}>
+                              {compCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
+                              {compCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
+                              {compCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
+                              {compCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
+                              {compCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* Serviços Realizados — global */}
+        <Collapsible open={servicesOpen} onOpenChange={setServicesOpen}>
+          <Card className="overflow-hidden border-emerald-200/40">
+            <CollapsibleTrigger asChild>
+              <div className="flex flex-wrap items-center gap-3 border-b bg-emerald-500/5 p-4 cursor-pointer hover:bg-emerald-500/10 transition-colors">
+                <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+                  <ClipboardList className="h-5 w-5 text-emerald-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base font-semibold leading-tight">Serviços Realizados</h2>
+                  <p className="text-xs text-muted-foreground">Visão global de todas as manutenções concluídas (geradores e outros equipamentos)</p>
+                </div>
+                <Badge variant="secondary" className="font-mono">{servicesRows.length} serviços</Badge>
+                <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300", servicesOpen && "rotate-180")} />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4 space-y-3">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1"><Calendar className="h-3 w-3" />Período</label>
+                    <Select value={servicePeriod} onValueChange={(v) => setServicePeriod(v as PeriodType)}>
+                      <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="week">Semanal (7 dias)</SelectItem>
+                        <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
+                        <SelectItem value="month">Mensal (30 dias)</SelectItem>
+                        <SelectItem value="quarter">Trimestral (90 dias)</SelectItem>
+                        <SelectItem value="year">Anual (365 dias)</SelectItem>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="custom">Período personalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {servicePeriod === 'custom' ? (
+                    <p className="text-xs text-muted-foreground pb-2">Usando filtros de Data Início / Data Fim acima.</p>
+                  ) : servicePeriod !== 'all' ? (
+                    <p className="text-xs text-muted-foreground pb-2">A partir de {format(new Date(serviceEffectiveFrom + 'T12:00:00'), 'dd/MM/yyyy')}</p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground pb-2">Sem limite de data</p>
+                  )}
+                  {svcSorts.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 ml-auto pb-1">
+                      <span className="text-xs text-muted-foreground">Ordenado por:</span>
+                      {svcSorts.map((s, i) => {
+                        const col = servicesColumns.find(c => c.key === s.field);
+                        return (
+                          <Badge key={i} variant="outline" className="gap-1 pl-2 pr-1 py-0.5">
+                            <span className="text-[10px] text-muted-foreground">{i + 1}.</span>
+                            {col?.label}
+                            <button onClick={() => toggleSvcSortDir(i)} className="hover:bg-muted rounded p-0.5">
+                              {s.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                            </button>
+                            <button onClick={() => removeSvcSort(i)} className="hover:bg-destructive/10 hover:text-destructive rounded p-0.5">
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {/* Multi-sort */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <ArrowUpDown className="h-4 w-4 mr-2" />Ordenar
+                          {svcSorts.length > 0 && <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">{svcSorts.length}</Badge>}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-72 p-3 space-y-3">
+                        <div>
+                          <p className="text-xs font-medium text-muted-foreground mb-2">Critérios ativos</p>
+                          {svcSorts.length === 0 ? (
+                            <p className="text-xs text-muted-foreground italic">Nenhum critério. Adicione abaixo.</p>
+                          ) : (
+                            <div className="space-y-1.5">
+                              {svcSorts.map((s, i) => {
+                                const col = servicesColumns.find(c => c.key === s.field);
+                                return (
+                                  <div key={i} className="flex items-center gap-1.5 bg-muted/50 rounded px-2 py-1">
+                                    <span className="text-xs text-muted-foreground w-4">{i + 1}.</span>
+                                    <span className="text-sm flex-1">{col?.label}</span>
+                                    <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => toggleSvcSortDir(i)}>
+                                      {s.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                                    </Button>
+                                    <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => removeSvcSort(i)}>
+                                      <X className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        {availableSvcSortFields.length > 0 && (
+                          <div>
+                            <p className="text-xs font-medium text-muted-foreground mb-2">Adicionar critério</p>
+                            <Select value="" onValueChange={(v) => v && addSvcSort(v)}>
+                              <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                              <SelectContent>
+                                {availableSvcSortFields.map(col => (
+                                  <SelectItem key={col.key} value={col.key}>{col.label}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                    {/* Columns */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Columns3 className="h-4 w-4 mr-2" />Colunas
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent align="end" className="w-52 p-3">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Colunas visíveis</p>
+                        <div className="space-y-2">
+                          {servicesColumns.map(col => (
+                            <label key={col.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                              <Checkbox
+                                checked={svcCols.has(col.key)}
+                                onCheckedChange={() => toggleCol(svcCols, setSvcCols, col.key)}
+                              />
+                              {col.label}
+                            </label>
+                          ))}
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {/* Export */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm" disabled={servicesRows.length === 0}>
+                        <FileDown className="h-4 w-4 mr-2" />Exportar
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleExportExcel('services')}>
+                        <FileSpreadsheet className="h-4 w-4 mr-2" />Excel
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExportCSV('services')}>
+                        <FileDown className="h-4 w-4 mr-2" />CSV
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleExportPDF('services')}>
+                        <FileText className="h-4 w-4 mr-2" />PDF
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+                <div className="rounded-md border">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>S/N Cabeçote</TableHead>
-                        <TableHead className="text-right">Horas Totais</TableHead>
+                        {svcCols.has('date') && <TableHead>Data</TableHead>}
+                        {svcCols.has('equipment') && <TableHead>Gerador / Equipamento</TableHead>}
+                        {svcCols.has('component') && <TableHead>Componente</TableHead>}
+                        {svcCols.has('serviceType') && <TableHead>Tipo de Serviço</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {maintenanceSummary.map(s => (
-                        <TableRow key={s.serial}>
-                          <TableCell className="font-mono font-medium text-sm">{s.serial}</TableCell>
-                          <TableCell className="text-right font-mono text-sm">{fmtNum(s.hours)}h</TableCell>
+                      {servicesRows.length === 0 ? (
+                        <TableRow><TableCell colSpan={visibleSvcColCount} className="text-center text-muted-foreground py-8">Nenhum serviço encontrado no período.</TableCell></TableRow>
+                      ) : servicesRows.map((r, idx) => (
+                        <TableRow key={idx} className="hover:bg-muted/40 transition-colors">
+                          {svcCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>}
+                          {svcCols.has('equipment') && <TableCell className="text-sm font-medium">{r.equipment}</TableCell>}
+                          {svcCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
+                          {svcCols.has('serviceType') && <TableCell className="text-sm"><Badge variant="secondary" className="text-xs">{r.serviceType}</Badge></TableCell>}
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="components">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {compCols.has('type') && <TableHead>Tipo</TableHead>}
-                    {compCols.has('serial') && <TableHead>S/N</TableHead>}
-                    {compCols.has('component') && <TableHead>Componente</TableHead>}
-                    {compCols.has('date') && <TableHead>Data</TableHead>}
-                    {compCols.has('horimeter') && <TableHead>Horímetro</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {componentRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={visibleCompColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
-                  ) : componentRows.map((r, idx) => (
-                    <TableRow key={idx}>
-                      {compCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
-                      {compCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
-                      {compCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
-                      {compCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
-                      {compCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-        </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* Serviços Realizados — global */}
-        <Card className="overflow-hidden border-emerald-200/40">
-          <div className="flex flex-wrap items-center gap-3 border-b bg-emerald-500/5 p-4">
-            <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-              <ClipboardList className="h-5 w-5 text-emerald-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-base font-semibold leading-tight">Serviços Realizados</h2>
-              <p className="text-xs text-muted-foreground">Visão global de todas as manutenções concluídas (geradores e outros equipamentos)</p>
-            </div>
-            <Badge variant="secondary" className="font-mono">{servicesRows.length} serviços</Badge>
-            <div className="flex items-center gap-2">
-              {/* Multi-sort */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <ArrowUpDown className="h-4 w-4 mr-2" />Ordenar
-                    {svcSorts.length > 0 && <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">{svcSorts.length}</Badge>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-72 p-3 space-y-3">
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Critérios ativos</p>
-                    {svcSorts.length === 0 ? (
-                      <p className="text-xs text-muted-foreground italic">Nenhum critério. Adicione abaixo.</p>
-                    ) : (
-                      <div className="space-y-1.5">
-                        {svcSorts.map((s, i) => {
-                          const col = servicesColumns.find(c => c.key === s.field);
-                          return (
-                            <div key={i} className="flex items-center gap-1.5 bg-muted/50 rounded px-2 py-1">
-                              <span className="text-xs text-muted-foreground w-4">{i + 1}.</span>
-                              <span className="text-sm flex-1">{col?.label}</span>
-                              <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => toggleSvcSortDir(i)}>
-                                {s.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                              </Button>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => removeSvcSort(i)}>
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  {availableSvcSortFields.length > 0 && (
-                    <div>
-                      <p className="text-xs font-medium text-muted-foreground mb-2">Adicionar critério</p>
-                      <Select value="" onValueChange={(v) => v && addSvcSort(v)}>
-                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {availableSvcSortFields.map(col => (
-                            <SelectItem key={col.key} value={col.key}>{col.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  )}
-                </PopoverContent>
-              </Popover>
-              {/* Columns */}
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Columns3 className="h-4 w-4 mr-2" />Colunas
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-52 p-3">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Colunas visíveis</p>
-                  <div className="space-y-2">
-                    {servicesColumns.map(col => (
-                      <label key={col.key} className="flex items-center gap-2 text-sm cursor-pointer">
-                        <Checkbox
-                          checked={svcCols.has(col.key)}
-                          onCheckedChange={() => toggleCol(svcCols, setSvcCols, col.key)}
-                        />
-                        {col.label}
-                      </label>
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
-              {/* Export */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={servicesRows.length === 0}>
-                    <FileDown className="h-4 w-4 mr-2" />Exportar
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleExportExcel('services')}>
-                    <FileSpreadsheet className="h-4 w-4 mr-2" />Excel
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExportCSV('services')}>
-                    <FileDown className="h-4 w-4 mr-2" />CSV
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExportPDF('services')}>
-                    <FileText className="h-4 w-4 mr-2" />PDF
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex flex-wrap items-end gap-3">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1"><Calendar className="h-3 w-3" />Período</label>
-                <Select value={servicePeriod} onValueChange={(v) => setServicePeriod(v as PeriodType)}>
-                  <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="week">Semanal (7 dias)</SelectItem>
-                    <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
-                    <SelectItem value="month">Mensal (30 dias)</SelectItem>
-                    <SelectItem value="quarter">Trimestral (90 dias)</SelectItem>
-                    <SelectItem value="year">Anual (365 dias)</SelectItem>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="custom">Período personalizado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {servicePeriod === 'custom' ? (
-                <p className="text-xs text-muted-foreground pb-2">Usando filtros de Data Início / Data Fim acima.</p>
-              ) : servicePeriod !== 'all' ? (
-                <p className="text-xs text-muted-foreground pb-2">A partir de {format(new Date(serviceEffectiveFrom + 'T12:00:00'), 'dd/MM/yyyy')}</p>
-              ) : (
-                <p className="text-xs text-muted-foreground pb-2">Sem limite de data</p>
-              )}
-              {svcSorts.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 ml-auto pb-1">
-                  <span className="text-xs text-muted-foreground">Ordenado por:</span>
-                  {svcSorts.map((s, i) => {
-                    const col = servicesColumns.find(c => c.key === s.field);
-                    return (
-                      <Badge key={i} variant="outline" className="gap-1 pl-2 pr-1 py-0.5">
-                        <span className="text-[10px] text-muted-foreground">{i + 1}.</span>
-                        {col?.label}
-                        <button onClick={() => toggleSvcSortDir(i)} className="hover:bg-muted rounded p-0.5">
-                          {s.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-                        </button>
-                        <button onClick={() => removeSvcSort(i)} className="hover:bg-destructive/10 hover:text-destructive rounded p-0.5">
-                          <X className="h-3 w-3" />
-                        </button>
-                      </Badge>
-                    );
-                  })}
                 </div>
-              )}
-            </div>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {svcCols.has('date') && <TableHead>Data</TableHead>}
-                    {svcCols.has('equipment') && <TableHead>Gerador / Equipamento</TableHead>}
-                    {svcCols.has('component') && <TableHead>Componente</TableHead>}
-                    {svcCols.has('serviceType') && <TableHead>Tipo de Serviço</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {servicesRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={visibleSvcColCount} className="text-center text-muted-foreground py-8">Nenhum serviço encontrado no período.</TableCell></TableRow>
-                  ) : servicesRows.map((r, idx) => (
-                    <TableRow key={idx} className="hover:bg-muted/40 transition-colors">
-                      {svcCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>}
-                      {svcCols.has('equipment') && <TableCell className="text-sm font-medium">{r.equipment}</TableCell>}
-                      {svcCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
-                      {svcCols.has('serviceType') && <TableCell className="text-sm"><Badge variant="secondary" className="text-xs">{r.serviceType}</Badge></TableCell>}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       </div>
     </AppLayout>
   );
