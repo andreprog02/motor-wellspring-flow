@@ -462,41 +462,46 @@ export default function ReportsPage() {
     }) };
   };
 
-  const getCurrentRows = () =>
-    reportType === 'installations' ? installationRows :
-    reportType === 'maintenances' ? maintenanceRows :
-    reportType === 'components' ? componentRows :
-    servicesRows;
+  const getCurrentRows = (typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
+    return t === 'installations' ? installationRows :
+      t === 'maintenances' ? maintenanceRows :
+      t === 'components' ? componentRows :
+      servicesRows;
+  };
 
-  const getExportData = (rows?: any[]) => {
-    const r = rows ?? getCurrentRows();
-    if (reportType === 'installations') return buildInstallationExportRows(r as any);
-    if (reportType === 'maintenances') return buildMaintenanceExportRows(r as any);
-    if (reportType === 'components') return buildComponentExportRows(r as any);
+  const getExportData = (rows?: any[], typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
+    const r = rows ?? getCurrentRows(t);
+    if (t === 'installations') return buildInstallationExportRows(r as any);
+    if (t === 'maintenances') return buildMaintenanceExportRows(r as any);
+    if (t === 'components') return buildComponentExportRows(r as any);
     return buildServicesExportRows(r as any);
   };
 
-  const handleExportCSV = () => {
-    const { header, body } = getExportData();
+  const handleExportCSV = (typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
+    const { header, body } = getExportData(undefined, t);
     const csv = [header, ...body].map(r => r.map(c => `"${c}"`).join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = buildFileName('csv');
+    a.download = buildFileName('csv', t);
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = (typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
     const wb = XLSX.utils.book_new();
-    const currentRows = getCurrentRows();
+    const currentRows = getCurrentRows(t);
 
-    if (reportType === 'services') {
-      const { header, body } = getExportData(currentRows);
+    if (t === 'services') {
+      const { header, body } = getExportData(currentRows, t);
       const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
       XLSX.utils.book_append_sheet(wb, ws, 'Serviços Realizados');
-      XLSX.writeFile(wb, buildFileName('xlsx'));
+      XLSX.writeFile(wb, buildFileName('xlsx', t));
       return;
     }
 
@@ -505,7 +510,7 @@ export default function ReportsPage() {
 
     const addSheet = (rows: any[], sheetName: string) => {
       if (rows.length === 0) return;
-      const { header, body } = getExportData(rows);
+      const { header, body } = getExportData(rows, t);
       const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     };
@@ -521,25 +526,26 @@ export default function ReportsPage() {
       addSheet(currentRows, assetType === 'cylinder_head' ? 'Cabeçotes' : 'Turbinas');
     }
 
-    XLSX.writeFile(wb, buildFileName('xlsx'));
+    XLSX.writeFile(wb, buildFileName('xlsx', t));
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
 
     const doc = new jsPDF({ orientation: 'landscape' });
     const title =
-      reportType === 'installations' ? 'Relatório de Instalações' :
-      reportType === 'maintenances' ? 'Relatório de Manutenções' :
-      reportType === 'components' ? 'Relatório de Troca de Componentes' :
+      t === 'installations' ? 'Relatório de Instalações' :
+      t === 'maintenances' ? 'Relatório de Manutenções' :
+      t === 'components' ? 'Relatório de Troca de Componentes' :
       'Relatório de Serviços Realizados';
     doc.setFontSize(16);
     doc.text(title, 14, 18);
     doc.setFontSize(9);
     doc.text(`Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 25);
 
-    const { header, body } = getExportData();
+    const { header, body } = getExportData(undefined, t);
     const fmtBody = body.map(row => row.map(cell => {
       if (typeof cell === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(cell)) return format(new Date(cell + 'T12:00:00'), 'dd/MM/yyyy');
       if (typeof cell === 'number') return fmtNum(cell);
@@ -548,8 +554,7 @@ export default function ReportsPage() {
 
     autoTable(doc, { startY: 30, head: [header], body: fmtBody, styles: { fontSize: 8 }, headStyles: { fillColor: [60, 60, 60] } });
 
-    // Add summary table for maintenances report
-    if (reportType === 'maintenances' && assetType !== 'turbo' && maintenanceSummary.length > 0) {
+    if (t === 'maintenances' && assetType !== 'turbo' && maintenanceSummary.length > 0) {
       const finalY = (doc as any).lastAutoTable?.finalY ?? 50;
       doc.setFontSize(12);
       doc.text('Quadro Resumo — Horas Totais Estimadas', 14, finalY + 12);
@@ -562,7 +567,7 @@ export default function ReportsPage() {
       });
     }
 
-    doc.save(buildFileName('pdf'));
+    doc.save(buildFileName('pdf', t));
   };
 
   const currentCount = getCurrentRows().length;
