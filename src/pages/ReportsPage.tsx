@@ -359,7 +359,7 @@ export default function ReportsPage() {
       return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
     });
     return rows;
-  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSortBy, svcSortDir]);
+  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, eqTypeMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSortBy, svcSortDir]);
 
   // Get active columns/sort config for current report type
   const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : reportType === 'components' ? componentColumns : servicesColumns;
