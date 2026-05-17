@@ -888,6 +888,7 @@ export default function ReportsPage() {
                 </TableBody>
               </Table>
             </Card>
+          </TabsContent>
         </Tabs>
           </CardContent>
         </Card>
