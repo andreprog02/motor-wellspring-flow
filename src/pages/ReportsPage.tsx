@@ -5,6 +5,7 @@ import { useTurboStore } from '@/hooks/useTurboStore';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
 import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
 import { Card, CardContent } from '@/components/ui/card';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
