@@ -341,9 +341,14 @@ export default function ReportsPage() {
       let component: string;
       let service: string;
       if (isOutro) {
-        // Para "Outros Equipamentos" o maintenance_type é o nome do componente em texto livre
+        // "Outros Equipamentos": maintenance_type é o componente em texto livre.
+        // O tipo de serviço é gravado em notes no formato:
+        //   "<Componente> <n> - <Tipo de Serviço>[ - <observação livre>]"
         component = l.maintenance_type || '—';
-        service = 'Manutenção';
+        const notes: string = l.notes || '';
+        const parts = notes.split(' - ').map((p: string) => p.trim()).filter(Boolean);
+        // O segundo segmento é o tipo de serviço (Limpeza, Inspeção, Substituição, Lubrificação, etc.)
+        service = parts[1] || 'Manutenção';
       } else {
         const parsed = parseMaintenanceType(l.maintenance_type);
         component = parsed.component;
