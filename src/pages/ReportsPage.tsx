@@ -742,13 +742,28 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        {/* Report Tabs */}
-        <Tabs value={reportType} onValueChange={(v) => setReportType(v as ReportType)} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="installations">Instalações ({installationRows.length})</TabsTrigger>
-            <TabsTrigger value="maintenances">Manutenções ({maintenanceRows.length})</TabsTrigger>
-            <TabsTrigger value="components">Troca de Componentes ({componentRows.length})</TabsTrigger>
-            <TabsTrigger value="services">Serviços Realizados ({servicesRows.length})</TabsTrigger>
+        {/* Histórico — Cabeçotes & Turbos */}
+        <Card className="overflow-hidden">
+          <div className="flex items-center gap-3 border-b bg-muted/30 p-4">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Cog className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-semibold leading-tight">Histórico — Cabeçotes & Turbos</h2>
+              <p className="text-xs text-muted-foreground">Instalações, manutenções e troca de componentes</p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <Badge variant="outline" className="font-mono">{installationRows.length} inst.</Badge>
+              <Badge variant="outline" className="font-mono">{maintenanceRows.length} manut.</Badge>
+              <Badge variant="outline" className="font-mono">{componentRows.length} comp.</Badge>
+            </div>
+          </div>
+          <CardContent className="p-4">
+        <Tabs value={upperReportType} onValueChange={(v) => setReportType(v as ReportType)} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+            <TabsTrigger value="installations" className="gap-1.5"><Wrench className="h-3.5 w-3.5" />Instalações <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{installationRows.length}</Badge></TabsTrigger>
+            <TabsTrigger value="maintenances" className="gap-1.5"><Cog className="h-3.5 w-3.5" />Manutenções <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{maintenanceRows.length}</Badge></TabsTrigger>
+            <TabsTrigger value="components" className="gap-1.5"><Columns3 className="h-3.5 w-3.5" />Componentes <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{componentRows.length}</Badge></TabsTrigger>
           </TabsList>
 
           <TabsContent value="installations">
