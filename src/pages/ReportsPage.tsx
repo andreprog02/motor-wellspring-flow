@@ -143,6 +143,7 @@ export default function ReportsPage() {
 
   const eqList = equipments.data || [];
   const eqMap = useMemo(() => Object.fromEntries(eqList.map(e => [e.id, e.name])), [eqList]);
+  const eqTypeMap = useMemo(() => Object.fromEntries(eqList.map(e => [e.id, e.equipment_type])), [eqList]);
   const chMap = useMemo(() => Object.fromEntries(heads.map(h => [h.id, h.serial_number])), [heads]);
   const chHoursMap = useMemo(() => Object.fromEntries(heads.map(h => [h.serial_number, h.estimated_total_hours ?? 0])), [heads]);
   const tbMap = useMemo(() => Object.fromEntries(turbos.map(t => [t.id, t.serial_number])), [turbos]);
@@ -308,7 +309,18 @@ export default function ReportsPage() {
     logs.forEach((l: any) => {
       if (!filterServiceDate(l.service_date)) return;
       if (equipFilter !== 'all' && l.equipment_id !== equipFilter) return;
-      const { component, service } = parseMaintenanceType(l.maintenance_type);
+      const isOutro = eqTypeMap[l.equipment_id] === 'outro';
+      let component: string;
+      let service: string;
+      if (isOutro) {
+        // Para "Outros Equipamentos" o maintenance_type é o nome do componente em texto livre
+        component = l.maintenance_type || '—';
+        service = 'Manutenção';
+      } else {
+        const parsed = parseMaintenanceType(l.maintenance_type);
+        component = parsed.component;
+        service = parsed.service;
+      }
       rows.push({
         date: l.service_date,
         equipment: l.equipment_name || eqMap[l.equipment_id] || '—',
@@ -347,7 +359,7 @@ export default function ReportsPage() {
       return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
     });
     return rows;
-  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSortBy, svcSortDir]);
+  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, eqTypeMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSortBy, svcSortDir]);
 
   // Get active columns/sort config for current report type
   const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : reportType === 'components' ? componentColumns : servicesColumns;
