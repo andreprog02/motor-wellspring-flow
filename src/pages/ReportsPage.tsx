@@ -483,7 +483,11 @@ export default function ReportsPage() {
     const { default: autoTable } = await import('jspdf-autotable');
 
     const doc = new jsPDF({ orientation: 'landscape' });
-    const title = reportType === 'installations' ? 'Relatório de Instalações' : reportType === 'maintenances' ? 'Relatório de Manutenções' : 'Relatório de Troca de Componentes';
+    const title =
+      reportType === 'installations' ? 'Relatório de Instalações' :
+      reportType === 'maintenances' ? 'Relatório de Manutenções' :
+      reportType === 'components' ? 'Relatório de Troca de Componentes' :
+      'Relatório de Serviços Realizados';
     doc.setFontSize(16);
     doc.text(title, 14, 18);
     doc.setFontSize(9);
@@ -515,11 +519,12 @@ export default function ReportsPage() {
     doc.save(buildFileName('pdf'));
   };
 
-  const currentCount = reportType === 'installations' ? installationRows.length : reportType === 'maintenances' ? maintenanceRows.length : componentRows.length;
+  const currentCount = getCurrentRows().length;
 
   const visibleInstColCount = installationColumns.filter(c => instCols.has(c.key)).length;
   const visibleMaintColCount = maintenanceColumns.filter(c => maintCols.has(c.key)).length;
   const visibleCompColCount = componentColumns.filter(c => compCols.has(c.key)).length;
+  const visibleSvcColCount = servicesColumns.filter(c => svcCols.has(c.key)).length;
 
   return (
     <AppLayout>
