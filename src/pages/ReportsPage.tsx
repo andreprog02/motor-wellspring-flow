@@ -408,11 +408,26 @@ export default function ReportsPage() {
     }) };
   };
 
+  const buildServicesExportRows = (rows: typeof servicesRows) => {
+    const cols = servicesColumns.filter(c => svcCols.has(c.key));
+    return { header: cols.map(c => c.label), body: rows.map(r => {
+      const vals: Record<string, any> = { date: r.date, equipment: r.equipment, component: r.component, serviceType: r.serviceType };
+      return cols.map(c => vals[c.key]);
+    }) };
+  };
+
+  const getCurrentRows = () =>
+    reportType === 'installations' ? installationRows :
+    reportType === 'maintenances' ? maintenanceRows :
+    reportType === 'components' ? componentRows :
+    servicesRows;
+
   const getExportData = (rows?: any[]) => {
-    const r = rows ?? (reportType === 'installations' ? installationRows : reportType === 'maintenances' ? maintenanceRows : componentRows);
+    const r = rows ?? getCurrentRows();
     if (reportType === 'installations') return buildInstallationExportRows(r as any);
     if (reportType === 'maintenances') return buildMaintenanceExportRows(r as any);
-    return buildComponentExportRows(r as any);
+    if (reportType === 'components') return buildComponentExportRows(r as any);
+    return buildServicesExportRows(r as any);
   };
 
   const handleExportCSV = () => {
