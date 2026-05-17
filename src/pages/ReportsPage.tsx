@@ -80,6 +80,23 @@ const SERVICE_LABELS: Record<string, string> = {
   borescope: 'Boroscopia',
   maintenance: 'Manutenção',
 };
+// Default service when maintenance_type is just a bare component name (no suffix)
+const DEFAULT_SERVICE_BY_COMPONENT: Record<string, string> = {
+  oil: 'Troca',
+  oil_filter: 'Substituição',
+  air_filter: 'Substituição',
+  fuel_filter: 'Substituição',
+  spark_plug: 'Substituição',
+  piston: 'Substituição',
+  liner: 'Substituição',
+  bearing: 'Substituição',
+  cylinder_head: 'Manutenção',
+  turbo: 'Manutenção',
+  valve: 'Substituição',
+  segment_ring: 'Substituição',
+  battery: 'Substituição',
+  blowby: 'Manutenção',
+};
 function parseMaintenanceType(mt: string): { component: string; service: string } {
   if (!mt) return { component: '—', service: '—' };
   // try suffix matches against known service words
@@ -90,8 +107,10 @@ function parseMaintenanceType(mt: string): { component: string; service: string 
     }
     if (mt === suf) return { component: '—', service: SERVICE_LABELS[suf] };
   }
-  // No suffix → just component
-  return { component: COMPONENT_LABELS[mt] || mt, service: '—' };
+  // No suffix → bare component name
+  const compLabel = COMPONENT_LABELS[mt] || mt.replace(/_/g, ' ');
+  const service = DEFAULT_SERVICE_BY_COMPONENT[mt] || 'Manutenção';
+  return { component: compLabel, service };
 }
 
 export default function ReportsPage() {
