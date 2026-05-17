@@ -410,8 +410,9 @@ export default function ReportsPage() {
     services: 'servicos_realizados',
   };
 
-  const buildFileName = (ext: string) => {
-    const typeLabel = reportTypeLabels[reportType];
+  const buildFileName = (ext: string, typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
+    const typeLabel = reportTypeLabels[t];
     const assetLabel = assetType === 'cylinder_head' ? '_cabecotes' : assetType === 'turbo' ? '_turbinas' : '';
     const dateStr = format(new Date(), 'dd-MM-yyyy');
     return `relatorio_${typeLabel}${assetLabel}_${dateStr}.${ext}`;
