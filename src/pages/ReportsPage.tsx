@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FileDown, Filter, FileText, Columns3, ArrowUpDown, FileSpreadsheet } from 'lucide-react';
+import { FileDown, Filter, FileText, Columns3, ArrowUpDown, FileSpreadsheet, Wrench, Cog, ClipboardList, Plus, X, ArrowUp, ArrowDown, Calendar } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
@@ -137,6 +137,10 @@ export default function ReportsPage() {
   const [compSortDir, setCompSortDir] = useState<'asc' | 'desc'>('desc');
   const [svcSortBy, setSvcSortBy] = useState<string>('date');
   const [svcSortDir, setSvcSortDir] = useState<'asc' | 'desc'>('desc');
+  // Multi-sort for Services Realizados: ordered list of sort criteria
+  const [svcSorts, setSvcSorts] = useState<Array<{ field: string; dir: 'asc' | 'desc' }>>([
+    { field: 'date', dir: 'desc' },
+  ]);
 
   // Column visibility state per report type
   const [instCols, setInstCols] = useState<Set<string>>(new Set(installationColumns.map(c => c.key)));
@@ -376,14 +380,19 @@ export default function ReportsPage() {
       rows.push({ date: m.maintenance_date, equipment: eqName, component: 'Turbo', serviceType: 'Manutenção' });
     });
 
-    const dir = svcSortDir === 'asc' ? 1 : -1;
+    const sorts = svcSorts.length > 0 ? svcSorts : [{ field: 'date', dir: 'desc' as const }];
     rows.sort((a, b) => {
-      const av = (a as any)[svcSortBy] ?? '';
-      const bv = (b as any)[svcSortBy] ?? '';
-      return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+      for (const s of sorts) {
+        const dir = s.dir === 'asc' ? 1 : -1;
+        const av = (a as any)[s.field] ?? '';
+        const bv = (b as any)[s.field] ?? '';
+        const cmp = String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+        if (cmp !== 0) return cmp;
+      }
+      return 0;
     });
     return rows;
-  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, eqTypeMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSortBy, svcSortDir]);
+  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, eqTypeMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSorts]);
 
   // Get active columns/sort config for current report type
   const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : reportType === 'components' ? componentColumns : servicesColumns;
@@ -401,8 +410,9 @@ export default function ReportsPage() {
     services: 'servicos_realizados',
   };
 
-  const buildFileName = (ext: string) => {
-    const typeLabel = reportTypeLabels[reportType];
+  const buildFileName = (ext: string, typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
+    const typeLabel = reportTypeLabels[t];
     const assetLabel = assetType === 'cylinder_head' ? '_cabecotes' : assetType === 'turbo' ? '_turbinas' : '';
     const dateStr = format(new Date(), 'dd-MM-yyyy');
     return `relatorio_${typeLabel}${assetLabel}_${dateStr}.${ext}`;
@@ -452,41 +462,46 @@ export default function ReportsPage() {
     }) };
   };
 
-  const getCurrentRows = () =>
-    reportType === 'installations' ? installationRows :
-    reportType === 'maintenances' ? maintenanceRows :
-    reportType === 'components' ? componentRows :
-    servicesRows;
+  const getCurrentRows = (typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
+    return t === 'installations' ? installationRows :
+      t === 'maintenances' ? maintenanceRows :
+      t === 'components' ? componentRows :
+      servicesRows;
+  };
 
-  const getExportData = (rows?: any[]) => {
-    const r = rows ?? getCurrentRows();
-    if (reportType === 'installations') return buildInstallationExportRows(r as any);
-    if (reportType === 'maintenances') return buildMaintenanceExportRows(r as any);
-    if (reportType === 'components') return buildComponentExportRows(r as any);
+  const getExportData = (rows?: any[], typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
+    const r = rows ?? getCurrentRows(t);
+    if (t === 'installations') return buildInstallationExportRows(r as any);
+    if (t === 'maintenances') return buildMaintenanceExportRows(r as any);
+    if (t === 'components') return buildComponentExportRows(r as any);
     return buildServicesExportRows(r as any);
   };
 
-  const handleExportCSV = () => {
-    const { header, body } = getExportData();
+  const handleExportCSV = (typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
+    const { header, body } = getExportData(undefined, t);
     const csv = [header, ...body].map(r => r.map(c => `"${c}"`).join(';')).join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = buildFileName('csv');
+    a.download = buildFileName('csv', t);
     a.click();
     URL.revokeObjectURL(url);
   };
 
-  const handleExportExcel = () => {
+  const handleExportExcel = (typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
     const wb = XLSX.utils.book_new();
-    const currentRows = getCurrentRows();
+    const currentRows = getCurrentRows(t);
 
-    if (reportType === 'services') {
-      const { header, body } = getExportData(currentRows);
+    if (t === 'services') {
+      const { header, body } = getExportData(currentRows, t);
       const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
       XLSX.utils.book_append_sheet(wb, ws, 'Serviços Realizados');
-      XLSX.writeFile(wb, buildFileName('xlsx'));
+      XLSX.writeFile(wb, buildFileName('xlsx', t));
       return;
     }
 
@@ -495,7 +510,7 @@ export default function ReportsPage() {
 
     const addSheet = (rows: any[], sheetName: string) => {
       if (rows.length === 0) return;
-      const { header, body } = getExportData(rows);
+      const { header, body } = getExportData(rows, t);
       const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
       XLSX.utils.book_append_sheet(wb, ws, sheetName);
     };
@@ -511,25 +526,26 @@ export default function ReportsPage() {
       addSheet(currentRows, assetType === 'cylinder_head' ? 'Cabeçotes' : 'Turbinas');
     }
 
-    XLSX.writeFile(wb, buildFileName('xlsx'));
+    XLSX.writeFile(wb, buildFileName('xlsx', t));
   };
 
-  const handleExportPDF = async () => {
+  const handleExportPDF = async (typeOverride?: ReportType) => {
+    const t = typeOverride ?? reportType;
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
 
     const doc = new jsPDF({ orientation: 'landscape' });
     const title =
-      reportType === 'installations' ? 'Relatório de Instalações' :
-      reportType === 'maintenances' ? 'Relatório de Manutenções' :
-      reportType === 'components' ? 'Relatório de Troca de Componentes' :
+      t === 'installations' ? 'Relatório de Instalações' :
+      t === 'maintenances' ? 'Relatório de Manutenções' :
+      t === 'components' ? 'Relatório de Troca de Componentes' :
       'Relatório de Serviços Realizados';
     doc.setFontSize(16);
     doc.text(title, 14, 18);
     doc.setFontSize(9);
     doc.text(`Gerado em ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 25);
 
-    const { header, body } = getExportData();
+    const { header, body } = getExportData(undefined, t);
     const fmtBody = body.map(row => row.map(cell => {
       if (typeof cell === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(cell)) return format(new Date(cell + 'T12:00:00'), 'dd/MM/yyyy');
       if (typeof cell === 'number') return fmtNum(cell);
@@ -538,8 +554,7 @@ export default function ReportsPage() {
 
     autoTable(doc, { startY: 30, head: [header], body: fmtBody, styles: { fontSize: 8 }, headStyles: { fillColor: [60, 60, 60] } });
 
-    // Add summary table for maintenances report
-    if (reportType === 'maintenances' && assetType !== 'turbo' && maintenanceSummary.length > 0) {
+    if (t === 'maintenances' && assetType !== 'turbo' && maintenanceSummary.length > 0) {
       const finalY = (doc as any).lastAutoTable?.finalY ?? 50;
       doc.setFontSize(12);
       doc.text('Quadro Resumo — Horas Totais Estimadas', 14, finalY + 12);
@@ -552,7 +567,7 @@ export default function ReportsPage() {
       });
     }
 
-    doc.save(buildFileName('pdf'));
+    doc.save(buildFileName('pdf', t));
   };
 
   const currentCount = getCurrentRows().length;
@@ -561,6 +576,22 @@ export default function ReportsPage() {
   const visibleMaintColCount = maintenanceColumns.filter(c => maintCols.has(c.key)).length;
   const visibleCompColCount = componentColumns.filter(c => compCols.has(c.key)).length;
   const visibleSvcColCount = servicesColumns.filter(c => svcCols.has(c.key)).length;
+
+  // Multi-sort helpers for Serviços Realizados
+  const addSvcSort = (field: string) => {
+    if (svcSorts.some(s => s.field === field)) return;
+    setSvcSorts([...svcSorts, { field, dir: 'asc' }]);
+  };
+  const toggleSvcSortDir = (idx: number) => {
+    setSvcSorts(svcSorts.map((s, i) => i === idx ? { ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' } : s));
+  };
+  const removeSvcSort = (idx: number) => {
+    setSvcSorts(svcSorts.filter((_, i) => i !== idx));
+  };
+  const availableSvcSortFields = servicesColumns.filter(c => !svcSorts.some(s => s.field === c.key));
+
+  // Ensure top toolbar never reflects services (services has its own toolbar)
+  const upperReportType: ReportType = reportType === 'services' ? 'installations' : reportType;
 
   return (
     <AppLayout>
@@ -627,13 +658,13 @@ export default function ReportsPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportExcel}>
+                <DropdownMenuItem onClick={() => handleExportExcel()}>
                   <FileSpreadsheet className="h-4 w-4 mr-2" />Excel
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportCSV}>
+                <DropdownMenuItem onClick={() => handleExportCSV()}>
                   <FileDown className="h-4 w-4 mr-2" />CSV
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPDF}>
+                <DropdownMenuItem onClick={() => handleExportPDF()}>
                   <FileText className="h-4 w-4 mr-2" />PDF
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -711,13 +742,28 @@ export default function ReportsPage() {
           </CardContent>
         </Card>
 
-        {/* Report Tabs */}
-        <Tabs value={reportType} onValueChange={(v) => setReportType(v as ReportType)} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="installations">Instalações ({installationRows.length})</TabsTrigger>
-            <TabsTrigger value="maintenances">Manutenções ({maintenanceRows.length})</TabsTrigger>
-            <TabsTrigger value="components">Troca de Componentes ({componentRows.length})</TabsTrigger>
-            <TabsTrigger value="services">Serviços Realizados ({servicesRows.length})</TabsTrigger>
+        {/* Histórico — Cabeçotes & Turbos */}
+        <Card className="overflow-hidden">
+          <div className="flex items-center gap-3 border-b bg-muted/30 p-4">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <Cog className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-semibold leading-tight">Histórico — Cabeçotes & Turbos</h2>
+              <p className="text-xs text-muted-foreground">Instalações, manutenções e troca de componentes</p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <Badge variant="outline" className="font-mono">{installationRows.length} inst.</Badge>
+              <Badge variant="outline" className="font-mono">{maintenanceRows.length} manut.</Badge>
+              <Badge variant="outline" className="font-mono">{componentRows.length} comp.</Badge>
+            </div>
+          </div>
+          <CardContent className="p-4">
+        <Tabs value={upperReportType} onValueChange={(v) => setReportType(v as ReportType)} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+            <TabsTrigger value="installations" className="gap-1.5"><Wrench className="h-3.5 w-3.5" />Instalações <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{installationRows.length}</Badge></TabsTrigger>
+            <TabsTrigger value="maintenances" className="gap-1.5"><Cog className="h-3.5 w-3.5" />Manutenções <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{maintenanceRows.length}</Badge></TabsTrigger>
+            <TabsTrigger value="components" className="gap-1.5"><Columns3 className="h-3.5 w-3.5" />Componentes <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{componentRows.length}</Badge></TabsTrigger>
           </TabsList>
 
           <TabsContent value="installations">
@@ -843,36 +889,159 @@ export default function ReportsPage() {
               </Table>
             </Card>
           </TabsContent>
+        </Tabs>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="services">
-            <Card>
-              <CardContent className="p-4 flex flex-wrap items-end gap-3 border-b">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Período</label>
-                  <Select value={servicePeriod} onValueChange={(v) => setServicePeriod(v as PeriodType)}>
-                    <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="week">Semanal (7 dias)</SelectItem>
-                      <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
-                      <SelectItem value="month">Mensal (30 dias)</SelectItem>
-                      <SelectItem value="quarter">Trimestral (90 dias)</SelectItem>
-                      <SelectItem value="year">Anual (365 dias)</SelectItem>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="custom">Período personalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
+        {/* Serviços Realizados — global */}
+        <Card className="overflow-hidden border-emerald-200/40">
+          <div className="flex flex-wrap items-center gap-3 border-b bg-emerald-500/5 p-4">
+            <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <ClipboardList className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-semibold leading-tight">Serviços Realizados</h2>
+              <p className="text-xs text-muted-foreground">Visão global de todas as manutenções concluídas (geradores e outros equipamentos)</p>
+            </div>
+            <Badge variant="secondary" className="font-mono">{servicesRows.length} serviços</Badge>
+            <div className="flex items-center gap-2">
+              {/* Multi-sort */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />Ordenar
+                    {svcSorts.length > 0 && <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">{svcSorts.length}</Badge>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72 p-3 space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Critérios ativos</p>
+                    {svcSorts.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">Nenhum critério. Adicione abaixo.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {svcSorts.map((s, i) => {
+                          const col = servicesColumns.find(c => c.key === s.field);
+                          return (
+                            <div key={i} className="flex items-center gap-1.5 bg-muted/50 rounded px-2 py-1">
+                              <span className="text-xs text-muted-foreground w-4">{i + 1}.</span>
+                              <span className="text-sm flex-1">{col?.label}</span>
+                              <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => toggleSvcSortDir(i)}>
+                                {s.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => removeSvcSort(i)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  {availableSvcSortFields.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Adicionar critério</p>
+                      <Select value="" onValueChange={(v) => v && addSvcSort(v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {availableSvcSortFields.map(col => (
+                            <SelectItem key={col.key} value={col.key}>{col.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              {/* Columns */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Columns3 className="h-4 w-4 mr-2" />Colunas
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-52 p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Colunas visíveis</p>
+                  <div className="space-y-2">
+                    {servicesColumns.map(col => (
+                      <label key={col.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={svcCols.has(col.key)}
+                          onCheckedChange={() => toggleCol(svcCols, setSvcCols, col.key)}
+                        />
+                        {col.label}
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {/* Export */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={servicesRows.length === 0}>
+                    <FileDown className="h-4 w-4 mr-2" />Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExportExcel('services')}>
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportCSV('services')}>
+                    <FileDown className="h-4 w-4 mr-2" />CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportPDF('services')}>
+                    <FileText className="h-4 w-4 mr-2" />PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1"><Calendar className="h-3 w-3" />Período</label>
+                <Select value={servicePeriod} onValueChange={(v) => setServicePeriod(v as PeriodType)}>
+                  <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">Semanal (7 dias)</SelectItem>
+                    <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
+                    <SelectItem value="month">Mensal (30 dias)</SelectItem>
+                    <SelectItem value="quarter">Trimestral (90 dias)</SelectItem>
+                    <SelectItem value="year">Anual (365 dias)</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="custom">Período personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {servicePeriod === 'custom' ? (
+                <p className="text-xs text-muted-foreground pb-2">Usando filtros de Data Início / Data Fim acima.</p>
+              ) : servicePeriod !== 'all' ? (
+                <p className="text-xs text-muted-foreground pb-2">A partir de {format(new Date(serviceEffectiveFrom + 'T12:00:00'), 'dd/MM/yyyy')}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground pb-2">Sem limite de data</p>
+              )}
+              {svcSorts.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 ml-auto pb-1">
+                  <span className="text-xs text-muted-foreground">Ordenado por:</span>
+                  {svcSorts.map((s, i) => {
+                    const col = servicesColumns.find(c => c.key === s.field);
+                    return (
+                      <Badge key={i} variant="outline" className="gap-1 pl-2 pr-1 py-0.5">
+                        <span className="text-[10px] text-muted-foreground">{i + 1}.</span>
+                        {col?.label}
+                        <button onClick={() => toggleSvcSortDir(i)} className="hover:bg-muted rounded p-0.5">
+                          {s.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                        </button>
+                        <button onClick={() => removeSvcSort(i)} className="hover:bg-destructive/10 hover:text-destructive rounded p-0.5">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
                 </div>
-                {servicePeriod === 'custom' && (
-                  <p className="text-xs text-muted-foreground">
-                    Usando filtros de Data Início / Data Fim acima.
-                  </p>
-                )}
-                {servicePeriod !== 'custom' && (
-                  <p className="text-xs text-muted-foreground">
-                    A partir de {format(new Date(serviceEffectiveFrom + 'T12:00:00'), 'dd/MM/yyyy')}
-                  </p>
-                )}
-              </CardContent>
+              )}
+            </div>
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -886,18 +1055,18 @@ export default function ReportsPage() {
                   {servicesRows.length === 0 ? (
                     <TableRow><TableCell colSpan={visibleSvcColCount} className="text-center text-muted-foreground py-8">Nenhum serviço encontrado no período.</TableCell></TableRow>
                   ) : servicesRows.map((r, idx) => (
-                    <TableRow key={idx}>
+                    <TableRow key={idx} className="hover:bg-muted/40 transition-colors">
                       {svcCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>}
-                      {svcCols.has('equipment') && <TableCell className="text-sm">{r.equipment}</TableCell>}
+                      {svcCols.has('equipment') && <TableCell className="text-sm font-medium">{r.equipment}</TableCell>}
                       {svcCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
                       {svcCols.has('serviceType') && <TableCell className="text-sm"><Badge variant="secondary" className="text-xs">{r.serviceType}</Badge></TableCell>}
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
