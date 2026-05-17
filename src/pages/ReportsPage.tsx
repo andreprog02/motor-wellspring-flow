@@ -289,8 +289,13 @@ export default function ReportsPage() {
   // --- Services performed (consolidated log of completed maintenance) ---
   const serviceEffectiveFrom = useMemo(() => {
     if (servicePeriod === 'custom') return dateFrom || '';
+    if (servicePeriod === 'all') return '';
     const d = new Date();
-    const days = servicePeriod === 'week' ? 7 : servicePeriod === 'biweek' ? 15 : 30;
+    const days = servicePeriod === 'week' ? 7
+      : servicePeriod === 'biweek' ? 15
+      : servicePeriod === 'month' ? 30
+      : servicePeriod === 'quarter' ? 90
+      : 365;
     d.setDate(d.getDate() - days);
     return format(d, 'yyyy-MM-dd');
   }, [servicePeriod, dateFrom]);
