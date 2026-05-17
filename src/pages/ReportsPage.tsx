@@ -137,6 +137,10 @@ export default function ReportsPage() {
   const [compSortDir, setCompSortDir] = useState<'asc' | 'desc'>('desc');
   const [svcSortBy, setSvcSortBy] = useState<string>('date');
   const [svcSortDir, setSvcSortDir] = useState<'asc' | 'desc'>('desc');
+  // Multi-sort for Services Realizados: ordered list of sort criteria
+  const [svcSorts, setSvcSorts] = useState<Array<{ field: string; dir: 'asc' | 'desc' }>>([
+    { field: 'date', dir: 'desc' },
+  ]);
 
   // Column visibility state per report type
   const [instCols, setInstCols] = useState<Set<string>>(new Set(installationColumns.map(c => c.key)));
