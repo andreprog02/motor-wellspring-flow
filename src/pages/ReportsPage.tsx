@@ -642,13 +642,13 @@ export default function ReportsPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleExportExcel}>
+                <DropdownMenuItem onClick={() => handleExportExcel()}>
                   <FileSpreadsheet className="h-4 w-4 mr-2" />Excel
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportCSV}>
+                <DropdownMenuItem onClick={() => handleExportCSV()}>
                   <FileDown className="h-4 w-4 mr-2" />CSV
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportPDF}>
+                <DropdownMenuItem onClick={() => handleExportPDF()}>
                   <FileText className="h-4 w-4 mr-2" />PDF
                 </DropdownMenuItem>
               </DropdownMenuContent>
