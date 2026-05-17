@@ -98,6 +98,7 @@ export default function ReportsPage() {
   const chStore = useCylinderHeadStore();
   const tbStore = useTurboStore();
   const { equipments } = useEquipmentStore();
+  const { logs: maintenanceLogs } = useMaintenanceStore();
 
   const [reportType, setReportType] = useState<ReportType>('installations');
   const [assetType, setAssetType] = useState<AssetType>('all');
@@ -106,6 +107,7 @@ export default function ReportsPage() {
   const [equipFilter, setEquipFilter] = useState('all');
   const [serialFilter, setSerialFilter] = useState('');
   const [selectedTurbos, setSelectedTurbos] = useState<Set<string>>(new Set());
+  const [servicePeriod, setServicePeriod] = useState<PeriodType>('month');
 
   // Sort state per report type
   const [instSortBy, setInstSortBy] = useState<string>('installDate');
@@ -114,11 +116,14 @@ export default function ReportsPage() {
   const [maintSortDir, setMaintSortDir] = useState<'asc' | 'desc'>('desc');
   const [compSortBy, setCompSortBy] = useState<string>('date');
   const [compSortDir, setCompSortDir] = useState<'asc' | 'desc'>('desc');
+  const [svcSortBy, setSvcSortBy] = useState<string>('date');
+  const [svcSortDir, setSvcSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Column visibility state per report type
   const [instCols, setInstCols] = useState<Set<string>>(new Set(installationColumns.map(c => c.key)));
   const [maintCols, setMaintCols] = useState<Set<string>>(new Set(maintenanceColumns.map(c => c.key)));
   const [compCols, setCompCols] = useState<Set<string>>(new Set(componentColumns.map(c => c.key)));
+  const [svcCols, setSvcCols] = useState<Set<string>>(new Set(servicesColumns.map(c => c.key)));
 
   const toggleCol = (set: Set<string>, setFn: React.Dispatch<React.SetStateAction<Set<string>>>, key: string) => {
     const next = new Set(set);
