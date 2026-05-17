@@ -380,14 +380,19 @@ export default function ReportsPage() {
       rows.push({ date: m.maintenance_date, equipment: eqName, component: 'Turbo', serviceType: 'Manutenção' });
     });
 
-    const dir = svcSortDir === 'asc' ? 1 : -1;
+    const sorts = svcSorts.length > 0 ? svcSorts : [{ field: 'date', dir: 'desc' as const }];
     rows.sort((a, b) => {
-      const av = (a as any)[svcSortBy] ?? '';
-      const bv = (b as any)[svcSortBy] ?? '';
-      return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+      for (const s of sorts) {
+        const dir = s.dir === 'asc' ? 1 : -1;
+        const av = (a as any)[s.field] ?? '';
+        const bv = (b as any)[s.field] ?? '';
+        const cmp = String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+        if (cmp !== 0) return cmp;
+      }
+      return 0;
     });
     return rows;
-  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, eqTypeMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSortBy, svcSortDir]);
+  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, eqTypeMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSorts]);
 
   // Get active columns/sort config for current report type
   const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : reportType === 'components' ? componentColumns : servicesColumns;
