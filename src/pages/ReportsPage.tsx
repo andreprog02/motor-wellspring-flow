@@ -888,37 +888,159 @@ export default function ReportsPage() {
                 </TableBody>
               </Table>
             </Card>
-          </TabsContent>
+        </Tabs>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="services">
-            <Card>
-              <CardContent className="p-4 flex flex-wrap items-end gap-3 border-b">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Período</label>
-                  <Select value={servicePeriod} onValueChange={(v) => setServicePeriod(v as PeriodType)}>
-                    <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="week">Semanal (7 dias)</SelectItem>
-                      <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
-                      <SelectItem value="month">Mensal (30 dias)</SelectItem>
-                      <SelectItem value="quarter">Trimestral (90 dias)</SelectItem>
-                      <SelectItem value="year">Anual (365 dias)</SelectItem>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="custom">Período personalizado</SelectItem>
-                    </SelectContent>
-                  </Select>
+        {/* Serviços Realizados — global */}
+        <Card className="overflow-hidden border-emerald-200/40">
+          <div className="flex flex-wrap items-center gap-3 border-b bg-emerald-500/5 p-4">
+            <div className="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+              <ClipboardList className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-semibold leading-tight">Serviços Realizados</h2>
+              <p className="text-xs text-muted-foreground">Visão global de todas as manutenções concluídas (geradores e outros equipamentos)</p>
+            </div>
+            <Badge variant="secondary" className="font-mono">{servicesRows.length} serviços</Badge>
+            <div className="flex items-center gap-2">
+              {/* Multi-sort */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <ArrowUpDown className="h-4 w-4 mr-2" />Ordenar
+                    {svcSorts.length > 0 && <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-[10px]">{svcSorts.length}</Badge>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72 p-3 space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Critérios ativos</p>
+                    {svcSorts.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic">Nenhum critério. Adicione abaixo.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {svcSorts.map((s, i) => {
+                          const col = servicesColumns.find(c => c.key === s.field);
+                          return (
+                            <div key={i} className="flex items-center gap-1.5 bg-muted/50 rounded px-2 py-1">
+                              <span className="text-xs text-muted-foreground w-4">{i + 1}.</span>
+                              <span className="text-sm flex-1">{col?.label}</span>
+                              <Button variant="ghost" size="sm" className="h-6 px-2" onClick={() => toggleSvcSortDir(i)}>
+                                {s.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                              </Button>
+                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => removeSvcSort(i)}>
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  {availableSvcSortFields.length > 0 && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-2">Adicionar critério</p>
+                      <Select value="" onValueChange={(v) => v && addSvcSort(v)}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                        <SelectContent>
+                          {availableSvcSortFields.map(col => (
+                            <SelectItem key={col.key} value={col.key}>{col.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+              {/* Columns */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Columns3 className="h-4 w-4 mr-2" />Colunas
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-52 p-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Colunas visíveis</p>
+                  <div className="space-y-2">
+                    {servicesColumns.map(col => (
+                      <label key={col.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                        <Checkbox
+                          checked={svcCols.has(col.key)}
+                          onCheckedChange={() => toggleCol(svcCols, setSvcCols, col.key)}
+                        />
+                        {col.label}
+                      </label>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              {/* Export */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" disabled={servicesRows.length === 0}>
+                    <FileDown className="h-4 w-4 mr-2" />Exportar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleExportExcel('services')}>
+                    <FileSpreadsheet className="h-4 w-4 mr-2" />Excel
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportCSV('services')}>
+                    <FileDown className="h-4 w-4 mr-2" />CSV
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleExportPDF('services')}>
+                    <FileText className="h-4 w-4 mr-2" />PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block flex items-center gap-1"><Calendar className="h-3 w-3" />Período</label>
+                <Select value={servicePeriod} onValueChange={(v) => setServicePeriod(v as PeriodType)}>
+                  <SelectTrigger className="h-9 w-[200px]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="week">Semanal (7 dias)</SelectItem>
+                    <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
+                    <SelectItem value="month">Mensal (30 dias)</SelectItem>
+                    <SelectItem value="quarter">Trimestral (90 dias)</SelectItem>
+                    <SelectItem value="year">Anual (365 dias)</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="custom">Período personalizado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {servicePeriod === 'custom' ? (
+                <p className="text-xs text-muted-foreground pb-2">Usando filtros de Data Início / Data Fim acima.</p>
+              ) : servicePeriod !== 'all' ? (
+                <p className="text-xs text-muted-foreground pb-2">A partir de {format(new Date(serviceEffectiveFrom + 'T12:00:00'), 'dd/MM/yyyy')}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground pb-2">Sem limite de data</p>
+              )}
+              {svcSorts.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 ml-auto pb-1">
+                  <span className="text-xs text-muted-foreground">Ordenado por:</span>
+                  {svcSorts.map((s, i) => {
+                    const col = servicesColumns.find(c => c.key === s.field);
+                    return (
+                      <Badge key={i} variant="outline" className="gap-1 pl-2 pr-1 py-0.5">
+                        <span className="text-[10px] text-muted-foreground">{i + 1}.</span>
+                        {col?.label}
+                        <button onClick={() => toggleSvcSortDir(i)} className="hover:bg-muted rounded p-0.5">
+                          {s.dir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                        </button>
+                        <button onClick={() => removeSvcSort(i)} className="hover:bg-destructive/10 hover:text-destructive rounded p-0.5">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    );
+                  })}
                 </div>
-                {servicePeriod === 'custom' && (
-                  <p className="text-xs text-muted-foreground">
-                    Usando filtros de Data Início / Data Fim acima.
-                  </p>
-                )}
-                {servicePeriod !== 'custom' && (
-                  <p className="text-xs text-muted-foreground">
-                    A partir de {format(new Date(serviceEffectiveFrom + 'T12:00:00'), 'dd/MM/yyyy')}
-                  </p>
-                )}
-              </CardContent>
+              )}
+            </div>
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -932,18 +1054,18 @@ export default function ReportsPage() {
                   {servicesRows.length === 0 ? (
                     <TableRow><TableCell colSpan={visibleSvcColCount} className="text-center text-muted-foreground py-8">Nenhum serviço encontrado no período.</TableCell></TableRow>
                   ) : servicesRows.map((r, idx) => (
-                    <TableRow key={idx}>
+                    <TableRow key={idx} className="hover:bg-muted/40 transition-colors">
                       {svcCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>}
-                      {svcCols.has('equipment') && <TableCell className="text-sm">{r.equipment}</TableCell>}
+                      {svcCols.has('equipment') && <TableCell className="text-sm font-medium">{r.equipment}</TableCell>}
                       {svcCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
                       {svcCols.has('serviceType') && <TableCell className="text-sm"><Badge variant="secondary" className="text-xs">{r.serviceType}</Badge></TableCell>}
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AppLayout>
   );
