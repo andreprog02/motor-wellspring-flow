@@ -143,6 +143,7 @@ export default function ReportsPage() {
 
   const eqList = equipments.data || [];
   const eqMap = useMemo(() => Object.fromEntries(eqList.map(e => [e.id, e.name])), [eqList]);
+  const eqTypeMap = useMemo(() => Object.fromEntries(eqList.map(e => [e.id, e.equipment_type])), [eqList]);
   const chMap = useMemo(() => Object.fromEntries(heads.map(h => [h.id, h.serial_number])), [heads]);
   const chHoursMap = useMemo(() => Object.fromEntries(heads.map(h => [h.serial_number, h.estimated_total_hours ?? 0])), [heads]);
   const tbMap = useMemo(() => Object.fromEntries(turbos.map(t => [t.id, t.serial_number])), [turbos]);
