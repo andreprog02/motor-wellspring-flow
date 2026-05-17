@@ -836,6 +836,9 @@ export default function ReportsPage() {
                       <SelectItem value="week">Semanal (7 dias)</SelectItem>
                       <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
                       <SelectItem value="month">Mensal (30 dias)</SelectItem>
+                      <SelectItem value="quarter">Trimestral (90 dias)</SelectItem>
+                      <SelectItem value="year">Anual (365 dias)</SelectItem>
+                      <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="custom">Período personalizado</SelectItem>
                     </SelectContent>
                   </Select>
