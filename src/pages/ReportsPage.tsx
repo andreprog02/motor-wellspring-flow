@@ -577,6 +577,22 @@ export default function ReportsPage() {
   const visibleCompColCount = componentColumns.filter(c => compCols.has(c.key)).length;
   const visibleSvcColCount = servicesColumns.filter(c => svcCols.has(c.key)).length;
 
+  // Multi-sort helpers for Serviços Realizados
+  const addSvcSort = (field: string) => {
+    if (svcSorts.some(s => s.field === field)) return;
+    setSvcSorts([...svcSorts, { field, dir: 'asc' }]);
+  };
+  const toggleSvcSortDir = (idx: number) => {
+    setSvcSorts(svcSorts.map((s, i) => i === idx ? { ...s, dir: s.dir === 'asc' ? 'desc' : 'asc' } : s));
+  };
+  const removeSvcSort = (idx: number) => {
+    setSvcSorts(svcSorts.filter((_, i) => i !== idx));
+  };
+  const availableSvcSortFields = servicesColumns.filter(c => !svcSorts.some(s => s.field === c.key));
+
+  // Ensure top toolbar never reflects services (services has its own toolbar)
+  const upperReportType: ReportType = reportType === 'services' ? 'installations' : reportType;
+
   return (
     <AppLayout>
       <div className="space-y-6">
