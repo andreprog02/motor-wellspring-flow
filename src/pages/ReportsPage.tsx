@@ -807,6 +807,57 @@ export default function ReportsPage() {
               </Table>
             </Card>
           </TabsContent>
+
+          <TabsContent value="services">
+            <Card>
+              <CardContent className="p-4 flex flex-wrap items-end gap-3 border-b">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Período</label>
+                  <Select value={servicePeriod} onValueChange={(v) => setServicePeriod(v as PeriodType)}>
+                    <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="week">Semanal (7 dias)</SelectItem>
+                      <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
+                      <SelectItem value="month">Mensal (30 dias)</SelectItem>
+                      <SelectItem value="custom">Período personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {servicePeriod === 'custom' && (
+                  <p className="text-xs text-muted-foreground">
+                    Usando filtros de Data Início / Data Fim acima.
+                  </p>
+                )}
+                {servicePeriod !== 'custom' && (
+                  <p className="text-xs text-muted-foreground">
+                    A partir de {format(new Date(serviceEffectiveFrom + 'T12:00:00'), 'dd/MM/yyyy')}
+                  </p>
+                )}
+              </CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {svcCols.has('date') && <TableHead>Data</TableHead>}
+                    {svcCols.has('equipment') && <TableHead>Gerador / Equipamento</TableHead>}
+                    {svcCols.has('component') && <TableHead>Componente</TableHead>}
+                    {svcCols.has('serviceType') && <TableHead>Tipo de Serviço</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {servicesRows.length === 0 ? (
+                    <TableRow><TableCell colSpan={visibleSvcColCount} className="text-center text-muted-foreground py-8">Nenhum serviço encontrado no período.</TableCell></TableRow>
+                  ) : servicesRows.map((r, idx) => (
+                    <TableRow key={idx}>
+                      {svcCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>}
+                      {svcCols.has('equipment') && <TableCell className="text-sm">{r.equipment}</TableCell>}
+                      {svcCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
+                      {svcCols.has('serviceType') && <TableCell className="text-sm"><Badge variant="secondary" className="text-xs">{r.serviceType}</Badge></TableCell>}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </AppLayout>
