@@ -26,7 +26,7 @@ function fmtNum(n: number): string {
 
 type ReportType = 'installations' | 'maintenances' | 'components' | 'services';
 type AssetType = 'all' | 'cylinder_head' | 'turbo';
-type PeriodType = 'week' | 'biweek' | 'month' | 'custom';
+type PeriodType = 'week' | 'biweek' | 'month' | 'quarter' | 'year' | 'all' | 'custom';
 
 const installationColumns = [
   { key: 'type', label: 'Tipo' },
