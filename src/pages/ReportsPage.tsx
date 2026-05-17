@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { FileDown, Filter, FileText, Columns3, ArrowUpDown, FileSpreadsheet } from 'lucide-react';
+import { FileDown, Filter, FileText, Columns3, ArrowUpDown, FileSpreadsheet, Wrench, Cog, ClipboardList, Plus, X, ArrowUp, ArrowDown, Calendar } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { cylinderHeadComponentTypes } from '@/hooks/useCylinderHeadStore';
