@@ -26,7 +26,7 @@ function fmtNum(n: number): string {
 
 type ReportType = 'installations' | 'maintenances' | 'components' | 'services';
 type AssetType = 'all' | 'cylinder_head' | 'turbo';
-type PeriodType = 'week' | 'biweek' | 'month' | 'custom';
+type PeriodType = 'week' | 'biweek' | 'month' | 'quarter' | 'year' | 'all' | 'custom';
 
 const installationColumns = [
   { key: 'type', label: 'Tipo' },
@@ -289,8 +289,13 @@ export default function ReportsPage() {
   // --- Services performed (consolidated log of completed maintenance) ---
   const serviceEffectiveFrom = useMemo(() => {
     if (servicePeriod === 'custom') return dateFrom || '';
+    if (servicePeriod === 'all') return '';
     const d = new Date();
-    const days = servicePeriod === 'week' ? 7 : servicePeriod === 'biweek' ? 15 : 30;
+    const days = servicePeriod === 'week' ? 7
+      : servicePeriod === 'biweek' ? 15
+      : servicePeriod === 'month' ? 30
+      : servicePeriod === 'quarter' ? 90
+      : 365;
     d.setDate(d.getDate() - days);
     return format(d, 'yyyy-MM-dd');
   }, [servicePeriod, dateFrom]);
@@ -831,6 +836,9 @@ export default function ReportsPage() {
                       <SelectItem value="week">Semanal (7 dias)</SelectItem>
                       <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
                       <SelectItem value="month">Mensal (30 dias)</SelectItem>
+                      <SelectItem value="quarter">Trimestral (90 dias)</SelectItem>
+                      <SelectItem value="year">Anual (365 dias)</SelectItem>
+                      <SelectItem value="all">Todos</SelectItem>
                       <SelectItem value="custom">Período personalizado</SelectItem>
                     </SelectContent>
                   </Select>
