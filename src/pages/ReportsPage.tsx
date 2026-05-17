@@ -753,155 +753,162 @@ export default function ReportsPage() {
         </Card>
 
         {/* Histórico — Cabeçotes & Turbos */}
-        <Card className="overflow-hidden">
-          <div className="flex items-center gap-3 border-b bg-muted/30 p-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Cog className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h2 className="text-base font-semibold leading-tight">Histórico — Cabeçotes & Turbos</h2>
-              <p className="text-xs text-muted-foreground">Instalações, manutenções e troca de componentes</p>
-            </div>
-            <div className="hidden sm:flex items-center gap-2">
-              <Badge variant="outline" className="font-mono">{installationRows.length} inst.</Badge>
-              <Badge variant="outline" className="font-mono">{maintenanceRows.length} manut.</Badge>
-              <Badge variant="outline" className="font-mono">{componentRows.length} comp.</Badge>
-            </div>
-          </div>
-          <CardContent className="p-4">
-        <Tabs value={upperReportType} onValueChange={(v) => setReportType(v as ReportType)} className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
-            <TabsTrigger value="installations" className="gap-1.5"><Wrench className="h-3.5 w-3.5" />Instalações <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{installationRows.length}</Badge></TabsTrigger>
-            <TabsTrigger value="maintenances" className="gap-1.5"><Cog className="h-3.5 w-3.5" />Manutenções <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{maintenanceRows.length}</Badge></TabsTrigger>
-            <TabsTrigger value="components" className="gap-1.5"><Columns3 className="h-3.5 w-3.5" />Componentes <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{componentRows.length}</Badge></TabsTrigger>
-          </TabsList>
+        <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+          <Card className="overflow-hidden">
+            <CollapsibleTrigger asChild>
+              <div className="flex items-center gap-3 border-b bg-muted/30 p-4 cursor-pointer hover:bg-muted/50 transition-colors">
+                <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <Cog className="h-5 w-5 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base font-semibold leading-tight">Histórico — Cabeçotes & Turbos</h2>
+                  <p className="text-xs text-muted-foreground">Instalações, manutenções e troca de componentes</p>
+                </div>
+                <div className="hidden sm:flex items-center gap-2">
+                  <Badge variant="outline" className="font-mono">{installationRows.length} inst.</Badge>
+                  <Badge variant="outline" className="font-mono">{maintenanceRows.length} manut.</Badge>
+                  <Badge variant="outline" className="font-mono">{componentRows.length} comp.</Badge>
+                </div>
+                <ChevronDown className={cn("h-5 w-5 shrink-0 text-muted-foreground transition-transform duration-300", historyOpen && "rotate-180")} />
+              </div>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="p-4">
+                <Tabs value={upperReportType} onValueChange={(v) => setReportType(v as ReportType)} className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+                    <TabsTrigger value="installations" className="gap-1.5"><Wrench className="h-3.5 w-3.5" />Instalações <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{installationRows.length}</Badge></TabsTrigger>
+                    <TabsTrigger value="maintenances" className="gap-1.5"><Cog className="h-3.5 w-3.5" />Manutenções <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{maintenanceRows.length}</Badge></TabsTrigger>
+                    <TabsTrigger value="components" className="gap-1.5"><Columns3 className="h-3.5 w-3.5" />Componentes <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-[10px]">{componentRows.length}</Badge></TabsTrigger>
+                  </TabsList>
 
-          <TabsContent value="installations">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {instCols.has('type') && <TableHead>Tipo</TableHead>}
-                    {instCols.has('serial') && <TableHead>S/N</TableHead>}
-                    {instCols.has('equipment') && <TableHead>Equipamento</TableHead>}
-                    {instCols.has('installDate') && <TableHead>Instalação</TableHead>}
-                    {instCols.has('removeDate') && <TableHead>Remoção</TableHead>}
-                    {instCols.has('delta') && <TableHead className="text-right">Delta (h)</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {installationRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={visibleInstColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
-                  ) : installationRows.map((r, idx) => (
-                    <TableRow key={idx}>
-                      {instCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
-                      {instCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
-                      {instCols.has('equipment') && <TableCell className="text-sm">{r.equipment}</TableCell>}
-                      {instCols.has('installDate') && (
-                        <TableCell className="text-xs">
-                          <span className="font-mono">{format(new Date(r.installDate), 'dd/MM/yyyy')}</span>
-                          <span className="text-muted-foreground ml-1">({fmtNum(r.installHor)}h)</span>
-                        </TableCell>
-                      )}
-                      {instCols.has('removeDate') && (
-                        <TableCell className="text-xs">
-                          {r.removeDate ? (
-                            <><span className="font-mono">{format(new Date(r.removeDate), 'dd/MM/yyyy')}</span><span className="text-muted-foreground ml-1">({fmtNum(r.removeHor!)}h)</span></>
-                          ) : <Badge variant="outline" className="text-xs">Ativo</Badge>}
-                        </TableCell>
-                      )}
-                      {instCols.has('delta') && <TableCell className="text-right font-mono text-sm">{r.delta != null ? `${fmtNum(r.delta)}h` : '—'}</TableCell>}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
+                  <TabsContent value="installations">
+                    <Card>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {instCols.has('type') && <TableHead>Tipo</TableHead>}
+                            {instCols.has('serial') && <TableHead>S/N</TableHead>}
+                            {instCols.has('equipment') && <TableHead>Equipamento</TableHead>}
+                            {instCols.has('installDate') && <TableHead>Instalação</TableHead>}
+                            {instCols.has('removeDate') && <TableHead>Remoção</TableHead>}
+                            {instCols.has('delta') && <TableHead className="text-right">Delta (h)</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {installationRows.length === 0 ? (
+                            <TableRow><TableCell colSpan={visibleInstColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
+                          ) : installationRows.map((r, idx) => (
+                            <TableRow key={idx}>
+                              {instCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
+                              {instCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
+                              {instCols.has('equipment') && <TableCell className="text-sm">{r.equipment}</TableCell>}
+                              {instCols.has('installDate') && (
+                                <TableCell className="text-xs">
+                                  <span className="font-mono">{format(new Date(r.installDate), 'dd/MM/yyyy')}</span>
+                                  <span className="text-muted-foreground ml-1">({fmtNum(r.installHor)}h)</span>
+                                </TableCell>
+                              )}
+                              {instCols.has('removeDate') && (
+                                <TableCell className="text-xs">
+                                  {r.removeDate ? (
+                                    <><span className="font-mono">{format(new Date(r.removeDate), 'dd/MM/yyyy')}</span><span className="text-muted-foreground ml-1">({fmtNum(r.removeHor!)}h)</span></>
+                                  ) : <Badge variant="outline" className="text-xs">Ativo</Badge>}
+                                </TableCell>
+                              )}
+                              {instCols.has('delta') && <TableCell className="text-right font-mono text-sm">{r.delta != null ? `${fmtNum(r.delta)}h` : '—'}</TableCell>}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </Card>
+                  </TabsContent>
 
-          <TabsContent value="maintenances">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {maintCols.has('type') && <TableHead>Tipo</TableHead>}
-                    {maintCols.has('serial') && <TableHead>S/N</TableHead>}
-                    {maintCols.has('date') && <TableHead>Data</TableHead>}
-                    {maintCols.has('horimeter') && <TableHead>Horímetro</TableHead>}
-                    {maintCols.has('description') && <TableHead>Descrição</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {maintenanceRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={visibleMaintColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
-                  ) : maintenanceRows.map((r, idx) => (
-                    <TableRow key={idx}>
-                      {maintCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
-                      {maintCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
-                      {maintCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
-                      {maintCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
-                      {maintCols.has('description') && <TableCell className="text-sm">{r.description}</TableCell>}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-            {/* Summary table */}
-            {assetType !== 'turbo' && maintenanceSummary.length > 0 && (
-              <Card className="mt-4">
-                <CardContent className="pt-4">
-                  <h3 className="text-sm font-semibold mb-2">Quadro Resumo — Horas Totais Estimadas</h3>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>S/N Cabeçote</TableHead>
-                        <TableHead className="text-right">Horas Totais</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {maintenanceSummary.map(s => (
-                        <TableRow key={s.serial}>
-                          <TableCell className="font-mono font-medium text-sm">{s.serial}</TableCell>
-                          <TableCell className="text-right font-mono text-sm">{fmtNum(s.hours)}h</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
+                  <TabsContent value="maintenances">
+                    <Card>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {maintCols.has('type') && <TableHead>Tipo</TableHead>}
+                            {maintCols.has('serial') && <TableHead>S/N</TableHead>}
+                            {maintCols.has('date') && <TableHead>Data</TableHead>}
+                            {maintCols.has('horimeter') && <TableHead>Horímetro</TableHead>}
+                            {maintCols.has('description') && <TableHead>Descrição</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {maintenanceRows.length === 0 ? (
+                            <TableRow><TableCell colSpan={visibleMaintColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
+                          ) : maintenanceRows.map((r, idx) => (
+                            <TableRow key={idx}>
+                              {maintCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
+                              {maintCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
+                              {maintCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
+                              {maintCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
+                              {maintCols.has('description') && <TableCell className="text-sm">{r.description}</TableCell>}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </Card>
+                    {/* Summary table */}
+                    {assetType !== 'turbo' && maintenanceSummary.length > 0 && (
+                      <Card className="mt-4">
+                        <CardContent className="pt-4">
+                          <h3 className="text-sm font-semibold mb-2">Quadro Resumo — Horas Totais Estimadas</h3>
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>S/N Cabeçote</TableHead>
+                                <TableHead className="text-right">Horas Totais</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {maintenanceSummary.map(s => (
+                                <TableRow key={s.serial}>
+                                  <TableCell className="font-mono font-medium text-sm">{s.serial}</TableCell>
+                                  <TableCell className="text-right font-mono text-sm">{fmtNum(s.hours)}h</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </TabsContent>
 
-          <TabsContent value="components">
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {compCols.has('type') && <TableHead>Tipo</TableHead>}
-                    {compCols.has('serial') && <TableHead>S/N</TableHead>}
-                    {compCols.has('component') && <TableHead>Componente</TableHead>}
-                    {compCols.has('date') && <TableHead>Data</TableHead>}
-                    {compCols.has('horimeter') && <TableHead>Horímetro</TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {componentRows.length === 0 ? (
-                    <TableRow><TableCell colSpan={visibleCompColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
-                  ) : componentRows.map((r, idx) => (
-                    <TableRow key={idx}>
-                      {compCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
-                      {compCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
-                      {compCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
-                      {compCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
-                      {compCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </Card>
-          </TabsContent>
-        </Tabs>
-          </CardContent>
-        </Card>
+                  <TabsContent value="components">
+                    <Card>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            {compCols.has('type') && <TableHead>Tipo</TableHead>}
+                            {compCols.has('serial') && <TableHead>S/N</TableHead>}
+                            {compCols.has('component') && <TableHead>Componente</TableHead>}
+                            {compCols.has('date') && <TableHead>Data</TableHead>}
+                            {compCols.has('horimeter') && <TableHead>Horímetro</TableHead>}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {componentRows.length === 0 ? (
+                            <TableRow><TableCell colSpan={visibleCompColCount} className="text-center text-muted-foreground py-8">Nenhum registro encontrado.</TableCell></TableRow>
+                          ) : componentRows.map((r, idx) => (
+                            <TableRow key={idx}>
+                              {compCols.has('type') && <TableCell><Badge variant="secondary" className="text-xs">{r.type}</Badge></TableCell>}
+                              {compCols.has('serial') && <TableCell className="font-mono font-medium text-sm">{r.serial}</TableCell>}
+                              {compCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
+                              {compCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
+                              {compCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Serviços Realizados — global */}
         <Card className="overflow-hidden border-emerald-200/40">
