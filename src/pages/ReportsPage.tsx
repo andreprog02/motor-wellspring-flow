@@ -143,6 +143,10 @@ export default function ReportsPage() {
     { field: 'date', dir: 'desc' },
   ]);
 
+  // Collapsible card states
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [servicesOpen, setServicesOpen] = useState(false);
+
   // Column visibility state per report type
   const [instCols, setInstCols] = useState<Set<string>>(new Set(installationColumns.map(c => c.key)));
   const [maintCols, setMaintCols] = useState<Set<string>>(new Set(maintenanceColumns.map(c => c.key)));
