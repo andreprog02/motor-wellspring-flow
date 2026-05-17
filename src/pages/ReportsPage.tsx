@@ -285,19 +285,84 @@ export default function ReportsPage() {
     return rows;
   }, [assetType, chComponents, tbComponents, chMap, tbMap, dateFrom, dateTo, serialFilter, compSortBy, compSortDir, selectedTurbos]);
 
+  // --- Services performed (consolidated log of completed maintenance) ---
+  const serviceEffectiveFrom = useMemo(() => {
+    if (servicePeriod === 'custom') return dateFrom || '';
+    const d = new Date();
+    const days = servicePeriod === 'week' ? 7 : servicePeriod === 'biweek' ? 15 : 30;
+    d.setDate(d.getDate() - days);
+    return format(d, 'yyyy-MM-dd');
+  }, [servicePeriod, dateFrom]);
+  const serviceEffectiveTo = servicePeriod === 'custom' ? dateTo : '';
+
+  const filterServiceDate = (dateStr: string) => {
+    if (serviceEffectiveFrom && dateStr < serviceEffectiveFrom) return false;
+    if (serviceEffectiveTo && dateStr > serviceEffectiveTo) return false;
+    return true;
+  };
+
+  const servicesRows = useMemo(() => {
+    type Row = { date: string; equipment: string; component: string; serviceType: string };
+    const rows: Row[] = [];
+    const logs = maintenanceLogs.data || [];
+    logs.forEach((l: any) => {
+      if (!filterServiceDate(l.service_date)) return;
+      if (equipFilter !== 'all' && l.equipment_id !== equipFilter) return;
+      const { component, service } = parseMaintenanceType(l.maintenance_type);
+      rows.push({
+        date: l.service_date,
+        equipment: l.equipment_name || eqMap[l.equipment_id] || '—',
+        component,
+        serviceType: service,
+      });
+    });
+    // Cylinder head maintenances → resolve equipment via installation active at the date
+    chMaintenances.forEach((m: any) => {
+      if (!filterServiceDate(m.maintenance_date)) return;
+      const inst = chInstallations.find((i: any) =>
+        i.cylinder_head_id === m.cylinder_head_id &&
+        i.install_date <= m.maintenance_date &&
+        (!i.remove_date || i.remove_date >= m.maintenance_date)
+      );
+      const eqName = inst ? (eqMap[inst.equipment_id] || '—') : '—';
+      if (equipFilter !== 'all' && (!inst || inst.equipment_id !== equipFilter)) return;
+      rows.push({ date: m.maintenance_date, equipment: eqName, component: 'Cabeçote', serviceType: 'Manutenção' });
+    });
+    tbMaintenances.forEach((m: any) => {
+      if (!filterServiceDate(m.maintenance_date)) return;
+      const inst = tbInstallations.find((i: any) =>
+        i.turbo_id === m.turbo_id &&
+        i.install_date <= m.maintenance_date &&
+        (!i.remove_date || i.remove_date >= m.maintenance_date)
+      );
+      const eqName = inst ? (eqMap[inst.equipment_id] || '—') : '—';
+      if (equipFilter !== 'all' && (!inst || inst.equipment_id !== equipFilter)) return;
+      rows.push({ date: m.maintenance_date, equipment: eqName, component: 'Turbo', serviceType: 'Manutenção' });
+    });
+
+    const dir = svcSortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      const av = (a as any)[svcSortBy] ?? '';
+      const bv = (b as any)[svcSortBy] ?? '';
+      return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+    });
+    return rows;
+  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSortBy, svcSortDir]);
+
   // Get active columns/sort config for current report type
-  const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : componentColumns;
-  const activeColsSet = reportType === 'installations' ? instCols : reportType === 'maintenances' ? maintCols : compCols;
-  const activeColsSetFn = reportType === 'installations' ? setInstCols : reportType === 'maintenances' ? setMaintCols : setCompCols;
-  const activeSortBy = reportType === 'installations' ? instSortBy : reportType === 'maintenances' ? maintSortBy : compSortBy;
-  const activeSortDir = reportType === 'installations' ? instSortDir : reportType === 'maintenances' ? maintSortDir : compSortDir;
-  const setActiveSortBy = reportType === 'installations' ? setInstSortBy : reportType === 'maintenances' ? setMaintSortBy : setCompSortBy;
-  const setActiveSortDir = reportType === 'installations' ? setInstSortDir : reportType === 'maintenances' ? setMaintSortDir : setCompSortDir;
+  const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : reportType === 'components' ? componentColumns : servicesColumns;
+  const activeColsSet = reportType === 'installations' ? instCols : reportType === 'maintenances' ? maintCols : reportType === 'components' ? compCols : svcCols;
+  const activeColsSetFn = reportType === 'installations' ? setInstCols : reportType === 'maintenances' ? setMaintCols : reportType === 'components' ? setCompCols : setSvcCols;
+  const activeSortBy = reportType === 'installations' ? instSortBy : reportType === 'maintenances' ? maintSortBy : reportType === 'components' ? compSortBy : svcSortBy;
+  const activeSortDir = reportType === 'installations' ? instSortDir : reportType === 'maintenances' ? maintSortDir : reportType === 'components' ? compSortDir : svcSortDir;
+  const setActiveSortBy = reportType === 'installations' ? setInstSortBy : reportType === 'maintenances' ? setMaintSortBy : reportType === 'components' ? setCompSortBy : setSvcSortBy;
+  const setActiveSortDir = reportType === 'installations' ? setInstSortDir : reportType === 'maintenances' ? setMaintSortDir : reportType === 'components' ? setCompSortDir : setSvcSortDir;
 
   const reportTypeLabels: Record<ReportType, string> = {
     installations: 'instalacoes',
     maintenances: 'manutencoes',
     components: 'troca_componentes',
+    services: 'servicos_realizados',
   };
 
   const buildFileName = (ext: string) => {
