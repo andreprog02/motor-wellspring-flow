@@ -3,6 +3,7 @@ import { AppLayout } from '@/components/AppLayout';
 import { useCylinderHeadStore } from '@/hooks/useCylinderHeadStore';
 import { useTurboStore } from '@/hooks/useTurboStore';
 import { useEquipmentStore } from '@/hooks/useEquipmentStore';
+import { useMaintenanceStore } from '@/hooks/useMaintenanceStore';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,8 +24,9 @@ function fmtNum(n: number): string {
   return n.toLocaleString('pt-BR');
 }
 
-type ReportType = 'installations' | 'maintenances' | 'components';
+type ReportType = 'installations' | 'maintenances' | 'components' | 'services';
 type AssetType = 'all' | 'cylinder_head' | 'turbo';
+type PeriodType = 'week' | 'biweek' | 'month' | 'custom';
 
 const installationColumns = [
   { key: 'type', label: 'Tipo' },
@@ -51,10 +53,52 @@ const componentColumns = [
   { key: 'horimeter', label: 'Horímetro' },
 ] as const;
 
+const servicesColumns = [
+  { key: 'date', label: 'Data' },
+  { key: 'equipment', label: 'Gerador / Equipamento' },
+  { key: 'component', label: 'Componente' },
+  { key: 'serviceType', label: 'Tipo de Serviço' },
+] as const;
+
+// Maps maintenance_type strings to a friendly { component, service } pair.
+const COMPONENT_LABELS: Record<string, string> = {
+  oil: 'Óleo',
+  oil_filter: 'Filtro de Óleo',
+  air_filter: 'Filtro de Ar',
+  fuel_filter: 'Filtro de Combustível',
+  spark_plug: 'Vela',
+  piston: 'Pistão',
+  liner: 'Camisa',
+  bearing: 'Mancal',
+  cylinder_head: 'Cabeçote',
+  turbo: 'Turbo',
+};
+const SERVICE_LABELS: Record<string, string> = {
+  change: 'Troca',
+  replacement: 'Substituição',
+  inspection: 'Inspeção',
+  borescope: 'Boroscopia',
+  maintenance: 'Manutenção',
+};
+function parseMaintenanceType(mt: string): { component: string; service: string } {
+  if (!mt) return { component: '—', service: '—' };
+  // try suffix matches against known service words
+  for (const suf of Object.keys(SERVICE_LABELS)) {
+    if (mt.endsWith('_' + suf)) {
+      const comp = mt.slice(0, -(suf.length + 1));
+      return { component: COMPONENT_LABELS[comp] || comp, service: SERVICE_LABELS[suf] };
+    }
+    if (mt === suf) return { component: '—', service: SERVICE_LABELS[suf] };
+  }
+  // No suffix → just component
+  return { component: COMPONENT_LABELS[mt] || mt, service: '—' };
+}
+
 export default function ReportsPage() {
   const chStore = useCylinderHeadStore();
   const tbStore = useTurboStore();
   const { equipments } = useEquipmentStore();
+  const { logs: maintenanceLogs } = useMaintenanceStore();
 
   const [reportType, setReportType] = useState<ReportType>('installations');
   const [assetType, setAssetType] = useState<AssetType>('all');
@@ -63,6 +107,7 @@ export default function ReportsPage() {
   const [equipFilter, setEquipFilter] = useState('all');
   const [serialFilter, setSerialFilter] = useState('');
   const [selectedTurbos, setSelectedTurbos] = useState<Set<string>>(new Set());
+  const [servicePeriod, setServicePeriod] = useState<PeriodType>('month');
 
   // Sort state per report type
   const [instSortBy, setInstSortBy] = useState<string>('installDate');
@@ -71,11 +116,14 @@ export default function ReportsPage() {
   const [maintSortDir, setMaintSortDir] = useState<'asc' | 'desc'>('desc');
   const [compSortBy, setCompSortBy] = useState<string>('date');
   const [compSortDir, setCompSortDir] = useState<'asc' | 'desc'>('desc');
+  const [svcSortBy, setSvcSortBy] = useState<string>('date');
+  const [svcSortDir, setSvcSortDir] = useState<'asc' | 'desc'>('desc');
 
   // Column visibility state per report type
   const [instCols, setInstCols] = useState<Set<string>>(new Set(installationColumns.map(c => c.key)));
   const [maintCols, setMaintCols] = useState<Set<string>>(new Set(maintenanceColumns.map(c => c.key)));
   const [compCols, setCompCols] = useState<Set<string>>(new Set(componentColumns.map(c => c.key)));
+  const [svcCols, setSvcCols] = useState<Set<string>>(new Set(servicesColumns.map(c => c.key)));
 
   const toggleCol = (set: Set<string>, setFn: React.Dispatch<React.SetStateAction<Set<string>>>, key: string) => {
     const next = new Set(set);
@@ -237,19 +285,84 @@ export default function ReportsPage() {
     return rows;
   }, [assetType, chComponents, tbComponents, chMap, tbMap, dateFrom, dateTo, serialFilter, compSortBy, compSortDir, selectedTurbos]);
 
+  // --- Services performed (consolidated log of completed maintenance) ---
+  const serviceEffectiveFrom = useMemo(() => {
+    if (servicePeriod === 'custom') return dateFrom || '';
+    const d = new Date();
+    const days = servicePeriod === 'week' ? 7 : servicePeriod === 'biweek' ? 15 : 30;
+    d.setDate(d.getDate() - days);
+    return format(d, 'yyyy-MM-dd');
+  }, [servicePeriod, dateFrom]);
+  const serviceEffectiveTo = servicePeriod === 'custom' ? dateTo : '';
+
+  const filterServiceDate = (dateStr: string) => {
+    if (serviceEffectiveFrom && dateStr < serviceEffectiveFrom) return false;
+    if (serviceEffectiveTo && dateStr > serviceEffectiveTo) return false;
+    return true;
+  };
+
+  const servicesRows = useMemo(() => {
+    type Row = { date: string; equipment: string; component: string; serviceType: string };
+    const rows: Row[] = [];
+    const logs = maintenanceLogs.data || [];
+    logs.forEach((l: any) => {
+      if (!filterServiceDate(l.service_date)) return;
+      if (equipFilter !== 'all' && l.equipment_id !== equipFilter) return;
+      const { component, service } = parseMaintenanceType(l.maintenance_type);
+      rows.push({
+        date: l.service_date,
+        equipment: l.equipment_name || eqMap[l.equipment_id] || '—',
+        component,
+        serviceType: service,
+      });
+    });
+    // Cylinder head maintenances → resolve equipment via installation active at the date
+    chMaintenances.forEach((m: any) => {
+      if (!filterServiceDate(m.maintenance_date)) return;
+      const inst = chInstallations.find((i: any) =>
+        i.cylinder_head_id === m.cylinder_head_id &&
+        i.install_date <= m.maintenance_date &&
+        (!i.remove_date || i.remove_date >= m.maintenance_date)
+      );
+      const eqName = inst ? (eqMap[inst.equipment_id] || '—') : '—';
+      if (equipFilter !== 'all' && (!inst || inst.equipment_id !== equipFilter)) return;
+      rows.push({ date: m.maintenance_date, equipment: eqName, component: 'Cabeçote', serviceType: 'Manutenção' });
+    });
+    tbMaintenances.forEach((m: any) => {
+      if (!filterServiceDate(m.maintenance_date)) return;
+      const inst = tbInstallations.find((i: any) =>
+        i.turbo_id === m.turbo_id &&
+        i.install_date <= m.maintenance_date &&
+        (!i.remove_date || i.remove_date >= m.maintenance_date)
+      );
+      const eqName = inst ? (eqMap[inst.equipment_id] || '—') : '—';
+      if (equipFilter !== 'all' && (!inst || inst.equipment_id !== equipFilter)) return;
+      rows.push({ date: m.maintenance_date, equipment: eqName, component: 'Turbo', serviceType: 'Manutenção' });
+    });
+
+    const dir = svcSortDir === 'asc' ? 1 : -1;
+    rows.sort((a, b) => {
+      const av = (a as any)[svcSortBy] ?? '';
+      const bv = (b as any)[svcSortBy] ?? '';
+      return String(av).localeCompare(String(bv), 'pt-BR', { numeric: true }) * dir;
+    });
+    return rows;
+  }, [maintenanceLogs.data, chMaintenances, tbMaintenances, chInstallations, tbInstallations, eqMap, equipFilter, serviceEffectiveFrom, serviceEffectiveTo, svcSortBy, svcSortDir]);
+
   // Get active columns/sort config for current report type
-  const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : componentColumns;
-  const activeColsSet = reportType === 'installations' ? instCols : reportType === 'maintenances' ? maintCols : compCols;
-  const activeColsSetFn = reportType === 'installations' ? setInstCols : reportType === 'maintenances' ? setMaintCols : setCompCols;
-  const activeSortBy = reportType === 'installations' ? instSortBy : reportType === 'maintenances' ? maintSortBy : compSortBy;
-  const activeSortDir = reportType === 'installations' ? instSortDir : reportType === 'maintenances' ? maintSortDir : compSortDir;
-  const setActiveSortBy = reportType === 'installations' ? setInstSortBy : reportType === 'maintenances' ? setMaintSortBy : setCompSortBy;
-  const setActiveSortDir = reportType === 'installations' ? setInstSortDir : reportType === 'maintenances' ? setMaintSortDir : setCompSortDir;
+  const activeColsDef = reportType === 'installations' ? installationColumns : reportType === 'maintenances' ? maintenanceColumns : reportType === 'components' ? componentColumns : servicesColumns;
+  const activeColsSet = reportType === 'installations' ? instCols : reportType === 'maintenances' ? maintCols : reportType === 'components' ? compCols : svcCols;
+  const activeColsSetFn = reportType === 'installations' ? setInstCols : reportType === 'maintenances' ? setMaintCols : reportType === 'components' ? setCompCols : setSvcCols;
+  const activeSortBy = reportType === 'installations' ? instSortBy : reportType === 'maintenances' ? maintSortBy : reportType === 'components' ? compSortBy : svcSortBy;
+  const activeSortDir = reportType === 'installations' ? instSortDir : reportType === 'maintenances' ? maintSortDir : reportType === 'components' ? compSortDir : svcSortDir;
+  const setActiveSortBy = reportType === 'installations' ? setInstSortBy : reportType === 'maintenances' ? setMaintSortBy : reportType === 'components' ? setCompSortBy : setSvcSortBy;
+  const setActiveSortDir = reportType === 'installations' ? setInstSortDir : reportType === 'maintenances' ? setMaintSortDir : reportType === 'components' ? setCompSortDir : setSvcSortDir;
 
   const reportTypeLabels: Record<ReportType, string> = {
     installations: 'instalacoes',
     maintenances: 'manutencoes',
     components: 'troca_componentes',
+    services: 'servicos_realizados',
   };
 
   const buildFileName = (ext: string) => {
@@ -295,11 +408,26 @@ export default function ReportsPage() {
     }) };
   };
 
+  const buildServicesExportRows = (rows: typeof servicesRows) => {
+    const cols = servicesColumns.filter(c => svcCols.has(c.key));
+    return { header: cols.map(c => c.label), body: rows.map(r => {
+      const vals: Record<string, any> = { date: r.date, equipment: r.equipment, component: r.component, serviceType: r.serviceType };
+      return cols.map(c => vals[c.key]);
+    }) };
+  };
+
+  const getCurrentRows = () =>
+    reportType === 'installations' ? installationRows :
+    reportType === 'maintenances' ? maintenanceRows :
+    reportType === 'components' ? componentRows :
+    servicesRows;
+
   const getExportData = (rows?: any[]) => {
-    const r = rows ?? (reportType === 'installations' ? installationRows : reportType === 'maintenances' ? maintenanceRows : componentRows);
+    const r = rows ?? getCurrentRows();
     if (reportType === 'installations') return buildInstallationExportRows(r as any);
     if (reportType === 'maintenances') return buildMaintenanceExportRows(r as any);
-    return buildComponentExportRows(r as any);
+    if (reportType === 'components') return buildComponentExportRows(r as any);
+    return buildServicesExportRows(r as any);
   };
 
   const handleExportCSV = () => {
@@ -316,7 +444,15 @@ export default function ReportsPage() {
 
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();
-    const currentRows = reportType === 'installations' ? installationRows : reportType === 'maintenances' ? maintenanceRows : componentRows;
+    const currentRows = getCurrentRows();
+
+    if (reportType === 'services') {
+      const { header, body } = getExportData(currentRows);
+      const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Serviços Realizados');
+      XLSX.writeFile(wb, buildFileName('xlsx'));
+      return;
+    }
 
     const cabeçoteRows = currentRows.filter((r: any) => r.type === 'Cabeçote');
     const turboRows = currentRows.filter((r: any) => r.type === 'Turbo');
@@ -347,7 +483,11 @@ export default function ReportsPage() {
     const { default: autoTable } = await import('jspdf-autotable');
 
     const doc = new jsPDF({ orientation: 'landscape' });
-    const title = reportType === 'installations' ? 'Relatório de Instalações' : reportType === 'maintenances' ? 'Relatório de Manutenções' : 'Relatório de Troca de Componentes';
+    const title =
+      reportType === 'installations' ? 'Relatório de Instalações' :
+      reportType === 'maintenances' ? 'Relatório de Manutenções' :
+      reportType === 'components' ? 'Relatório de Troca de Componentes' :
+      'Relatório de Serviços Realizados';
     doc.setFontSize(16);
     doc.text(title, 14, 18);
     doc.setFontSize(9);
@@ -379,11 +519,12 @@ export default function ReportsPage() {
     doc.save(buildFileName('pdf'));
   };
 
-  const currentCount = reportType === 'installations' ? installationRows.length : reportType === 'maintenances' ? maintenanceRows.length : componentRows.length;
+  const currentCount = getCurrentRows().length;
 
   const visibleInstColCount = installationColumns.filter(c => instCols.has(c.key)).length;
   const visibleMaintColCount = maintenanceColumns.filter(c => maintCols.has(c.key)).length;
   const visibleCompColCount = componentColumns.filter(c => compCols.has(c.key)).length;
+  const visibleSvcColCount = servicesColumns.filter(c => svcCols.has(c.key)).length;
 
   return (
     <AppLayout>
@@ -540,6 +681,7 @@ export default function ReportsPage() {
             <TabsTrigger value="installations">Instalações ({installationRows.length})</TabsTrigger>
             <TabsTrigger value="maintenances">Manutenções ({maintenanceRows.length})</TabsTrigger>
             <TabsTrigger value="components">Troca de Componentes ({componentRows.length})</TabsTrigger>
+            <TabsTrigger value="services">Serviços Realizados ({servicesRows.length})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="installations">
@@ -659,6 +801,57 @@ export default function ReportsPage() {
                       {compCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
                       {compCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date), 'dd/MM/yyyy')}</TableCell>}
                       {compCols.has('horimeter') && <TableCell className="font-mono text-sm">{fmtNum(r.horimeter)}h</TableCell>}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="services">
+            <Card>
+              <CardContent className="p-4 flex flex-wrap items-end gap-3 border-b">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Período</label>
+                  <Select value={servicePeriod} onValueChange={(v) => setServicePeriod(v as PeriodType)}>
+                    <SelectTrigger className="h-9 w-[180px]"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="week">Semanal (7 dias)</SelectItem>
+                      <SelectItem value="biweek">Quinzenal (15 dias)</SelectItem>
+                      <SelectItem value="month">Mensal (30 dias)</SelectItem>
+                      <SelectItem value="custom">Período personalizado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {servicePeriod === 'custom' && (
+                  <p className="text-xs text-muted-foreground">
+                    Usando filtros de Data Início / Data Fim acima.
+                  </p>
+                )}
+                {servicePeriod !== 'custom' && (
+                  <p className="text-xs text-muted-foreground">
+                    A partir de {format(new Date(serviceEffectiveFrom + 'T12:00:00'), 'dd/MM/yyyy')}
+                  </p>
+                )}
+              </CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {svcCols.has('date') && <TableHead>Data</TableHead>}
+                    {svcCols.has('equipment') && <TableHead>Gerador / Equipamento</TableHead>}
+                    {svcCols.has('component') && <TableHead>Componente</TableHead>}
+                    {svcCols.has('serviceType') && <TableHead>Tipo de Serviço</TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {servicesRows.length === 0 ? (
+                    <TableRow><TableCell colSpan={visibleSvcColCount} className="text-center text-muted-foreground py-8">Nenhum serviço encontrado no período.</TableCell></TableRow>
+                  ) : servicesRows.map((r, idx) => (
+                    <TableRow key={idx}>
+                      {svcCols.has('date') && <TableCell className="font-mono text-sm">{format(new Date(r.date + 'T12:00:00'), 'dd/MM/yyyy')}</TableCell>}
+                      {svcCols.has('equipment') && <TableCell className="text-sm">{r.equipment}</TableCell>}
+                      {svcCols.has('component') && <TableCell className="text-sm">{r.component}</TableCell>}
+                      {svcCols.has('serviceType') && <TableCell className="text-sm"><Badge variant="secondary" className="text-xs">{r.serviceType}</Badge></TableCell>}
                     </TableRow>
                   ))}
                 </TableBody>
