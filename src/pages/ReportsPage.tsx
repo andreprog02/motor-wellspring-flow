@@ -309,7 +309,18 @@ export default function ReportsPage() {
     logs.forEach((l: any) => {
       if (!filterServiceDate(l.service_date)) return;
       if (equipFilter !== 'all' && l.equipment_id !== equipFilter) return;
-      const { component, service } = parseMaintenanceType(l.maintenance_type);
+      const isOutro = eqTypeMap[l.equipment_id] === 'outro';
+      let component: string;
+      let service: string;
+      if (isOutro) {
+        // Para "Outros Equipamentos" o maintenance_type é o nome do componente em texto livre
+        component = l.maintenance_type || '—';
+        service = 'Manutenção';
+      } else {
+        const parsed = parseMaintenanceType(l.maintenance_type);
+        component = parsed.component;
+        service = parsed.service;
+      }
       rows.push({
         date: l.service_date,
         equipment: l.equipment_name || eqMap[l.equipment_id] || '—',
