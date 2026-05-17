@@ -444,7 +444,15 @@ export default function ReportsPage() {
 
   const handleExportExcel = () => {
     const wb = XLSX.utils.book_new();
-    const currentRows = reportType === 'installations' ? installationRows : reportType === 'maintenances' ? maintenanceRows : componentRows;
+    const currentRows = getCurrentRows();
+
+    if (reportType === 'services') {
+      const { header, body } = getExportData(currentRows);
+      const ws = XLSX.utils.aoa_to_sheet([header, ...body]);
+      XLSX.utils.book_append_sheet(wb, ws, 'Serviços Realizados');
+      XLSX.writeFile(wb, buildFileName('xlsx'));
+      return;
+    }
 
     const cabeçoteRows = currentRows.filter((r: any) => r.type === 'Cabeçote');
     const turboRows = currentRows.filter((r: any) => r.type === 'Turbo');
