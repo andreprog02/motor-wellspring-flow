@@ -31,6 +31,7 @@ import TermsPage from "./pages/TermsPage";
 import TeamPage from "./pages/TeamPage";
 import SuperAdminPage from "./pages/SuperAdminPage";
 import MaintenanceReportPage from "./pages/MaintenanceReportPage";
+import LandingPage from "./pages/LandingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/landing" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
